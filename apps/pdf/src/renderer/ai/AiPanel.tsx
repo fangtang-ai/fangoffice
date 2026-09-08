@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactElement } from 'react'
-import { AgentLoop } from '@genoffice/agent-core'
+import { AgentLoop, composeSkills, createPresetSkill } from '@genoffice/agent-core'
+import { createMcpPresetHooks } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider'
-import { AiComposer, AiTypingIndicator } from '@genoffice/ui'
+import { AiComposer, AiSkillPicker, AiTypingIndicator, useAiSkills } from '@genoffice/ui'
 import { aiLangDirective, t as tGlobal, useI18n } from '../i18n/locale'
 import { Markdown } from '@genoffice/ui'
 import sendEnterOn from '../assets/send-enter-on.png'
@@ -238,26 +239,15 @@ export function AiPanel({
     dock?.style.setProperty('--ai-panel-width', `${panelWidth}px`)
   }, [panelWidth])
   const settingsRef = useRef<AiSettings | null>(null)
+  // built-in generation skill (技能) selected in the composer; live-read per turn
+  const { presets: skillOptions, active: activeSkill, pick: pickSkill } = useAiSkills(
+    'pdf',
+    () => window.pdfApi.getAiFeatures?.(),
+    () => window.pdfApi.getPresetCatalog?.(),
+  )
+  const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
+  activeSkillRef.current.current = activeSkill
 
-  /** gsk login state for the cloud-tools gate (refreshed on mount and window focus) */
-  const gskLoggedInRef = useRef(false)
-  useEffect(() => {
-    let alive = true
-    const refresh = () => {
-      void window.pdfApi
-        ?.gskStatus()
-        .then((s) => {
-          if (alive) gskLoggedInRef.current = !!s?.loggedIn
-        })
-        .catch(() => {})
-    }
-    refresh()
-    window.addEventListener('focus', refresh)
-    return () => {
-      alive = false
-      window.removeEventListener('focus', refresh)
-    }
-  }, [])
   const langRef = useRef(lang)
   langRef.current = lang
   const apiRef = useRef(api)
@@ -367,13 +357,21 @@ export function AiPanel({
       bakeImage: (ref, op, signal) => apiRef.current.bakeImage(ref, op, signal),
       deleteImage: (ref) => apiRef.current.deleteImage(ref),
       searchImages: (query, max) => apiRef.current.searchImages(query, max),
-      generateImage: (op) => apiRef.current.generateImage(op),
-      gskTools: () => gskLoggedInRef.current && settingsRef.current?.gskToolsEnabled !== false,
       fetchImage: (url) => apiRef.current.fetchImage(url),
     }
     loopRef.current = new AgentLoop({
       transport: createElectronTransport(() => settingsRef.current!),
-      skill: createPdfSkill(deps),
+      skill: composeSkills('pdf+preset', '', [
+        createPdfSkill(deps),
+        createPresetSkill(
+        activeSkillRef.current,
+        createMcpPresetHooks({
+          status: () => window.pdfApi.mcpStatus(),
+          listTools: (server) => window.pdfApi.mcpListTools(server),
+          callTool: (server, tool, args) => window.pdfApi.mcpCallTool(server, tool, args),
+        }),
+      ),
+      ]),
       systemSuffix: () => aiLangDirective(langRef.current),
       events: {
         onText: (text) => {
@@ -595,12 +593,12 @@ export function AiPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Genspark"
+        aria-label={t('aiAssistantTitle')}
       />
       <header className="ai-panel-header">
         <span className="ai-panel-title">
-          <GensparkMark size={22} />
-          Genspark
+          <AiMark size={22} />
+          {t('aiAssistantTitle')}
         </span>
         <div className="ai-panel-header-actions">
           {chat.length > 0 && (
@@ -778,6 +776,16 @@ export function AiPanel({
           sendLabel={t('aiSend')}
           stopLabel={t('aiStop')}
           iconOnly
+          footerStart={
+            <AiSkillPicker
+              presets={skillOptions}
+              activeId={activeSkill?.id ?? null}
+              onPick={pickSkill}
+              label={t('aiSkillsLabel')}
+              noneLabel={t('aiSkillNone')}
+              tip={t('aiSkillsTip')}
+            />
+          }
           sendIconEnabled={<img src={sendEnterOn} alt="" aria-hidden />}
           sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
           stopIcon={<img src={sendStop} alt="" aria-hidden />}
@@ -975,7 +983,7 @@ function IconCollapse(): ReactElement {
 
 /** Genspark brand mark (rounded-square sparkle badge), inline so it renders
  * crisply at device resolution instead of going through <img> rasterization */
-export function GensparkMark({ size = 18 }: { size?: number }): React.JSX.Element {
+export function AiMark({ size = 18 }: { size?: number }): React.JSX.Element {
   return (
     <svg
       width={size}

@@ -3,7 +3,7 @@
  * auto-update feed URL can be injected at build time instead of living in
  * the repo).
  *
- * GENOFFICE_UPDATE_URL — public base URL of the update channel (the generic
+ * FANGTANG_UPDATE_URL — public base URL of the update channel (the generic
  * provider prefix that serves latest.yml / latest-mac.yml). Required for
  * release builds; CI provides it as a repository secret. For local release
  * builds put it in apps/shell/electron-builder.env (gitignored) — the
@@ -20,7 +20,7 @@
  * src/main/analytics.ts. When either is unset — every source/fork build —
  * nothing is injected and the app runs with analytics fully disabled.
  *
- * GENOFFICE_FONT_CDN_URL — base URL for the curated downloadable-font catalog.
+ * FANGTANG_FONT_CDN_URL — base URL for the curated downloadable-font catalog.
  * Official release jobs inject it through extraMetadata so the endpoint stays
  * out of source. Without it, font download prompts/catalog entries are hidden;
  * users can still install local font files.
@@ -43,33 +43,31 @@ function normalizeHttpsBaseUrl(name, value) {
   }
 }
 
-const updateUrl = process.env.GENOFFICE_UPDATE_URL
-const ga4MeasurementId = process.env.GENOFFICE_GA4_MEASUREMENT_ID
-const ga4ApiSecret = process.env.GENOFFICE_GA4_API_SECRET
+const updateUrl = process.env.FANGTANG_UPDATE_URL
 const fontCdnUrl = normalizeHttpsBaseUrl(
-  'GENOFFICE_FONT_CDN_URL',
-  process.env.GENOFFICE_FONT_CDN_URL,
+  'FANGTANG_FONT_CDN_URL',
+  process.env.FANGTANG_FONT_CDN_URL,
 )
 
-// GENOFFICE_MAC_X64=1 — opt into packaging the Intel (x64) dmg/zip alongside
+// FANGTANG_MAC_X64=1 — opt into packaging the Intel (x64) dmg/zip alongside
 // arm64. Off by default: Intel packages must only ever ship signed with the
 // company certificate (planned dual-track pipeline), so the current release
 // pipeline stays arm64-only and never produces a personally-signed Intel
-// artifact. The downstream layout (feed archive name, GenOffice-intel.dmg
+// artifact. The downstream layout (feed archive name, 方塘Office-intel.dmg
 // alias) keys off which dmgs exist, so flipping this flag is the single
 // switch.
-const includeMacX64 = process.env.GENOFFICE_MAC_X64 === '1'
+const includeMacX64 = process.env.FANGTANG_MAC_X64 === '1'
 
-// GENOFFICE_WIN_ARM64=1 — package the Windows ARM64 installer instead of x64.
+// FANGTANG_WIN_ARM64=1 — package the Windows ARM64 installer instead of x64.
 // CI runs it as a second electron-builder pass (own BUILD_DIR) after the
 // unchanged x64 pass, so the two never share an output dir or a sidecar path:
 // the sidecar comes from the matching cargo target dir and is checked to
 // exist at beforePack because electron-builder exits 0 on a missing
 // extraResources source (Sheets would ship dead on every ARM install).
-const winArm64 = process.env.GENOFFICE_WIN_ARM64 === '1'
+const winArm64 = process.env.FANGTANG_WIN_ARM64 === '1'
 // 7-Zip packs ARM64 executables with its ARM64 branch filter, which the NSIS
 // install-time extractor (Nsis7z) cannot decode: it silently skips
-// GenOffice.exe and every dll (electron-builder#9983). BCJ it can decode.
+// 方塘Office.exe and every dll (electron-builder#9983). BCJ it can decode.
 if (winArm64 && !process.env.ELECTRON_BUILDER_7Z_FILTER) {
   process.env.ELECTRON_BUILDER_7Z_FILTER = 'BCJ'
 }
@@ -77,19 +75,16 @@ const winArch = winArm64 ? 'arm64' : 'x64'
 const winSidecarTarget = winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-gnu'
 const WIN_SIDECAR = `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`
 
-// The gsk CLI tree below is copied verbatim from node_modules, and the
-// nested commander path depends on npm's current hoisting layout — fail the
-// build with a clear message if an install ever changes it, instead of
-// shipping an installer with a broken gsk runtime.
+// extraResources sources are copied verbatim from node_modules, and nested
+// paths depend on npm's current hoisting layout — fail the build with a clear
+// message if an install ever changes them, instead of shipping an installer
+// with a broken runtime.
 // LICENSES.chromium.html only exists after the Electron binary download —
 // since Electron 42 that no longer happens during `npm ci` (the postinstall
 // script was replaced by the lazy `install-electron` bin), and electron-builder
 // exits 0 on a missing extraResources source, so without this check the
 // installer would silently ship without the Chromium license.
 for (const rel of [
-  '../../node_modules/@genspark/cli',
-  '../../node_modules/@genspark/cli/node_modules/commander',
-  '../../node_modules/ws',
   '../../node_modules/electron/dist/LICENSES.chromium.html',
   '../../node_modules/@embedpdf/pdfium/dist/pdfium.wasm',
   '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
@@ -187,7 +182,7 @@ function assertUniversalVisionOcr() {
 // Runs from the beforePack hook, not at module load: gen-third-party-notices
 // requires this config to read extraResources, and the dist:* scripts run
 // notices before build:all, when the out dirs legitimately don't exist yet.
-// When the mac build packages BOTH arches (GENOFFICE_MAC_X64=1) its
+// When the mac build packages BOTH arches (FANGTANG_MAC_X64=1) its
 // extraResources entry is a single path shared by the two packs, so the
 // sidecar there must be a lipo fat binary — a host-arch-only build (the plain
 // `native:build` dev path) would silently ship an arm64 sidecar inside the
@@ -229,8 +224,8 @@ function assertModuleTreesPresent() {
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genoffice.app',
-  productName: 'GenOffice',
+  appId: 'com.fangtang.app',
+  productName: '方塘Office',
   // Resolved from the installed electron package so dependency bumps can
   // never leave a stale hard-coded pin behind (packaging would silently ship
   // the old runtime).
@@ -274,6 +269,21 @@ const config = {
       from: '../../node_modules/@embedpdf/pdfium/dist/pdfium.wasm',
       to: 'wasm/pdfium.wasm',
     },
+    // Deployment-supplied factory config (AI endpoint, MCP servers); read from
+    // Resources/ when packaged (packages/electron-utils/src/factory-defaults.ts)
+    {
+      from: 'resources/fangtang-defaults.json',
+      to: 'fangtang-defaults.json',
+    },
+    {
+      from: 'resources/fangtang-mcp.json',
+      to: 'fangtang-mcp.json',
+    },
+    // Built-in generation skills (presets/<app>/*.md), IT-editable per deployment
+    {
+      from: 'resources/presets',
+      to: 'presets',
+    },
     {
       from: '../pdf/node_modules/harfbuzzjs/hb-subset.wasm',
       to: 'wasm/hb-subset.wasm',
@@ -289,18 +299,6 @@ const config = {
       from: '../../packages/pdf2docx/ocr-helper/win-ocr.exe',
       to: 'ocr/win-ocr.exe',
     },
-    {
-      from: '../../node_modules/@genspark/cli',
-      to: 'gsk/node_modules/@genspark/cli',
-    },
-    {
-      from: '../../node_modules/@genspark/cli/node_modules/commander',
-      to: 'gsk/node_modules/commander',
-    },
-    {
-      from: '../../node_modules/ws',
-      to: 'gsk/node_modules/ws',
-    },
   ],
   // `mimeType` is read only by the Linux target, where it becomes the
   // desktop entry's MimeType= list; associations without it are dropped
@@ -310,7 +308,7 @@ const config = {
   // build/ as <icon>.icns for the mac CFBundleDocumentTypes entry and
   // <icon>.ico for the NSIS DefaultIcon registry value. Without it both
   // platforms fall back to the app icon, so every associated file shows the
-  // bare GenOffice logo instead of a per-type document icon. The icns/ico
+  // bare 方塘Office logo instead of a per-type document icon. The icns/ico
   // pairs are generated from the shell renderer's file-type tiles by
   // tools/gen-file-association-icons.mjs.
   fileAssociations: [
@@ -382,9 +380,9 @@ const config = {
   mac: {
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
-    // GENOFFICE_MAC_X64=1, see includeMacX64 above) adds Intel support with
-    // electron-builder's default arch-less names (GenOffice-<v>.dmg /
-    // GenOffice-<v>-mac.zip). Both zips land in one latest-mac.yml and
+    // FANGTANG_MAC_X64=1, see includeMacX64 above) adds Intel support with
+    // electron-builder's default arch-less names (方塘Office-<v>.dmg /
+    // 方塘Office-<v>-mac.zip). Both zips land in one latest-mac.yml and
     // electron-updater picks by process.arch. Dual-arch packs ship the same
     // lipo fat xlsx-sidecar (see assertUniversalSidecar above).
     target: [
@@ -428,7 +426,7 @@ const config = {
     // AppImage (self-contained, any distro) + deb (apt install, pulls in the
     // GTK/NSS runtime deps) + rpm (dnf/zypper install on Fedora / RHEL /
     // openSUSE). Default artifact names are kept on purpose —
-    // GenOffice-<v>.AppImage / genoffice_<v>_amd64.deb — because the public
+    // fangtang-office-<v>.AppImage / fangtang-office_<v>_amd64.deb — because the public
     // README download links and the already-published linux-v0.5.149 release
     // use them.
     target: [
@@ -440,27 +438,27 @@ const config = {
     // so apt sees the new packages as the same lineage. Homepage comes from
     // package.json "homepage"; the Package field is pinned in the deb block
     // below (packageName is a per-target option, rejected here by the schema).
-    maintainer: 'Mainfunc, Inc. <team@genspark.ai>',
-    vendor: 'Mainfunc, Inc. <team@genspark.ai>',
+    maintainer: '方塘 <team@fang-tang.cn>',
+    vendor: '方塘 <team@fang-tang.cn>',
     category: 'Office',
     // Icon SET directory, not the single 1024px png: electron-builder does
     // not resize a lone png, so deb/rpm would install only
-    // hicolor/1024x1024/apps/genoffice.png — a size absent from the hicolor
+    // hicolor/1024x1024/apps/fangtang-office.png — a size absent from the hicolor
     // theme index, leaving GNOME/KDE launchers on the generic fallback icon
-    // (genspark-ai/genoffice#90). The set ships every standard raster size.
+    // (internal note: icon set required for hicolor). The set ships every standard raster size.
     icon: 'build/icons',
     // mac and win name the binary from productName; linux instead derives it
     // from package.json "name", and "@genoffice/shell" sanitizes to the
     // invalid "@genofficeshell". Setting it explicitly also makes the
-    // generated genoffice.desktop match the WM_CLASS Electron reports (it
+    // generated fangtang-office.desktop match the WM_CLASS Electron reports (it
     // takes that from the executable basename), so the running window links
     // back to its launcher entry.
-    executableName: 'genoffice',
+    executableName: 'fangtang-office',
     // Electron takes its X11 app_id from package.json "desktopName"
-    // (genoffice.desktop); syncDesktopName makes electron-builder name the
+    // (fangtang-office.desktop); syncDesktopName makes electron-builder name the
     // .desktop file and its StartupWMClass from the same value. Without it
-    // StartupWMClass falls back to productName ("GenOffice"), which does not
-    // match the "genoffice" WM_CLASS the window actually reports — and X11
+    // StartupWMClass falls back to productName ("方塘Office"), which does not
+    // match the "fangtang-office" WM_CLASS the window actually reports — and X11
     // compares case-sensitively, so the taskbar shows an unlinked window.
     syncDesktopName: true,
     extraResources: [
@@ -473,14 +471,14 @@ const config = {
   // Same "@genoffice/shell" problem as executableName above: the default deb
   // artifact name derives from package.json "name", and the scope's "/" makes
   // fpm treat "@genoffice" as a directory. Spell the published name out
-  // (genoffice_<version>_amd64.deb, matching the linux-v0.5.149 release).
+  // (fangtang-office_<version>_amd64.deb).
   // packageName pins the control Package field to the same value the 0.5.149
   // deb shipped with — apt treats a different Package name as an unrelated
   // install, breaking upgrades. Without it, fpm receives productName
   // "GenOffice" and only happens to downcase it to the right value.
   deb: {
-    artifactName: 'genoffice_${version}_${arch}.deb',
-    packageName: 'genoffice',
+    artifactName: 'fangtang-office_${version}_${arch}.deb',
+    packageName: 'fangtang-office',
   },
   // Same "@genoffice/shell" naming problem as deb: spell the artifact name
   // out (${arch} expands to the rpm arch string, x86_64) and pin the rpm
@@ -494,8 +492,8 @@ const config = {
   // latest-linux.yml keeps listing exactly what the CDN pipeline uploads
   // (AppImage + deb) and the promote workflow needs no rpm alias.
   rpm: {
-    artifactName: 'genoffice-${version}.${arch}.rpm',
-    packageName: 'genoffice',
+    artifactName: 'fangtang-office-${version}.${arch}.rpm',
+    packageName: 'fangtang-office',
     publish: null,
   },
   nsis: {
@@ -524,7 +522,7 @@ const config = {
 // individually (Smart App Control, WDAC/AppLocker, AV heuristics) block
 // unsigned child processes — the unsigned xlsx-sidecar.exe died with
 // "spawn UNKNOWN" on such machines even though the installer itself was
-// signed. When CI exports GENOFFICE_WIN_SIGN_MODE ("test" = alpha
+// signed. When CI exports FANGTANG_WIN_SIGN_MODE ("test" = alpha
 // self-signed PFX, "production" = DigiCert KeyLocker — the two modes of
 // scripts/win-sign.cjs, whose env-var contract applies here too), every
 // binary electron-builder signs for win (GenOffice.exe, the NSIS
@@ -533,10 +531,10 @@ const config = {
 // workflow before packaging since electron-builder does not sign
 // extraResources. Unset (local / fork builds) keeps the old behavior:
 // electron-builder has no signing config and packages everything unsigned.
-const winSignMode = process.env.GENOFFICE_WIN_SIGN_MODE
+const winSignMode = process.env.FANGTANG_WIN_SIGN_MODE
 if (winSignMode) {
   if (winSignMode !== 'test' && winSignMode !== 'production') {
-    throw new Error(`GENOFFICE_WIN_SIGN_MODE must be "test" or "production", got "${winSignMode}"`)
+    throw new Error(`FANGTANG_WIN_SIGN_MODE must be "test" or "production", got "${winSignMode}"`)
   }
   config.win.signtoolOptions = {
     // Single pass per file: the sha1+sha256 dual-signing default is a
@@ -566,12 +564,6 @@ if (updateUrl) {
 // CI's "-c.extraMetadata.version=..." CLI override deep-merges with this block,
 // so the version and all injected feature settings survive together.
 const extraMetadata = {}
-if (ga4MeasurementId && ga4ApiSecret) {
-  extraMetadata.genofficeAnalytics = {
-    measurementId: ga4MeasurementId,
-    apiSecret: ga4ApiSecret,
-  }
-}
 if (fontCdnUrl) extraMetadata.genofficeFontCdn = { baseUrl: fontCdnUrl }
 if (Object.keys(extraMetadata).length) config.extraMetadata = extraMetadata
 

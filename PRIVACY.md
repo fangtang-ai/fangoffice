@@ -1,70 +1,34 @@
-# GenOffice Privacy
+# 方塘Office Privacy
 
-Last updated: August 26, 2026
+Last updated: September 7, 2026
 
-GenOffice opens, edits, and saves documents locally. Document editing does not
-upload files to GenOffice. AI features require a network connection and send
-requests only when you use them.
+方塘Office opens, edits, and saves documents locally. Document editing does not
+upload files to anyone. AI features require a network connection and send
+requests only when you use them — and only to the model endpoint your
+organization configured (or the provider you chose in Settings → AI Model).
 
 ## Usage analytics
 
-Usage analytics is enabled by default in packaged official builds, including
-the initial app launch before the onboarding notice is shown. Onboarding
-explains what is collected and where to turn it off.
+This build ships without analytics credentials. The telemetry client is
+compiled in but permanently inactive: no usage events are collected or sent.
 
-You can disable reporting at any time under **Settings → General → Send
-anonymous usage statistics**. An explicit opt-out is remembered and stops all
-subsequent analytics events.
+## No account system
 
-### Events and parameters
+方塘Office has no sign-in and no account. Documents, settings, and AI
+configuration stay on your machine (the app's `userData/` directory), and AI
+requests are authenticated only by the API key your deployment configured.
 
-When enabled, the app sends these events:
+## AI requests
 
-- `install_first_launch` — marks the first analytics-enabled use of a newly
-  assigned anonymous `client_id`; used for retention cohorts
-- `app_launch` — no event-specific parameter
-- `file_open` — `ext`, the file extension such as `docx` or `xlsx`
-- `file_new` — `kind`, one of `docx`, `xlsx`, `pptx`, `md`, or `pdf`
-- `login_click` — no event-specific parameter
-- `login_success` — no event-specific parameter
+When you use an AI feature, the relevant document context (for example the
+current document's block outline or the selected cells) is sent to the
+configured model endpoint together with your instruction. Use of that service
+is subject to your organization's policies. Built-in web/image search tools
+query public search backends with your search keywords. MCP tool calls are
+sent only to the servers your administrators registered in
+`fangtang-mcp.json`.
 
-Every event includes:
+## Crash reports and auto-update
 
-- `app_version`
-- `platform`
-- `os_version`
-- `ui_lang`
-- a per-process `session_id` derived from the process start time
-- `engagement_time_msec` with the fixed value `100`
-
-When available, the payload also includes `country_id`, the two-letter country
-code from the operating system's regional locale. This can differ from the
-user's physical location.
-
-The Google Analytics 4 payload also uses a random install UUID as `client_id`.
-The country code is sent through GA4's country-only `user_location` field; the
-app does not send a city or region. Neither identifier is a Genspark account or
-email address.
-
-## Network information
-
-Events are sent to Google Analytics 4 using the Measurement Protocol over
-HTTPS. As the HTTPS recipient, Google necessarily sees the connection's public
-IP address and transport metadata, and may use them for coarse geolocation and
-security or spam-abuse processing. GenOffice does not add an IP address to the
-event payload.
-
-## Data not collected by analytics
-
-GenOffice analytics never sends:
-
-- document content
-- file names
-- file paths
-- Genspark account identity
-- email addresses
-
-The analytics metadata is injected only into packaged official builds and is
-not part of this repository. Source builds and forks without that packaged
-metadata install a no-op tracker and send no usage analytics; all features work
-the same.
+No crash reports are collected. When an update feed is configured
+(`FANGTANG_UPDATE_URL`), the app contacts that feed to check for updates.

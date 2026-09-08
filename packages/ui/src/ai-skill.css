@@ -1,0 +1,42 @@
+/* AI composer generation-skill picker (see ai-skill.tsx): compact dropdown
+ * sized like the composer's icon buttons. */
+
+.ai-skill-dd .gs-dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  max-width: 140px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ai-skill-dd .gs-dd-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* an active skill tints the trigger so the selection reads at a glance */
+.ai-skill-dd .gs-dd-btn[data-value]:not([data-value='']) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ai-skill-dd .gs-dd-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-skill-dd .gs-dd-caret {
+  display: inline-flex;
+  flex-shrink: 0;
+}

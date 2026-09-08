@@ -18,7 +18,7 @@ describe('aiFetch', () => {
     vi.stubGlobal('fetch', fetchMock)
     await aiFetch('https://x/', { headers: { Authorization: 'Bearer k' } })
     const headers = sentHeaders(fetchMock)
-    expect(headers.get('user-agent')).toBe('GenOffice')
+    expect(headers.get('user-agent')).toBe('FangTangOffice')
     expect(headers.get('authorization')).toBe('Bearer k')
   })
 
@@ -39,7 +39,7 @@ describe('aiFetch', () => {
     const rescue = vi.fn().mockResolvedValue(new Response('rescued'))
     setRescueFetch(rescue)
     await aiFetch('https://x/', {})
-    expect(sentHeaders(rescue).get('user-agent')).toBe('GenOffice')
+    expect(sentHeaders(rescue).get('user-agent')).toBe('FangTangOffice')
   })
 
   it('returns the primary response without touching the rescue path', async () => {

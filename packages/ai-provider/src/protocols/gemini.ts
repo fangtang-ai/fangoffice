@@ -1,7 +1,6 @@
 import type { AgentMessage, AgentToolDef } from '@genoffice/agent-core'
 import { aiFetch } from '../fetch'
 import { httpBodyDetail } from '../http-error'
-import { gensparkAttributionHeaders } from '../providers'
 import type { AiChatResponse, AiProviderConfig } from '../types'
 import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
 import { toGeminiSchema } from './gemini-schema'
@@ -15,7 +14,8 @@ import {
 
 export const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
-function geminiContents(messages: AgentMessage[]): unknown[] {
+/** Exported for tests: assistant parts must echo Gemini 3 thought signatures. */
+export function geminiContents(messages: AgentMessage[]): unknown[] {
   return messages.map((m) => {
     if (m.role === 'user') {
       if (!m.images?.length) return { role: 'user', parts: [{ text: m.text }] }
@@ -29,9 +29,17 @@ function geminiContents(messages: AgentMessage[]): unknown[] {
     }
     if (m.role === 'assistant') {
       const parts: unknown[] = []
-      if (m.text) parts.push({ text: m.text })
+      // Gemini 3 requires thought signatures echoed back exactly as received —
+      // a functionCall part without its signature is rejected (HTTP 400) on
+      // the next turn, which surfaced as "Function call is missing a
+      // thought_signature" on every tool-using follow-up request.
+      if (m.text)
+        parts.push({ text: m.text, ...(m.thoughtSignature ? { thoughtSignature: m.thoughtSignature } : {}) })
       for (const call of m.toolCalls ?? []) {
-        parts.push({ functionCall: { name: call.name, args: call.input } })
+        parts.push({
+          functionCall: { name: call.name, args: call.input },
+          ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
+        })
       }
       // Gemini rejects model turns with empty parts lists.
       if (parts.length === 0) parts.push({ text: '(no content)' })
@@ -66,6 +74,7 @@ function emitGeminiJsonMessage(bodyText: string, cb: StreamCallbacks): void {
       content?: {
         parts?: Array<{
           text?: string
+          thoughtSignature?: string
           functionCall?: { name?: string; args?: Record<string, unknown> }
         }>
       }
@@ -89,6 +98,7 @@ function emitGeminiJsonMessage(bodyText: string, cb: StreamCallbacks): void {
       if (part.text) {
         emitted = true
         cb.onDelta(part.text)
+        if (part.thoughtSignature) cb.onThoughtSignature?.(part.thoughtSignature)
       }
       if (part.functionCall?.name) {
         emitted = true
@@ -96,6 +106,7 @@ function emitGeminiJsonMessage(bodyText: string, cb: StreamCallbacks): void {
           id: crypto.randomUUID(),
           name: part.functionCall.name,
           input: part.functionCall.args ?? {},
+          ...(part.thoughtSignature ? { thoughtSignature: part.thoughtSignature } : {}),
         })
       }
     }
@@ -153,7 +164,6 @@ async function geminiTurn(
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': config.apiKey,
-      ...gensparkAttributionHeaders(baseUrl),
     },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
@@ -209,6 +219,7 @@ async function geminiTurn(
           content?: {
             parts?: Array<{
               text?: string
+              thoughtSignature?: string
               functionCall?: { name?: string; args?: Record<string, unknown> }
             }>
           }
@@ -232,6 +243,7 @@ async function geminiTurn(
       if (part.text) {
         emitted = true
         cb.onDelta(part.text)
+        if (part.thoughtSignature) cb.onThoughtSignature?.(part.thoughtSignature)
       }
       // Gemini emits function calls whole, never as partial JSON
       if (part.functionCall?.name) {
@@ -240,6 +252,7 @@ async function geminiTurn(
           id: crypto.randomUUID(),
           name: part.functionCall.name,
           input: part.functionCall.args ?? {},
+          ...(part.thoughtSignature ? { thoughtSignature: part.thoughtSignature } : {}),
         })
       }
     }
@@ -271,7 +284,6 @@ export async function chatGemini(
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': config.apiKey,
-      ...gensparkAttributionHeaders(baseUrl),
     },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },

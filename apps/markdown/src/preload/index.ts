@@ -1,3 +1,4 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Lang } from '@genoffice/i18n'
 import type { AiStreamChunk } from '@genoffice/ai-provider'
@@ -68,11 +69,38 @@ const api: MarkdownApi = {
     ipcRenderer.on(AI_CHANNELS.streamChunk, listener)
     return () => ipcRenderer.removeListener(AI_CHANNELS.streamChunk, listener)
   },
+  mcpStatus: async () =>
+    (await ipcRenderer.invoke('mcp:status')) as MarkdownApi['mcpStatus'] extends () => Promise<infer T>
+      ? T
+      : never,
+  mcpListTools: async (server: string) =>
+    (await ipcRenderer.invoke('mcp:list-tools', server)) as MarkdownApi['mcpListTools'] extends (
+      s: string,
+    ) => Promise<infer T>
+      ? T
+      : never,
+  mcpCallTool: async (server: string, tool: string, args: Record<string, unknown>) =>
+    (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as MarkdownApi['mcpCallTool'] extends (
+      s: string,
+      t: string,
+      a: Record<string, unknown>,
+    ) => Promise<infer T>
+      ? T
+      : never,
+  getAiFeatures: async () => {
+    const result: unknown = await ipcRenderer.invoke('ai:get-features')
+    return result && typeof result === 'object' ? (result as { disabledPresets?: string[] }) : {}
+  },
+  getPresetCatalog: async () => {
+    const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
+    return Array.isArray(result) ? (result as PresetSkillDef[]) : []
+  },
+  setAiFeatures: (features: { disabledPresets?: string[] }) =>
+    ipcRenderer.invoke('ai:set-features', features),
   webSearch: (query, maxResults) => ipcRenderer.invoke(AI_CHANNELS.webSearch, query, maxResults),
   imageSearch: (query, maxResults) =>
     ipcRenderer.invoke(AI_CHANNELS.imageSearch, query, maxResults),
   fetchImage: (url) => ipcRenderer.invoke(AI_CHANNELS.fetchImage, url),
-  aiGenerateImage: (op) => ipcRenderer.invoke(MARKDOWN_CHANNELS.aiGenerateImage, op),
 }
 
 /** Chat persistence: the shared project:* handlers are registered once by the shell (docs-main registerProjectIpc) */

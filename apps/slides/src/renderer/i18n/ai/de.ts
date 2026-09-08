@@ -18,9 +18,12 @@ export const de = {
   aiQcPageSkipped: 'Seite {n}: automatische Layoutprüfung übersprungen',
   aiQcStopped: 'Layoutprüfung gestoppt',
   aiQcCapped: '{count} weitere Seite(n) nicht geprüft (Limit pro Lauf)',
-  aiGskLoginBtn: 'Bei Genspark anmelden',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'KI-Assistent',
   aiOpenAssistant: 'KI-Assistenten öffnen',
+  aiAssistantTitle: 'KI-Assistent',
+  aiSkillsTip: 'Dokument-Skill wählen',
+  aiSkillNone: 'Kein Skill',
+  aiSkillsLabel: 'Skills',
   aiFactCheckBtn: 'KI-Faktencheck',
   aiFactCheckPrompt:
     'Überprüfe die Fakten in dieser Präsentation: Kontrolliere Zahlen, Daten, Namen und Aussagen, weise auf Fehler hin und korrigiere sie',
@@ -118,8 +121,7 @@ export const de = {
   aiErrOverloaded: 'Der KI-Dienst ist derzeit überlastet — bitte gleich erneut versuchen',
   aiErrNetwork:
     'Netzwerkproblem: Der KI-Dienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut',
-  aiCreditsExhausted:
-    'Deine Genspark-Credits sind aufgebraucht. Lade unter genspark.ai/pricing auf und versuche es erneut',
+  aiCreditsExhausted: 'Das Kontingent des Modell-Dienstes ist erschöpft. Wenden Sie sich an Ihren Administrator oder wählen Sie in den Einstellungen ein anderes Modell und versuchen Sie es erneut',
   aiErrRequestFailed: 'Senden der Anfrage fehlgeschlagen: {msg}',
   aiErrGenerateFailed: 'Generierung fehlgeschlagen',
   aiErrRegenFailed: 'Neuerstellung der Folie fehlgeschlagen',

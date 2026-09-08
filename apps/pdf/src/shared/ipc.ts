@@ -1,3 +1,5 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallResult, McpServerInfo, McpToolInfo } from '@genoffice/agent-core'
 import type { Lang } from '@genoffice/i18n'
 import type { AiSettings, AiStreamChunk, AiStreamRequest } from '@genoffice/ai-provider'
 
@@ -28,7 +30,6 @@ export const PDF_CHANNELS = {
   exportImages: 'pdf:export-images',
   convertOffice: 'pdf:convert-office',
   createDocument: 'pdf:create-document',
-  generateImage: 'pdf:generate-image',
   listSignatures: 'pdf:list-signatures',
   addSignature: 'pdf:add-signature',
   removeSignature: 'pdf:remove-signature',
@@ -645,7 +646,6 @@ export type ExportImagesResult =
 /** AI channels are app-wide shared ipcMain handlers (shell registers via docs-main registerAiIpc); pass-through only */
 export const AI_CHANNELS = {
   getSettings: 'ai:get-settings',
-  gskStatus: 'ai:gsk-status',
   stream: 'ai:stream',
   streamChunk: 'ai:stream-chunk',
   streamCancel: 'ai:stream-cancel',
@@ -724,14 +724,19 @@ export interface PdfApi {
   /** AI create_document: build a new standalone file in the default folder and open it in a new tab */
   createDocument(request: CreateDocumentRequest): Promise<CreateDocumentResult>
   /** Web image search for AI tools (app-wide ai:image-search handler) */
+  getAiFeatures(): Promise<{ disabledPresets?: string[] }>
+  /** effective built-in skill catalog (file presets replace compiled-in per app) */
+  getPresetCatalog(): Promise<PresetSkillDef[]>
+  /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
+  mcpStatus(): Promise<McpServerInfo[]>
+  mcpListTools(server: string): Promise<McpToolInfo[]>
+  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+
+  setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   imageSearch(query: string, maxResults?: number): Promise<ImageSearchResponse>
   /** Download an image URL in the main process (SSRF-guarded, avoids CORS); null on failure */
   fetchImage(url: string): Promise<{ base64: string; mime: string } | null>
   /** AI image generation via Genspark (gsk); returns a downloadable URL or an error message */
-  generateImage(op: { prompt: string; aspectRatio?: string }): Promise<{
-    url?: string
-    error?: string
-  }>
   /** Saved signatures reusable across documents (persisted in userData), newest first */
   listSavedSignatures(): Promise<SavedSignature[]>
   /** Persist a signature for reuse; returns the updated list (capped, deduplicated) */
@@ -761,7 +766,6 @@ export interface PdfApi {
   onChromePressed(handler: () => void): () => void
   getAiSettings(): Promise<AiSettings>
   /** Genspark login state (gsk); gates the cloud-only generate_image tool */
-  gskStatus(): Promise<{ loggedIn: boolean }>
   aiStream(request: AiStreamRequest): Promise<void>
   aiStreamCancel(requestId: string): Promise<void>
   onAiStream(handler: (chunk: AiStreamChunk) => void): () => void

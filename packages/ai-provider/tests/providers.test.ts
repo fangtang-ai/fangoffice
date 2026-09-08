@@ -6,7 +6,7 @@ import {
   MIN_MAX_OUTPUT_TOKENS,
   activeProvider,
   clampMaxOutputTokens,
-  cloudToolsEnabled,
+  FALLBACK_AI_PROVIDER,
   defaultAiSettings,
   maxOutputTokensOf,
   resolveAiSettings,
@@ -14,9 +14,9 @@ import {
 import type { AiProviderId } from '../src/types'
 
 describe('defaultAiSettings', () => {
-  it('gives every provider its default model and an empty key by default', () => {
+  it('gives every provider its default model and an empty key, defaulting to custom', () => {
     const settings = defaultAiSettings()
-    expect(settings.provider).toBe('genspark')
+    expect(settings.provider).toBe(FALLBACK_AI_PROVIDER)
     for (const meta of AI_PROVIDERS) {
       expect(settings.providers[meta.id].apiKey).toBe('')
       expect(settings.providers[meta.id].model).toBe(meta.defaultModel)
@@ -25,21 +25,47 @@ describe('defaultAiSettings', () => {
     expect(settings.providers.anthropic.baseUrl).toBeUndefined()
   })
 
-  it('applies caller-supplied default keys only to the listed providers', () => {
-    const settings = defaultAiSettings({ anthropic: 'sk-ant-preset' })
+  it('applies factory defaults to the configured provider', () => {
+    const settings = defaultAiSettings({ provider: 'anthropic', apiKey: 'sk-ant-preset' })
+    expect(settings.provider).toBe('anthropic')
     expect(settings.providers.anthropic.apiKey).toBe('sk-ant-preset')
     expect(settings.providers.gemini.apiKey).toBe('')
+    expect(settings.providers.anthropic.model).toBe(
+      AI_PROVIDERS.find((m) => m.id === 'anthropic')!.defaultModel,
+    )
+  })
+
+  it('carries a factory base URL/model/output cap', () => {
+    const settings = defaultAiSettings({
+      provider: 'custom',
+      baseUrl: 'https://gw.internal/v1',
+      model: 'gpt-x',
+      maxOutputTokens: 100000,
+    })
+    expect(settings.providers.custom).toEqual({
+      apiKey: '',
+      baseUrl: 'https://gw.internal/v1',
+      model: 'gpt-x',
+    })
+    expect(settings.maxOutputTokens).toBe(100000)
+  })
+
+  it('ignores an unknown factory provider', () => {
+    const settings = defaultAiSettings({ provider: 'nonsense' as AiProviderId, apiKey: 'k' })
+    expect(settings.provider).toBe(FALLBACK_AI_PROVIDER)
   })
 })
 
 describe('provider model catalog', () => {
   it('offers DeepSeek Vision Exp only through the direct BYOK provider', () => {
-    const genspark = AI_PROVIDERS.find((provider) => provider.id === 'genspark')!
     const deepseek = AI_PROVIDERS.find((provider) => provider.id === 'deepseek')!
 
     expect(deepseek.models).toContain('deepseek-v4-flash-vision-exp')
-    expect(genspark.models).not.toContain('deep-seek-v4-flash')
-    expect(genspark.models).not.toContain('deep-seek-v4-flash-vision-exp-openrouter')
+    for (const meta of AI_PROVIDERS) {
+      if (meta.id !== 'deepseek') {
+        expect(meta.models).not.toContain('deepseek-v4-flash-vision-exp')
+      }
+    }
   })
 
   it('keeps Responses-only models out of the OpenCode tiers (no such protocol yet)', () => {
@@ -56,7 +82,7 @@ describe('provider model catalog', () => {
 
 describe('resolveAiSettings', () => {
   it('returns fresh defaults when nothing is stored', () => {
-    const defaults = defaultAiSettings({ anthropic: 'sk-ant-preset' })
+    const defaults = defaultAiSettings({ provider: 'anthropic', apiKey: 'sk-ant-preset' })
     expect(resolveAiSettings({}, defaults)).toEqual(defaults)
   })
 
@@ -81,7 +107,7 @@ describe('resolveAiSettings', () => {
   })
 
   it('merges stored multi-provider settings over the defaults, provider by provider', () => {
-    const defaults = defaultAiSettings({ anthropic: 'preset-key' })
+    const defaults = defaultAiSettings({ provider: 'anthropic', apiKey: 'preset-key' })
     const resolved = resolveAiSettings(
       {
         provider: 'gemini',
@@ -112,26 +138,12 @@ describe('resolveAiSettings', () => {
     expect(resolved.providers.deepseek).toEqual({ apiKey: 'sk-user', model: 'deepseek-v4-flash' })
   })
 
-  it('rewrites genspark model ids the proxy no longer serves', () => {
+  it('remaps a legacy genspark provider selection to the factory default', () => {
     const resolved = resolveAiSettings(
-      {
-        providers: {
-          genspark: { apiKey: '', model: 'gemini-3.7-flash' },
-        } as never,
-      },
-      defaultAiSettings(),
+      { provider: 'genspark', providers: {} as never } as never,
+      defaultAiSettings({ provider: 'glm', apiKey: 'k' }),
     )
-    expect(resolved.providers.genspark.model).toBe('claude-opus-4-7')
-
-    const gpt = resolveAiSettings(
-      {
-        providers: {
-          genspark: { apiKey: '', model: 'gpt-5.6' },
-        } as never,
-      },
-      defaultAiSettings(),
-    )
-    expect(gpt.providers.genspark.model).toBe('gpt-5.6-terra')
+    expect(resolved.provider).toBe('glm')
   })
 
   it('leaves a still-supported model id alone', () => {
@@ -235,23 +247,23 @@ describe('clampMaxOutputTokens', () => {
 })
 
 describe('activeProvider', () => {
-  it('honors a configured BYOK provider and falls back to genspark otherwise', () => {
-    const settings = defaultAiSettings()
-    expect(activeProvider(settings)).toBe('genspark')
+  it('honors a configured BYOK provider and falls back to the factory default otherwise', () => {
+    const settings = defaultAiSettings({ provider: 'glm', apiKey: 'factory-key' })
+    expect(activeProvider(settings)).toBe('glm')
 
     settings.provider = 'kimi'
-    expect(activeProvider(settings)).toBe('genspark') // no key yet
+    expect(activeProvider(settings, 'glm')).toBe('glm') // no key yet
     settings.providers.kimi.apiKey = 'sk-user'
     expect(activeProvider(settings)).toBe('kimi')
   })
 
   it('requires a base URL for providers that declare needsBaseUrl', () => {
-    const settings = defaultAiSettings()
+    const settings = defaultAiSettings({ provider: 'anthropic', apiKey: 'factory-key' })
     settings.provider = 'custom'
     settings.providers.custom.apiKey = 'k'
-    expect(activeProvider(settings)).toBe('genspark')
+    expect(activeProvider(settings, 'anthropic')).toBe('anthropic')
     settings.providers.custom.baseUrl = 'http://localhost:1234/v1'
-    expect(activeProvider(settings)).toBe('genspark') // custom's default model is empty
+    expect(activeProvider(settings, 'anthropic')).toBe('anthropic') // custom's default model is empty
     settings.providers.custom.model = 'my-model'
     expect(activeProvider(settings)).toBe('custom')
   })
@@ -265,30 +277,9 @@ describe('activeProvider', () => {
     expect(activeProvider(settings)).toBe('custom')
   })
 
-  it('falls back to genspark for unknown ids from a hand-edited settings file', () => {
-    const settings = defaultAiSettings()
+  it('falls back to the factory default for unknown ids from a hand-edited settings file', () => {
+    const settings = defaultAiSettings({ provider: 'anthropic', apiKey: 'factory-key' })
     settings.provider = 'nonsense' as AiProviderId
-    expect(activeProvider(settings)).toBe('genspark')
-  })
-
-  it('genspark never requires a key (injected from the gsk login at request time)', () => {
-    const settings = defaultAiSettings()
-    settings.provider = 'genspark'
-    expect(activeProvider(settings)).toBe('genspark')
-  })
-})
-
-describe('gskToolsEnabled', () => {
-  it('defaults on, survives resolveAiSettings, and only an explicit false turns it off', () => {
-    expect(cloudToolsEnabled(defaultAiSettings())).toBe(true)
-    // pre-toggle settings file (field absent) stays on
-    const legacy = resolveAiSettings({ providers: {} as never }, defaultAiSettings())
-    expect(cloudToolsEnabled(legacy)).toBe(true)
-    const off = resolveAiSettings(
-      { providers: {} as never, gskToolsEnabled: false },
-      defaultAiSettings(),
-    )
-    expect(off.gskToolsEnabled).toBe(false)
-    expect(cloudToolsEnabled(off)).toBe(false)
+    expect(activeProvider(settings, 'anthropic')).toBe('anthropic')
   })
 })

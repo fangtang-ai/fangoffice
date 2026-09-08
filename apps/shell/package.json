@@ -1,13 +1,13 @@
 {
   "name": "@genoffice/shell",
-  "productName": "GenOffice",
+  "productName": "方塘Office",
   "version": "0.9.0",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/genspark-ai/genoffice",
+  "homepage": "https://fang-tang.cn",
   "private": true,
-  "description": "Unified GenOffice shell: one app hosting the docs and sheets modules behind a home/launcher window",
+  "description": "Unified 方塘Office shell: one app hosting the docs and sheets modules behind a home/launcher window",
   "main": "out/main/index.js",
-  "desktopName": "genoffice.desktop",
+  "desktopName": "fangtang-office.desktop",
   "scripts": {
     "dev": "electron-vite dev --watch",
     "build": "electron-vite build",
@@ -26,6 +26,7 @@
     "@genoffice/docx-engine": "*",
     "@genoffice/electron-utils": "*",
     "@genoffice/i18n": "*",
+    "@genoffice/mcp-bridge": "*",
     "@genoffice/pptx-engine": "*",
     "@genoffice/pptx-render": "*",
     "@genoffice/sheets": "*",
@@ -45,5 +46,6 @@
     "vite": "^7.3.1",
     "vitest": "^4.1.10"
   },
-  "author": "GenOffice"
+  "author": "方塘",
+  "dependencies": {}
 }

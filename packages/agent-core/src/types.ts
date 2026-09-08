@@ -14,6 +14,12 @@ export interface AgentToolCall {
   inputError?: string | undefined
   /** The argument stream was cut off by the token limit (stop_reason max_tokens); the loop asks the model to split the call instead of "fixing JSON" */
   truncated?: boolean | undefined
+  /**
+   * Gemini 3 thinking models stamp functionCall parts with a thoughtSignature
+   * and HTTP-400 any later turn whose functionCall part omits it — the
+   * Gemini protocol must echo it back (other providers ignore the field).
+   */
+  thoughtSignature?: string | undefined
 }
 
 export interface AgentToolResult {
@@ -41,6 +47,8 @@ export type AgentMessage =
       text: string
       toolCalls?: AgentToolCall[] | undefined
       reasoning?: string | undefined
+      /** Gemini 3: signature stamped on the turn's text parts, echoed back with the text (see AgentToolCall.thoughtSignature) */
+      thoughtSignature?: string | undefined
     }
   | { role: 'tool'; results: AgentToolResult[] }
 
@@ -100,6 +108,8 @@ export interface AgentStreamCallbacks {
   onDelta(text: string): void
   /** raw model reasoning delta; the loop stores it on the assistant message for interleaved-thinking echo */
   onReasoning?(text: string): void
+  /** Gemini 3: signature stamped on the turn's text parts; the loop stores it on the assistant message to echo back (functionCall signatures ride on onToolCall) */
+  onThoughtSignature?(signature: string): void
   /** complete parsed tool call (arguments finished streaming) */
   onToolCall(call: AgentToolCall): void
   /** Phase changes within the model stream (thinking / responding / tool-input); older transports may omit this */

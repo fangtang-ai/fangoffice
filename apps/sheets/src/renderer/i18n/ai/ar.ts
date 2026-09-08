@@ -4,10 +4,13 @@ export const ar = {
   aiComposerPlaceholderBuild: 'صف الجدول أو البيانات أو المخطط المطلوب إنشاؤه…',
   aiEmptyBuildTitle: 'دع الذكاء الاصطناعي ينشئ هذا المصنف لك',
   aiEmptyBuildBody: 'صف الجدول أو البيانات أو المخطط الذي تريده — ينشئه الذكاء الاصطناعي مباشرة.',
-  aiGskLoginBtn: 'تسجيل الدخول إلى Genspark',
   aiUndelivered: 'لم يتم الإرسال',
   aiRetry: 'إعادة المحاولة',
   aiOpenAssistant: 'فتح مساعد الذكاء الاصطناعي',
+  aiAssistantTitle: 'مساعد الذكاء الاصطناعي',
+  aiSkillsTip: 'اختر مهارة إنشاء المستندات',
+  aiSkillNone: 'بلا مهارة',
+  aiSkillsLabel: 'المهارات',
   aiAskBtn: 'اسأل الذكاء الاصطناعي',
   aiCheckBtn: 'فحص AI',
   aiCheckPrompt:
@@ -48,13 +51,10 @@ export const ar = {
   aiFileTooltip:
     'SHA-256 {sha}\nعند الحفظ تتم إعادة كتابة الإدخالات المحرَّرة فقط؛ ويُحتفظ بكل ما عداها كما هو.',
   aiFileMeta: '{sheets} أوراق · {entries} إدخالات',
-  aiGensparkAccount: 'حساب Genspark',
   aiAccountChecking: 'جارٍ التحقق…',
   aiLoggedIn: 'تم تسجيل الدخول',
   aiLoggedInAs: 'تم تسجيل الدخول: {email}',
-  aiNotLoggedIn: 'لم يتم تسجيل الدخول (تتطلب ميزات الذكاء الاصطناعي حساب Genspark)',
   aiWaitingBrowserLogin: 'في انتظار تسجيل الدخول من المتصفح…',
-  aiLoginGenspark: 'تسجيل الدخول إلى Genspark',
   aiModel: 'النموذج',
   aiCancel: 'إلغاء',
   aiSave: 'حفظ',
@@ -64,8 +64,7 @@ export const ar = {
   aiOverloadedError: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
   aiNetworkError:
     'مشكلة في الشبكة: تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقق من الاتصال وحاول مجددًا',
-  aiCreditsExhausted:
-    'نفدت أرصدة Genspark لديك. يرجى إعادة الشحن عبر genspark.ai/pricing ثم المحاولة مجددًا',
+  aiCreditsExhausted: 'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
   aiToolWorkbookContext: 'قراءة معلومات المصنف',
   aiToolReadRange: 'قراءة النطاق',
   aiToolReadRangeOf: 'قراءة النطاق {range}',

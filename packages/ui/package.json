@@ -11,6 +11,7 @@
     "./screentip.css": "./src/screentip.css",
     "./color-picker.css": "./src/color-picker.css",
     "./dropdown.css": "./src/dropdown.css",
+    "./ai-skill.css": "./src/ai-skill.css",
     "./ribbon-collapse.css": "./src/ribbon-collapse.css",
     "./markdown.css": "./src/markdown.css",
     "./fonts/*": "./src/fonts/*"
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "@genoffice/i18n": "*",
-    "@genoffice/pptx-render": "*"
+    "@genoffice/pptx-render": "*",
+    "@genoffice/agent-core": "*"
   }
 }

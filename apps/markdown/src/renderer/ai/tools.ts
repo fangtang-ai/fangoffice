@@ -744,27 +744,6 @@ export function executeTool(
       })
     }
 
-    case 'generate_image': {
-      if (editedExternally(editor)) return fail(STALE_DOC_ERROR, t('aiToolGenImage'))
-      const prompt = String(call.input.prompt ?? '').trim()
-      if (!prompt) return fail('prompt must not be empty', t('aiToolGenImage'))
-      const aspectRatio = String(call.input.aspectRatio ?? '').trim()
-      return window.markdownApi
-        .aiGenerateImage({ prompt, ...(aspectRatio ? { aspectRatio } : {}) })
-        .then((generated): ToolExecution | Promise<ToolExecution> => {
-          if (signal?.aborted) {
-            return fail('stopped by the user; the image was not inserted', t('aiToolGenImage'))
-          }
-          if (!generated.url) {
-            return fail(generated.error ?? 'image generation failed', t('aiToolGenImage'))
-          }
-          return insertImageFromUrl(editor, generated.url, call.input, signal, {
-            fail: t('aiToolGenImage'),
-            done: t('aiToolGenImageDone'),
-          })
-        })
-    }
-
     default:
       return fail(`Unknown tool: ${call.name}`, call.name)
   }

@@ -1,7 +1,6 @@
 import type { AgentMessage, AgentToolCall, AgentToolDef } from '@genoffice/agent-core'
 
 export type AiProviderId =
-  | 'genspark'
   | 'anthropic'
   | 'gemini'
   | 'deepseek'
@@ -17,12 +16,6 @@ export type AiProviderId =
   | 'opencode-zen'
   | 'opencode-go'
   | 'custom'
-
-/** Genspark account status (gsk login state; the sole auth source for AI features) */
-export interface GenSparkAccountStatus {
-  loggedIn: boolean
-  email?: string
-}
 
 export interface AiProviderConfig {
   apiKey: string
@@ -43,14 +36,6 @@ export interface AiProviderMeta {
 export interface AiSettings {
   provider: AiProviderId
   providers: Record<AiProviderId, AiProviderConfig>
-  /**
-   * Genspark cloud tools (web/image search via gsk, image generation, media
-   * analysis). Default true; false makes tools skip the gsk backend entirely
-   * (search falls back to free sources, gsk-only tools are unavailable).
-   * Only meaningful while signed in — signed out, the gsk backend is
-   * unavailable regardless.
-   */
-  gskToolsEnabled?: boolean
   /**
    * Output-token cap for ONE model turn of agent runs (default
    * DEFAULT_MAX_OUTPUT_TOKENS). Reasoning models bill their thinking against
@@ -93,10 +78,12 @@ export interface AiStreamChunk {
   requestId: string
   /** 'ping' = wire-level keepalive so the renderer can tell a live stream from a dead one;
    * 'reasoning' = model thinking delta (text carries it), stored for interleaved-thinking echo */
-  type: 'delta' | 'reasoning' | 'tool-call' | 'done' | 'error' | 'ping'
+  type: 'delta' | 'reasoning' | 'tool-call' | 'done' | 'error' | 'ping' | 'signature'
   text?: string
-  /** complete parsed tool call (emitted once its arguments finish streaming) */
+  /** complete parsed tool call (emitted once its arguments finish streaming); carries the part's Gemini thoughtSignature when present */
   toolCall?: AgentToolCall
+  /** Gemini 3 thought signature for the turn's text content ('signature' chunks) */
+  signature?: string
   error?: string
   /** machine-readable error cause ('timeout', exhausted 'credits', 'network' connectivity failure, 'overloaded' capacity/rate limit); lets the renderer localize the message */
   errorCode?: 'timeout' | 'credits' | 'network' | 'overloaded'

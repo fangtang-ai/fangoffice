@@ -12,3 +12,11 @@ rustflags = ["-C", "target-feature=+crt-static"]
 
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# Cross-compiling the Windows sidecar from macOS (dist:win): the mingw-w64
+# toolchain (brew install mingw-w64) provides the linker; crt-static keeps the
+# shipped exe free of libgcc/runtime DLL dependencies, same rationale as the
+# MSVC sections above.
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+rustflags = ["-C", "target-feature=+crt-static"]

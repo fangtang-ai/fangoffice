@@ -17,9 +17,12 @@ export const pl = {
   aiQcPageSkipped: 'Strona {n}: pominięto automatyczne sprawdzanie układu',
   aiQcStopped: 'Sprawdzanie układu zatrzymane',
   aiQcCapped: 'Pozostałe {count} stron(y) nie sprawdzono (limit na uruchomienie)',
-  aiGskLoginBtn: 'Zaloguj się do Genspark',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'Asystent AI',
   aiOpenAssistant: 'Otwórz asystenta AI',
+  aiAssistantTitle: 'Asystent AI',
+  aiSkillsTip: 'Wybierz umiejętność generowania',
+  aiSkillNone: 'Brak umiejętności',
+  aiSkillsLabel: 'Umiejętności',
   aiFactCheckBtn: 'Weryfikacja AI',
   aiFactCheckPrompt:
     'Zweryfikuj fakty w tej prezentacji: sprawdź liczby, daty, nazwy i twierdzenia, wskaż i popraw błędy',
@@ -114,8 +117,7 @@ export const pl = {
   aiErrOverloaded: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
   aiErrNetwork:
     'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
-  aiCreditsExhausted:
-    'Twoje kredyty Genspark wyczerpały się. Doładuj konto na genspark.ai/pricing i spróbuj ponownie',
+  aiCreditsExhausted: 'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
   aiErrRequestFailed: 'Wysłanie żądania nie powiodło się: {msg}',
   aiErrGenerateFailed: 'Generowanie nie powiodło się',
   aiErrRegenFailed: 'Ponowne wygenerowanie slajdu nie powiodło się',

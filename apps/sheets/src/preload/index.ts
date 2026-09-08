@@ -1,10 +1,10 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 import type {
   AiChatResponse,
   AiSettings,
   AiStreamChunk,
-  GenSparkAccountStatus,
 } from '@genoffice/ai-provider'
 import type { ProjectApi } from '@genoffice/project-store'
 import type {
@@ -37,7 +37,6 @@ import type {
   WorkbookVisualObject,
   WebSearchResult,
   ImageSearchResponse,
-  GenerateImageResult,
 } from '../shared/desktop-api'
 import {
   HEADER_FOOTER_PICTURE_POSITION,
@@ -458,15 +457,29 @@ const desktopApi: DesktopApi = {
     if (!requestId) throw new Error('Invalid AI stream request id.')
     await ipcRenderer.invoke(IPC_CHANNELS.aiStreamCancel, requestId)
   },
-  async aiGskStatus(withEmail) {
-    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.aiGskStatus, withEmail)
-    if (!isRecord(result) || typeof result.loggedIn !== 'boolean') {
-      throw new Error('Invalid Genspark account status response.')
-    }
-    return result as unknown as GenSparkAccountStatus
+  async getAiFeatures() {
+    const result: unknown = await ipcRenderer.invoke('ai:get-features')
+    return result && typeof result === 'object' ? (result as { disabledPresets?: string[] }) : {}
   },
-  async aiGskLogin() {
-    await ipcRenderer.invoke(IPC_CHANNELS.aiGskLogin)
+  async getPresetCatalog() {
+    const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
+    return Array.isArray(result) ? (result as PresetSkillDef[]) : []
+  },
+  async mcpStatus() {
+    return (await ipcRenderer.invoke('mcp:status')) as Awaited<ReturnType<DesktopApi['mcpStatus']>>
+  },
+  async mcpListTools(server: string) {
+    return (await ipcRenderer.invoke('mcp:list-tools', server)) as Awaited<
+      ReturnType<DesktopApi['mcpListTools']>
+    >
+  },
+  async mcpCallTool(server: string, tool: string, args: Record<string, unknown>) {
+    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as Awaited<
+      ReturnType<DesktopApi['mcpCallTool']>
+    >
+  },
+  async setAiFeatures(features) {
+    await ipcRenderer.invoke('ai:set-features', features)
   },
   async webSearch(query, maxResults) {
     if (typeof query !== 'string' || !query.trim() || query.length > 512) {
@@ -487,14 +500,6 @@ const desktopApi: DesktopApi = {
       throw new Error('Invalid image search response.')
     }
     return result as unknown as ImageSearchResponse
-  },
-  async generateImage(op) {
-    if (!isRecord(op) || typeof op.prompt !== 'string' || !op.prompt.trim()) {
-      throw new Error('Invalid image generation request.')
-    }
-    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.aiGenerateImage, op)
-    if (!isRecord(result)) throw new Error('Invalid image generation response.')
-    return result as unknown as GenerateImageResult
   },
   async fetchImage(url) {
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url) || url.length > 2048) {

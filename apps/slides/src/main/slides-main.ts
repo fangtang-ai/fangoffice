@@ -1,5 +1,5 @@
 /**
- * GenOffice Slides main process — pptx parsing/render-tree building/edit application/saving all live
+ * 方塘Office Slides main process — pptx parsing/render-tree building/edit application/saving all live
  * here (Node side). The renderer only gets plain-data RenderSlide; edit intents are sent back
  * here to apply. Structure mirrors apps/docs: exports embeddable configure/register/start for
  * future shell reuse.
@@ -26,7 +26,6 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { userInfo } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { cleanupExpiredGeneratedPages } from './generated-page-temp'
-import { gskApiKey, gskSlideGenerate, setGskProxyUrl } from '@genoffice/ai-search'
 import {
   appMenuLabels,
   configuredDefaultSaveDir,
@@ -242,8 +241,8 @@ let slideClipboard: { bundle: SlideBundle; png?: string } | null = null
 /** The immediately preceding slide paste per webContents, so the paste-options floater can redo it with another mode. */
 const lastSlidePaste = new Map<number, { afterIndex: number; undoLen: number }>()
 
-// Cloud-generated single-page pptx: marker strings travel in pageMarkers slots; only paths issued
-// by slides:cloud-page-generate are readable (the renderer can't point the reader at arbitrary files)
+// AI-generated single-page pptx: marker strings travel in pageMarkers slots; only paths issued
+// by slides:local-page-generate are readable (the renderer can't point the reader at arbitrary files)
 const CLOUD_PAGE_PREFIX = 'cloudpptx:'
 const issuedCloudPages = new Set<string>()
 import { registerPresenterIpc } from './presenter-show'
@@ -491,7 +490,7 @@ const AUTOSAVE_BACKOFF_TICKS = 10
 let autosaveRunning = false
 
 /**
- * Recovery drafts for never-saved decks (wcId → visible path in <Documents>/GenOffice):
+ * Recovery drafts for never-saved decks (wcId → visible path in <Documents>/方塘Office):
  * the sha1-keyed recovery copy needs session.path, so before the first save a freeze or
  * crash used to lose everything. Removed on save, explicit discard, or clean close.
  */
@@ -754,7 +753,7 @@ async function openAndBuild(
   }
 }
 
-/** Directory where AI-generated drafts are saved: the configurable default save folder (falls back to <Documents>/GenOffice) */
+/** Directory where AI-generated drafts are saved: the configurable default save folder (falls back to <Documents>/方塘Office) */
 function getDraftsDir(): string {
   return configuredDefaultSaveDir(app)
 }
@@ -797,7 +796,7 @@ function pickDraftPath(draftsDir: string, deckName?: string): string {
 }
 
 /**
- * Auto-save the draft to <Documents>/GenOffice/<name>.pptx after AI generation completes.
+ * Auto-save the draft to <Documents>/方塘Office/<name>.pptx after AI generation completes.
  * Append mode reuses the session's existing draft path (overwrite); replace mode generates a
  * new filename. On successful write, update session.path, pushRecent, slidesOpenedHook.
  * On write failure, degrade silently (console.warn) without blocking the in-memory session.
@@ -1552,63 +1551,10 @@ export function registerSlidesIpc(): void {
     }
     return rendered ? { slide: rendered } : null
   })
-  // ── Cloud single-page generation (gsk slide_generate): brief → cloud HTML+conversion → one-slide
-  // pptx saved to a temp file. Returns a marker string that slides:land-generated-pages redeems for
-  // the bytes. Enabled when gsk is logged in; GENOFFICE_CLOUD_SLIDE=0 is the kill switch.
-  const cloudSlideEnabled = () => process.env.GENOFFICE_CLOUD_SLIDE !== '0' && !!gskApiKey()
-
-  ipcMain.handle('slides:cloud-gen-status', () => ({ enabled: cloudSlideEnabled() }))
-
-  ipcMain.handle(
-    'slides:cloud-page-generate',
-    async (
-      _e,
-      op: {
-        brief: string
-        title?: string
-        styleSkill?: string
-        deckContext?: Record<string, unknown>
-        images?: { url: string; caption?: string }[]
-        width?: number
-        height?: number
-      },
-    ): Promise<{ ok: boolean; marker?: string; error?: string }> => {
-      if (!cloudSlideEnabled()) return { ok: false, error: 'cloud slide generation is disabled' }
-      try {
-        // Ultra resolves to the opus-class slide model server-side; standard is the
-        // lighter MiniMax M3 model. Keep an explicit escape hatch for quality
-        // comparisons and emergency rollback.
-        const tier = process.env.GENOFFICE_CLOUD_SLIDE_TIER === 'standard' ? 'standard' : 'ultra'
-        const started = Date.now()
-        const { bytes, model } = await gskSlideGenerate({
-          tier,
-          brief: String(op.brief ?? ''),
-          title: op.title ? String(op.title) : undefined,
-          styleSkill: op.styleSkill ? String(op.styleSkill) : undefined,
-          deckContext: op.deckContext,
-          images: Array.isArray(op.images) ? op.images : undefined,
-          width: op.width,
-          height: op.height,
-        })
-        console.log(
-          `[cloud-slide] page generated: tier=${tier} model=${model} bytes=${bytes.length} ms=${Date.now() - started}`,
-        )
-        const dir = join(app.getPath('temp'), 'genoffice-cloud-pages')
-        mkdirSync(dir, { recursive: true })
-        const path = join(dir, `${randomUUID()}.pptx`)
-        await writeFile(path, bytes)
-        issuedCloudPages.add(path)
-        return { ok: true, marker: CLOUD_PAGE_PREFIX + path }
-      } catch (err) {
-        return { ok: false, error: err instanceof Error ? err.message : String(err) }
-      }
-    },
-  )
-
-  // ── Local single-page generation (no gsk needed, e.g. BYOK): a JSON slide spec written by
+  // ── Single-page generation (local): a JSON slide spec written by
   // the renderer's LLM call is built directly into a one-slide pptx with pptx-engine
-  // primitives — no HTML intermediate. Returns the same marker kind as the cloud path, so
-  // landing (slides:land-generated-pages) is shared.
+  // primitives — no HTML intermediate. Returns a marker string that
+  // slides:land-generated-pages redeems for the bytes.
   ipcMain.handle(
     'slides:local-page-generate',
     async (
@@ -4362,7 +4308,7 @@ export function createSlidesWindow(openPath?: string | null): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 840,
-    title: 'GenOffice Slides',
+    title: '方塘Office Slides',
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const }
       : {
@@ -4562,9 +4508,6 @@ export function installSlidesMenu(): void {
  */
 async function applyMainProcessProxy(): Promise<void> {
   const setDispatcher = async (proxyUrl: string) => {
-    // spawned gsk CLI children do their own fetch and never see the
-    // dispatcher below — forward the proxy to them via env
-    setGskProxyUrl(proxyUrl)
     try {
       const { ProxyAgent, setGlobalDispatcher } = await import('undici')
       setGlobalDispatcher(new ProxyAgent(proxyUrl))
@@ -4588,9 +4531,8 @@ async function applyMainProcessProxy(): Promise<void> {
   // No environment variables: read the system proxy (requires app ready)
   try {
     await app.whenReady()
-    // PAC/rule proxies answer per-host: probe the host the login flow, the
-    // Genspark LLM proxy and the gsk CLI actually target
-    const resolved = await electronSession.defaultSession.resolveProxy('https://www.genspark.ai/')
+    // PAC/rule proxies answer per-host: probe a representative overseas API host
+    const resolved = await electronSession.defaultSession.resolveProxy('https://api.anthropic.com/')
     // resolveProxy returns strings like "PROXY 127.0.0.1:1087" or "DIRECT"
     const m = /PROXY\s+([^;]+)/i.exec(resolved || '')
     if (m) {

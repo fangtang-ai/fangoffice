@@ -17,9 +17,12 @@ export const nl = {
   aiQcPageSkipped: 'Pagina {n}: automatische lay-outcontrole overgeslagen',
   aiQcStopped: 'Lay-outcontrole gestopt',
   aiQcCapped: 'Nog {count} pagina(’s) niet gecontroleerd (limiet per run)',
-  aiGskLoginBtn: 'Aanmelden bij Genspark',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'AI-assistent',
   aiOpenAssistant: 'AI-assistent openen',
+  aiAssistantTitle: 'AI-assistent',
+  aiSkillsTip: 'Kies een documentskill',
+  aiSkillNone: 'Geen skill',
+  aiSkillsLabel: 'Skills',
   aiFactCheckBtn: 'AI-factcheck',
   aiFactCheckPrompt:
     'Factcheck deze presentatie: controleer cijfers, datums, namen en beweringen, en wijs fouten aan en corrigeer ze',
@@ -116,8 +119,7 @@ export const nl = {
   aiErrOverloaded: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
   aiErrNetwork:
     'Netwerkprobleem: kan de AI-service niet bereiken. Controleer je verbinding en probeer het opnieuw',
-  aiCreditsExhausted:
-    'Je Genspark-credits zijn op. Waardeer op via genspark.ai/pricing en probeer het opnieuw',
+  aiCreditsExhausted: 'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
   aiErrRequestFailed: 'Verzenden van verzoek mislukt: {msg}',
   aiErrGenerateFailed: 'Genereren mislukt',
   aiErrRegenFailed: 'Dia opnieuw genereren mislukt',

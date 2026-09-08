@@ -15,7 +15,7 @@ export interface IpcStreamChunk {
   requestId: string
   /** 'ping' = wire-level keepalive; re-arms the silence watchdog and carries no payload;
    * 'reasoning' = model thinking delta (text carries it) */
-  type: 'delta' | 'reasoning' | 'tool-call' | 'done' | 'error' | 'ping'
+  type: 'delta' | 'reasoning' | 'tool-call' | 'done' | 'error' | 'ping' | 'signature'
   text?: string
   toolCall?: AgentToolCall
   error?: string
@@ -98,6 +98,8 @@ export function createIpcTransport<S>(options: IpcTransportOptions<S>): AgentTra
         } else if (chunk.type === 'delta') {
           armSilence()
           cb.onDelta(chunk.text ?? '')
+        } else if (chunk.type === 'signature') {
+          if (chunk.text) cb.onThoughtSignature?.(chunk.text)
         } else if (chunk.type === 'reasoning') {
           armSilence()
           if (chunk.text) cb.onReasoning?.(chunk.text)

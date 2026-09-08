@@ -1,3 +1,5 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallResult, McpServerInfo, McpToolInfo } from '@genoffice/agent-core'
 import type { Lang } from '@genoffice/i18n'
 import type { AiSettings, AiStreamChunk, AiStreamRequest } from '@genoffice/ai-provider'
 
@@ -18,7 +20,6 @@ export const MARKDOWN_CHANNELS = {
   exportDocx: 'markdown:export-docx',
   exportPdf: 'markdown:export-pdf',
   printRequest: 'markdown:print-request',
-  aiGenerateImage: 'markdown:ai-generate-image',
   getLanguage: 'app:get-language',
   languageChanged: 'app:language-changed',
   getTheme: 'app:get-theme',
@@ -161,14 +162,19 @@ export interface MarkdownApi {
   aiStreamCancel(requestId: string): Promise<void>
   onAiStream(handler: (chunk: AiStreamChunk) => void): () => void
   /** Main-process web search (Serper/DuckDuckGo via the shared ai:web-search handler) */
+  getAiFeatures(): Promise<{ disabledPresets?: string[] }>
+  /** effective built-in skill catalog (file presets replace compiled-in per app) */
+  getPresetCatalog(): Promise<PresetSkillDef[]>
+  /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
+  mcpStatus(): Promise<McpServerInfo[]>
+  mcpListTools(server: string): Promise<McpToolInfo[]>
+  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+
+  setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   webSearch(query: string, maxResults?: number): Promise<WebSearchResult>
   /** Main-process image search (shared ai:image-search handler) */
   imageSearch(query: string, maxResults?: number): Promise<ImageSearchResult>
   /** Download an image URL in the main process (CORS-free, scheme/target validated) */
   fetchImage(url: string): Promise<{ base64: string; mime: string } | null>
   /** Genspark cloud image generation (markdown-owned channel, gsk login required) */
-  aiGenerateImage(op: { prompt: string; aspectRatio?: string }): Promise<{
-    url?: string
-    error?: string
-  }>
 }

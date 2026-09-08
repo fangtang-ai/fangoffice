@@ -8,9 +8,10 @@ import {
   clampMaxOutputTokens,
 } from '@genoffice/ai-provider'
 import type { AiSettings } from '@genoffice/ai-provider'
+import { BUILTIN_PRESETS, type AiFeatures, type PresetSkillDef } from '@genoffice/agent-core'
 import { useI18n } from './locale'
 import type { StringKey, TFunc } from './locale'
-import type { AccountStatus, AiCatalogEntry, UiTheme } from '../../shared/home-api'
+import type { AiCatalogEntry, UiTheme } from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
 import './settings.css'
 
@@ -56,17 +57,11 @@ const CHANNEL_OPTIONS = [
 
 /** GitHub-style abbreviated stargazer count (2591 → "2.6k") — the number is
  * social proof, not a metric; the cached/exact value would only look stale */
-function formatStars(n: number): string {
-  if (n < 1000) return String(n)
-  const k = n / 1000
-  return `${k >= 100 ? Math.round(k) : (Math.round(k * 10) / 10).toString().replace(/\.0$/, '')}k`
-}
-
-type SectionId = 'account' | 'aiModel' | 'general' | 'about'
+type SectionId = 'aiModel' | 'skills' | 'general' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
-  { id: 'account', labelKey: 'setSecAccount' },
   { id: 'aiModel', labelKey: 'setSecAiModel' },
+  { id: 'skills', labelKey: 'setSecSkills' },
   { id: 'general', labelKey: 'setSecGeneral' },
   { id: 'about', labelKey: 'setSecAbout' },
 ]
@@ -90,16 +85,16 @@ function SectionIcon({ id }: { id: SectionId }) {
       </svg>
     )
   }
-  if (id === 'account') {
+  if (id === 'skills') {
     return (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
         <path
-          d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
+          d="M8 1.8 9.4 5.6l3.8 1.4-3.8 1.4L8 12.2 6.6 8.4 2.8 7l3.8-1.4L8 1.8Z"
           stroke="currentColor"
           strokeWidth="1.3"
-          strokeLinecap="round"
+          strokeLinejoin="round"
         />
+        <circle cx="12.8" cy="12.4" r="1.4" stroke="currentColor" strokeWidth="1.2" />
       </svg>
     )
   }
@@ -165,15 +160,10 @@ function AiModelPane({ t }: { t: TFunc }) {
   useEffect(() => {
     let alive = true
     void window.aiOffice.getAiSettings?.().then((s) => {
+      // Display-only: s.provider may be the activeProvider fallback for a
+      // half-configured BYOK selection, so writing anything back here would
+      // clobber the stored choice.
       if (!alive || !s) return
-      // The switch is disabled with genspark, so never present it stranded
-      // off. Display-only: s.provider may be the activeProvider fallback for
-      // a half-configured BYOK selection, so writing anything back here would
-      // clobber the stored choice — the main process heals a genuine legacy
-      // genspark+off file itself, judged on the raw stored provider.
-      if (s.provider === 'genspark' && s.gskToolsEnabled === false) {
-        s = { ...s, gskToolsEnabled: true }
-      }
       setSettings(s)
     })
     return () => {
@@ -188,8 +178,6 @@ function AiModelPane({ t }: { t: TFunc }) {
     apiKey: '',
     model: meta?.defaultModel ?? '',
   }
-  const isGenspark = provider === 'genspark'
-
   const touch = () => {
     setDirty(true)
     setSaved(false)
@@ -212,12 +200,7 @@ function AiModelPane({ t }: { t: TFunc }) {
     touch()
   }
   const selectProvider = (id: AiSettings['provider']) => {
-    // cloud tools cannot be off with genspark (chat runs through gsk anyway)
-    setSettings({
-      ...settings,
-      provider: id,
-      ...(id === 'genspark' ? { gskToolsEnabled: true } : {}),
-    })
+    setSettings({ ...settings, provider: id })
     touch()
   }
   const save = () => {
@@ -267,9 +250,7 @@ function AiModelPane({ t }: { t: TFunc }) {
           onPick={(v) => selectProvider(v as AiSettings['provider'])}
         />
       </div>
-      <div className="set-field-desc set-ai-note">
-        {isGenspark ? t('setAiGensparkHint') : t('setAiByokNote')}
-      </div>
+      <div className="set-field-desc set-ai-note">{t('setAiByokNote')}</div>
       <div className="set-field">
         <div className="set-field-text">
           <label className="set-field-label">{t('setAiModelId')}</label>
@@ -294,8 +275,7 @@ function AiModelPane({ t }: { t: TFunc }) {
           />
         )}
       </div>
-      {!isGenspark && (
-        <>
+      <>
           <div className="set-field">
             <div className="set-field-text">
               <div className="set-field-stack">
@@ -337,8 +317,7 @@ function AiModelPane({ t }: { t: TFunc }) {
               onChange={(e) => updateConfig({ baseUrl: e.target.value.trim() })}
             />
           </div>
-        </>
-      )}
+      </>
       <div className="set-field">
         <div className="set-field-text">
           <div className="set-field-stack">
@@ -358,26 +337,6 @@ function AiModelPane({ t }: { t: TFunc }) {
           value={maxTokensDraft ?? String(settings.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)}
           onChange={(e) => setMaxTokensDraft(e.target.value)}
           onBlur={commitMaxTokens}
-        />
-      </div>
-      <div className="set-field">
-        <div className="set-field-text">
-          <div className="set-field-stack">
-            <div className="set-field-label">{t('setAiGskTools')}</div>
-            <div className="set-field-desc">{t('setAiGskToolsDesc')}</div>
-          </div>
-        </div>
-        {/* locked on with the genspark provider — chat runs through gsk anyway */}
-        <button
-          className="set-switch"
-          role="switch"
-          aria-checked={settings.gskToolsEnabled !== false}
-          aria-label={t('setAiGskTools')}
-          disabled={isGenspark}
-          onClick={() => {
-            setSettings({ ...settings, gskToolsEnabled: settings.gskToolsEnabled === false })
-            touch()
-          }}
         />
       </div>
       <div className="set-pane-footer">
@@ -458,43 +417,100 @@ function AiStatusPill({ status }: { status: AiStatus | null }) {
   )
 }
 
-export interface SettingsModalProps {
-  status: AccountStatus | null
-  loggingOut: boolean
-  /** browser sign-in in progress (spinner shows on the account entry) */
-  loginWaiting: boolean
-  /** device auth URL while waiting — rescue actions when the browser did not auto-open */
-  loginUrl: string | null
-  urlCopied: boolean
-  onOpenLoginUrl: () => void
-  onCopyLoginUrl: () => void
-  onClose: () => void
-  /** closes the modal and launches the Genspark login flow (progress shows on the account entry) */
-  onLogin: () => void
-  onLogout: () => void
+
+const APP_LABELS: Record<string, string> = {
+  docs: 'Docs',
+  sheets: 'Sheets',
+  slides: 'Slides',
+  pdf: 'PDF',
+  markdown: 'Markdown',
 }
 
-export function SettingsModal({
-  status,
-  loggingOut,
-  loginWaiting,
-  loginUrl,
-  urlCopied,
-  onOpenLoginUrl,
-  onCopyLoginUrl,
-  onClose,
-  onLogin,
-  onLogout,
-}: SettingsModalProps) {
+/** Built-in generation skills pane: per-app visibility of the chat picker.
+ * Lists the EFFECTIVE catalog — file presets (presets/<app>/*.md) replace the
+ * compiled-in entries per app, exactly what the chat pickers offer. */
+function SkillsPane({ t }: { t: TFunc }) {
+  const [features, setFeatures] = useState<AiFeatures | null>(null)
+  const [disabled, setDisabled] = useState<ReadonlySet<string>>(new Set())
+  const [catalog, setCatalog] = useState<readonly PresetSkillDef[]>(BUILTIN_PRESETS)
+
+  useEffect(() => {
+    let alive = true
+    void window.aiOffice
+      .getAiFeatures()
+      .then((f) => {
+        if (!alive) return
+        setFeatures(f ?? {})
+        setDisabled(new Set(f?.disabledPresets ?? []))
+      })
+      .catch(() => {})
+    void window.aiOffice
+      .getPresetCatalog()
+      .then((presets) => {
+        if (alive && presets.length > 0) setCatalog(presets)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const toggle = (id: string) => {
+    const next = new Set(disabled)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setDisabled(next)
+    const updated: AiFeatures = { ...(features ?? {}), disabledPresets: [...next] }
+    setFeatures(updated)
+    void window.aiOffice.setAiFeatures(updated).catch(() => {})
+  }
+
+  const apps = [...new Set(catalog.map((p) => p.app))]
+  return (
+    <>
+      <h3 className="set-pane-title">{t('setSecSkills')}</h3>
+      <div className="set-field-desc set-skills-desc">{t('setSkillsDesc')}</div>
+      {apps.map((app) => (
+        <div key={app} className="set-skills-group">
+          <div className="set-skills-app">{APP_LABELS[app] ?? app}</div>
+          {catalog.filter((p) => p.app === app).map((preset) => (
+            <div key={preset.id} className="set-field set-skill-row">
+              <div className="set-field-text">
+                <div className="set-field-stack">
+                  <div className="set-field-label">
+                    {preset.nameEn ? `${preset.name} · ${preset.nameEn}` : preset.name}
+                  </div>
+                  <div className="set-field-desc">{preset.description}</div>
+                </div>
+              </div>
+              <button
+                className="set-switch"
+                role="switch"
+                aria-checked={!disabled.has(preset.id)}
+                aria-label={`${preset.name} (${APP_LABELS[app] ?? app})`}
+                onClick={() => toggle(preset.id)}
+              />
+            </div>
+          ))}
+        </div>
+      ))}
+    </>
+  )
+}
+
+export interface SettingsModalProps {
+  onClose: () => void
+}
+
+export function SettingsModal({ onClose }: SettingsModalProps) {
   const { lang, setLang, t } = useI18n()
-  const [section, setSection] = useState<SectionId>('account')
+  const [section, setSection] = useState<SectionId>('general')
   const [theme, setTheme] = useState<UiTheme>('system')
   const [saveDir, setSaveDir] = useState('')
   const [analyticsOn, setAnalyticsOn] = useState(true)
   const [analyticsSaving, setAnalyticsSaving] = useState(false)
   const [channel, setChannel] = useState<'stable' | 'beta'>('stable')
   const [appVersion, setAppVersion] = useState('')
-  const [githubStars, setGithubStars] = useState<number | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -512,9 +528,6 @@ export function SettingsModal({
     })
     void window.aiOffice.getAppVersion?.().then((v) => {
       if (alive && v) setAppVersion(v)
-    })
-    void window.aiOffice.githubStars?.().then((n) => {
-      if (alive && n !== null) setGithubStars(n)
     })
     return () => {
       alive = false
@@ -541,9 +554,6 @@ export function SettingsModal({
       if (dir) setSaveDir(dir)
     })
   }
-
-  const loggedIn = status?.loggedIn ?? false
-  const email = status?.email ?? ''
 
   return (
     <div
@@ -581,55 +591,8 @@ export function SettingsModal({
             ))}
           </nav>
           <div className="set-pane">
-            {section === 'account' && (
-              <>
-                <h3 className="set-pane-title">{t('setSecAccount')}</h3>
-                <Field label={t('setEmail')} value={loggedIn ? email : t('setNotLoggedIn')} />
-                {loggedIn && (
-                  <Field
-                    label={t('credits')}
-                    value={
-                      status?.creditBalance === undefined
-                        ? '—'
-                        : Math.floor(status.creditBalance).toLocaleString('en-US')
-                    }
-                    action={
-                      <button
-                        className="set-btn"
-                        data-tip={t('creditsTip')}
-                        onClick={() => void window.aiOffice.openCreditUsage?.()}
-                      >
-                        {t('setViewUsage')}
-                      </button>
-                    }
-                  />
-                )}
-                <div className="set-pane-footer">
-                  {loggedIn ? (
-                    <button className="set-btn danger" disabled={loggingOut} onClick={onLogout}>
-                      {loggingOut ? t('loggingOut') : t('logout')}
-                    </button>
-                  ) : (
-                    <>
-                      {loginWaiting && loginUrl && (
-                        <>
-                          <button className="set-btn" onClick={onOpenLoginUrl}>
-                            {t('loginOpenManually')}
-                          </button>
-                          <button className="set-btn" onClick={onCopyLoginUrl}>
-                            {urlCopied ? t('loginCopied') : t('loginCopyUrl')}
-                          </button>
-                        </>
-                      )}
-                      <button className="set-btn primary" onClick={onLogin}>
-                        {loginWaiting ? t('waitingShort') : t('loginGenspark')}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
             {section === 'aiModel' && <AiModelPane t={t} />}
+            {section === 'skills' && <SkillsPane t={t} />}
             {section === 'general' && (
               <>
                 <h3 className="set-pane-title">{t('setSecGeneral')}</h3>
@@ -722,18 +685,14 @@ export function SettingsModal({
                   />
                 </div>
                 <Field
-                  label={t('setGithub')}
-                  value={
-                    githubStars === null
-                      ? 'github.com/genspark-ai/genoffice'
-                      : `github.com/genspark-ai/genoffice · ★ ${formatStars(githubStars)}`
-                  }
+                  label={t('setWebsite')}
+                  value="www.fang-tang.cn"
                   action={
                     <button
                       className="set-btn"
-                      onClick={() => void window.aiOffice.openGitHubRepo?.()}
+                      onClick={() => void window.aiOffice.openCompanySite?.()}
                     >
-                      {t('starOnGitHub')}
+                      {t('setVisitSite')}
                     </button>
                   }
                 />

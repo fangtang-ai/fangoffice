@@ -1,12 +1,10 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { AI_PROVIDERS, getProviderAdapter } from '@genoffice/ai-provider'
 import type { AiSettings } from '@genoffice/ai-provider'
 import { installDropOpenBridge } from '@genoffice/electron-utils/drop-open'
 import type {
-  AccountLoginEvent,
-  AccountStatus,
-  CloudProjectsSnapshot,
   HomeApi,
   RecentEntry,
   RecentPage,
@@ -134,25 +132,6 @@ const homeApi: HomeApi = {
     if (channel !== 'stable' && channel !== 'beta') throw new Error('Invalid update channel.')
     await ipcRenderer.invoke(HOME_CHANNELS.setUpdateChannel, channel)
   },
-  async accountStatus() {
-    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.accountStatus)
-    return (result ?? { loggedIn: false }) as AccountStatus
-  },
-  async accountLogin() {
-    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.accountLogin)
-    return result === true
-  },
-  onAccountLogin(handler) {
-    const listener = (_event: IpcRendererEvent, ev: AccountLoginEvent) => handler(ev)
-    ipcRenderer.on(HOME_CHANNELS.accountLoginEvent, listener)
-    return () => ipcRenderer.removeListener(HOME_CHANNELS.accountLoginEvent, listener)
-  },
-  async openLoginUrl() {
-    await ipcRenderer.invoke(HOME_CHANNELS.accountLoginOpenUrl)
-  },
-  async accountLogout() {
-    await ipcRenderer.invoke(HOME_CHANNELS.accountLogout)
-  },
   async getAppVersion() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAppVersion)
     return typeof result === 'string' ? result : ''
@@ -198,50 +177,34 @@ const homeApi: HomeApi = {
     ipcRenderer.on('app:theme-changed', listener)
     return () => ipcRenderer.removeListener('app:theme-changed', listener)
   },
-  async openGenTeam() {
-    await ipcRenderer.invoke(HOME_CHANNELS.openGenTeam)
+  async openCompanySite() {
+    await ipcRenderer.invoke(HOME_CHANNELS.openCompanySite)
   },
-  async openCreditUsage() {
-    await ipcRenderer.invoke(HOME_CHANNELS.openCreditUsage)
+  // built-in skill visibility + AI settings channels are registered once by the shell's aggregated docs handlers
+  async getAiFeatures() {
+    const result: unknown = await ipcRenderer.invoke('ai:get-features')
+    return result && typeof result === 'object' ? (result as { disabledPresets?: string[] }) : {}
   },
-  async openGitHubRepo() {
-    await ipcRenderer.invoke(HOME_CHANNELS.openGitHubRepo)
+  async getPresetCatalog() {
+    const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
+    return Array.isArray(result) ? (result as PresetSkillDef[]) : []
   },
-  async githubStars() {
-    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.githubStars)
-    return typeof result === 'number' && Number.isFinite(result) ? result : null
+  async mcpStatus() {
+    return (await ipcRenderer.invoke('mcp:status')) as Awaited<ReturnType<HomeApi['mcpStatus']>>
   },
-  async starPromptShouldShow() {
-    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.starPromptShouldShow)
-    const raw = (result ?? {}) as { show?: unknown; docOpens?: unknown }
-    return {
-      show: raw.show === true,
-      docOpens:
-        typeof raw.docOpens === 'number' && Number.isFinite(raw.docOpens) ? raw.docOpens : 0,
-    }
+  async mcpListTools(server: string) {
+    return (await ipcRenderer.invoke('mcp:list-tools', server)) as Awaited<
+      ReturnType<HomeApi['mcpListTools']>
+    >
   },
-  async starPromptAction(action) {
-    if (action !== 'starred' && action !== 'later') throw new Error('Invalid star prompt action.')
-    await ipcRenderer.invoke(HOME_CHANNELS.starPromptAction, action)
+  async mcpCallTool(server: string, tool: string, args: Record<string, unknown>) {
+    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as Awaited<
+      ReturnType<HomeApi['mcpCallTool']>
+    >
   },
-  async cloudProjectsCached() {
-    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.cloudProjectsCached)
-    return asCloudProjectsSnapshot(result)
+  async setAiFeatures(features) {
+    await ipcRenderer.invoke('ai:set-features', features)
   },
-  async cloudProjectsSync() {
-    // failures (network / CLI) resolve to null so the renderer keeps whatever it has
-    try {
-      const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.cloudProjects)
-      return asCloudProjectsSnapshot(result)
-    } catch {
-      return null
-    }
-  },
-  async openCloudProject(projectUrl) {
-    if (typeof projectUrl !== 'string' || !projectUrl) throw new Error('Invalid project URL.')
-    await ipcRenderer.invoke(HOME_CHANNELS.openCloudProject, projectUrl)
-  },
-  // AI settings channels are registered once by the shell's aggregated docs handlers
   async getAiSettings() {
     return (await ipcRenderer.invoke('ai:get-settings')) as AiSettings
   },
@@ -251,8 +214,8 @@ const homeApi: HomeApi = {
   getAiProviders() {
     return AI_PROVIDERS.map((meta) => {
       let defaultBaseUrl = ''
-      // genspark routes by model and custom has no default — both stay ''
-      if (meta.id !== 'genspark' && !meta.needsBaseUrl) {
+      // custom has no fixed default endpoint — it stays ''
+      if (!meta.needsBaseUrl) {
         defaultBaseUrl = getProviderAdapter(meta.id).resolveEndpoint({
           apiKey: '',
           model: meta.defaultModel,
@@ -272,17 +235,6 @@ const homeApi: HomeApi = {
       ? { ok: true }
       : { ok: false, error: typeof raw.error === 'string' ? raw.error : 'Connection failed' }
   },
-}
-
-function asCloudProjectsSnapshot(result: unknown): CloudProjectsSnapshot | null {
-  if (
-    result &&
-    typeof result === 'object' &&
-    Array.isArray((result as CloudProjectsSnapshot).projects)
-  ) {
-    return result as CloudProjectsSnapshot
-  }
-  return null
 }
 
 contextBridge.exposeInMainWorld('aiOffice', homeApi)

@@ -4,10 +4,13 @@ export const hi = {
   aiComposerPlaceholderBuild: 'बनाने के लिए तालिका, डेटा या चार्ट बताएँ…',
   aiEmptyBuildTitle: 'AI से यह वर्कबुक बनवाएँ',
   aiEmptyBuildBody: 'जो तालिका, डेटा या चार्ट चाहिए बताएँ — AI उसे तुरंत बना देता है।',
-  aiGskLoginBtn: 'Genspark में साइन इन करें',
   aiUndelivered: 'भेजा नहीं गया',
   aiRetry: 'फिर से कोशिश करें',
   aiOpenAssistant: 'AI सहायक खोलें',
+  aiAssistantTitle: 'AI सहायक',
+  aiSkillsTip: 'दस्तावेज़ निर्माण कौशल चुनें',
+  aiSkillNone: 'कोई कौशल नहीं',
+  aiSkillsLabel: 'कौशल',
   aiAskBtn: 'AI से पूछें',
   aiCheckBtn: 'AI जाँच',
   aiCheckPrompt:
@@ -49,13 +52,10 @@ export const hi = {
   aiFileTooltip:
     'SHA-256 {sha}\nसहेजते समय केवल संपादित प्रविष्टियां फिर से लिखी जाती हैं; बाकी सब जस का तस रहता है।',
   aiFileMeta: '{sheets} शीट · {entries} प्रविष्टियां',
-  aiGensparkAccount: 'Genspark खाता',
   aiAccountChecking: 'जांच हो रही है…',
   aiLoggedIn: 'साइन इन किया गया',
   aiLoggedInAs: 'साइन इन: {email}',
-  aiNotLoggedIn: 'साइन इन नहीं है (AI सुविधाओं के लिए Genspark खाता आवश्यक है)',
   aiWaitingBrowserLogin: 'ब्राउज़र में साइन इन की प्रतीक्षा…',
-  aiLoginGenspark: 'Genspark में साइन इन करें',
   aiModel: 'मॉडल',
   aiCancel: 'रद्द करें',
   aiSave: 'सहेजें',
@@ -65,8 +65,7 @@ export const hi = {
   aiOverloadedError: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
   aiNetworkError:
     'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
-  aiCreditsExhausted:
-    'आपके Genspark क्रेडिट समाप्त हो गए हैं। genspark.ai/pricing पर रिचार्ज करें और फिर से प्रयास करें',
+  aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
   aiToolWorkbookContext: 'कार्यपुस्तिका की जानकारी पढ़ें',
   aiToolReadRange: 'श्रेणी पढ़ें',
   aiToolReadRangeOf: 'श्रेणी {range} पढ़ें',

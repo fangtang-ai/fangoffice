@@ -4,10 +4,13 @@ export const en = {
   aiComposerPlaceholderBuild: 'Describe the table, data, or chart to create…',
   aiEmptyBuildTitle: 'Let AI build this workbook for you',
   aiEmptyBuildBody: 'Describe the table, data, or chart you need — AI creates it in place.',
-  aiGskLoginBtn: 'Sign in to Genspark',
   aiUndelivered: 'Not sent',
   aiRetry: 'Retry',
   aiOpenAssistant: 'Open AI assistant',
+  aiAssistantTitle: 'AI Assistant',
+  aiSkillsTip: 'Pick a document generation skill',
+  aiSkillNone: 'No skill',
+  aiSkillsLabel: 'Skills',
   aiAskBtn: 'Ask AI',
   aiCheckBtn: 'AI Check',
   aiCheckPrompt:
@@ -49,13 +52,10 @@ export const en = {
   aiFileTooltip:
     'SHA-256 {sha}\nSaving rewrites only the edited entries; everything else is preserved.',
   aiFileMeta: '{sheets} sheets · {entries} entries',
-  aiGensparkAccount: 'Genspark account',
   aiAccountChecking: 'Checking…',
   aiLoggedIn: 'Signed in',
   aiLoggedInAs: 'Signed in: {email}',
-  aiNotLoggedIn: 'Not signed in (AI features require a Genspark account)',
   aiWaitingBrowserLogin: 'Waiting for browser sign-in…',
-  aiLoginGenspark: 'Sign in to Genspark',
   aiModel: 'Model',
   aiCancel: 'Cancel',
   aiSave: 'Save',
@@ -65,8 +65,7 @@ export const en = {
   aiOverloadedError: 'The AI service is busy right now — please try again in a moment',
   aiNetworkError:
     'Network problem: could not reach the AI service. Check your connection and try again',
-  aiCreditsExhausted:
-    'Your Genspark credits have run out. Visit genspark.ai/pricing to top up, then try again',
+  aiCreditsExhausted: 'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
   aiToolWorkbookContext: 'Read workbook info',
   aiToolReadRange: 'Read range',
   aiToolReadRangeOf: 'Read range {range}',

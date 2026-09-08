@@ -1,10 +1,8 @@
 import { execSync, spawn } from 'node:child_process'
 import {
   copyFileSync,
-  cpSync,
   existsSync,
   readFileSync,
-  readdirSync,
   renameSync,
   writeFileSync,
 } from 'node:fs'
@@ -38,7 +36,6 @@ import { createI18n, isLang, normalizeLang, setUiLang, type Lang } from '@genoff
 import {
   DEFAULT_SAVE_DIR_KEY,
   DROP_OPEN_CHANNEL,
-  GITHUB_REPO_URL,
   appMenuLabels,
   contextMenuLabels,
   editMenuTemplate,
@@ -59,33 +56,9 @@ import {
   markAnalyticsFirstLaunchSent,
 } from './analytics'
 import type { Analytics, AnalyticsKeys } from './analytics'
-import {
-  LAST_RUN_VERSION_KEY,
-  STAR_PROMPT_KEY,
-  asStarPromptState,
-  isUpgradeLaunch,
-  shouldShowStarPrompt,
-  shouldShowUpgradeStarPrompt,
-  withDocOpen,
-  withFirstRun,
-  withResolved,
-  withShown,
-} from './star-prompt'
-import {
-  clearCloudProjectsStore,
-  cloudProjectExternalUrl,
-  readCloudProjectsStore,
-  syncCloudProjects,
-} from './cloud-projects'
 import { handleDroppedFiles } from './dropped-files'
 import { ProjectStore } from '@genoffice/project-store'
-import {
-  genofficeLogout,
-  gskLoginInfo,
-  loadGenofficeAuth,
-  setGskProxyUrl,
-  startGenofficeLogin,
-} from '@genoffice/ai-search'
+import { loadMcpConfig, McpHub, registerMcpIpc } from '@genoffice/mcp-bridge'
 
 import {
   buildDocsMenu,
@@ -172,14 +145,7 @@ import {
   setMarkdownDocxExportedHook,
   setMarkdownFileSavedHook,
 } from '../../../markdown/src/main/markdown-main'
-import type {
-  AccountLoginEvent,
-  RecentEntry,
-  RecentPage,
-  RenameResult,
-  StarPromptShow,
-  UiTheme,
-} from '../shared/home-api'
+import type { RecentEntry, RecentPage, RenameResult, UiTheme } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
@@ -191,7 +157,7 @@ import { applyUpdateChannel, initAutoUpdater } from './updater'
 import { isUpdateChannel, type UpdateChannel } from '../shared/update-api'
 
 /**
- * GenOffice unified shell: ONE Electron app, ONE BrowserWindow, hosting the
+ * 方塘Office unified shell: ONE Electron app, ONE BrowserWindow, hosting the
  * docs and sheets modules as WebContentsView tabs behind a WPS-style tab
  * strip. The shell owns the lifecycle — single-instance lock, file-
  * association routing by extension, and per-active-tab menu switching.
@@ -201,22 +167,15 @@ import { isUpdateChannel, type UpdateChannel } from '../shared/update-api'
 
 // ANY unpacked run (`npm run shell`, `npm run dev`, `npx electron .`) must not
 // share the installed app's userData or single-instance lock — otherwise a dev
-// run silently quits and forwards its argv to the running installed GenOffice.
+// run silently quits and forwards its argv to the running installed 方塘Office.
 // GENOFFICE_USER_DATA: test drivers point this at a scratch dir so an
 // automated instance can run alongside the dev instance (separate lock).
 if (!app.isPackaged)
   app.setPath(
     'userData',
-    process.env.GENOFFICE_USER_DATA ?? join(app.getPath('appData'), 'GenOffice Dev'),
+    process.env.FANGTANG_USER_DATA ?? join(app.getPath('appData'), '方塘Office Dev'),
   )
 
-// The product rename from "AI Office" to GenOffice changed the userData path; migrate old user data once
-if (app.isPackaged) {
-  const oldDir = join(app.getPath('appData'), 'AI Office')
-  const newDir = app.getPath('userData')
-  const newEmpty = !existsSync(newDir) || readdirSync(newDir).length === 0
-  if (newEmpty && existsSync(oldDir)) cpSync(oldDir, newDir, { recursive: true })
-}
 
 // module build outputs: packaged builds carry them as extraResources
 // (resources/modules/*, resources/native/*); dev/unpacked resolves them
@@ -390,65 +349,6 @@ function initAnalytics(): void {
   }
 }
 
-// ---- first-run onboarding ----
-// The GenTeam community page opened from the onboarding's second slide.
-// Stable short link served by the genoffice.ai site; it 302s to the tokened
-// invite link, which stays out of this repo and rotates server-side.
-const GENTEAM_URL = 'https://genoffice.ai/join'
-
-// Genspark credit-usage page opened from the account menu's credits row.
-// Kept main-side so the renderer never supplies the URL.
-const CREDIT_USAGE_URL = 'https://www.genspark.ai/credit-usage'
-
-// ---- "star us on GitHub" prompt (see star-prompt.ts for the rules) ----
-
-const readStarPrompt = () =>
-  asStarPromptState(readAppSettings(APP_SETTINGS_PATH())[STAR_PROMPT_KEY])
-const writeStarPrompt = (state: ReturnType<typeof readStarPrompt>) =>
-  writeAppSetting(APP_SETTINGS_PATH(), STAR_PROMPT_KEY, state)
-
-/** set at startup when this is the first launch after an upgrade; consumed by
- * the first starPromptShouldShow query of the session */
-let upgradeStarPromptPending = false
-
-/** a granted show, cached for the session: repeated queries (React StrictMode
- * double-effects, AppFrame remounts) must return the same answer instead of
- * burning another lifetime show or flipping to a snoozed "false" */
-let starPromptSessionGrant: StarPromptShow | null = null
-
-/** every successful document open counts toward the prompt's value threshold */
-function recordStarPromptDocOpen(): void {
-  try {
-    const state = readStarPrompt()
-    const next = withDocOpen(state)
-    if (next !== state) writeStarPrompt(next)
-  } catch {
-    // settings write failures must never break opening a document
-  }
-}
-
-// Stargazer count for the settings About pane; fetched main-side (the
-// renderer CSP has no api.github.com) and cached per session — the exact
-// number is decoration, staleness is fine.
-let cachedGithubStars: number | null = null
-
-async function fetchGithubStars(): Promise<number | null> {
-  if (cachedGithubStars !== null) return cachedGithubStars
-  try {
-    const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
-      headers: { Accept: 'application/vnd.github+json' },
-      signal: AbortSignal.timeout(5000),
-    })
-    if (!response.ok) return null
-    const body: unknown = await response.json()
-    const count = (body as { stargazers_count?: unknown }).stargazers_count
-    if (typeof count !== 'number' || !Number.isFinite(count)) return null
-    cachedGithubStars = count
-    return count
-  } catch {
-    return null
-  }
-}
 
 const tMain = createI18n({
   zh: {
@@ -2123,7 +2023,7 @@ function createShellWindow(): void {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'GenOffice',
+    title: '方塘Office',
     // vibrancy: editor modules punch translucent regions (e.g. the slides
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
@@ -2377,7 +2277,6 @@ function registerDroppedFilesIpc(): void {
 function openDocumentPath(filePath: string): boolean {
   const opened = routeDocumentPath(filePath)
   if (opened) {
-    recordStarPromptDocOpen()
     // extension only — never the file name or path
     analytics.track('file_open', { ext: extname(filePath).slice(1).toLowerCase() })
   }
@@ -2466,7 +2365,7 @@ async function newSheetTab(): Promise<void> {
     markSheetsUntitledPath(filePath)
     // route directly (not via openDocumentPath) so creating a sheet emits
     // only file_new — the file_open event is reserved for opening existing files
-    if (routeDocumentPath(filePath)) recordStarPromptDocOpen()
+    routeDocumentPath(filePath)
     analytics.track('file_new', { kind: 'xlsx' })
   } catch (err) {
     console.warn('[shell] blank workbook create failed, opening in-memory blank tab:', err)
@@ -2493,7 +2392,6 @@ function newDocTab(): void {
   try {
     tabManager?.openDocsTab(undefined, { newBlank: true })
     // creating a document is as much a value moment as opening one
-    recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'docx' })
   } catch (err) {
     surfaceNewTabError(err)
@@ -2503,7 +2401,6 @@ function newDocTab(): void {
 function newSlideTab(): void {
   try {
     tabManager?.openSlidesTab()
-    recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'pptx' })
   } catch (err) {
     surfaceNewTabError(err)
@@ -2513,7 +2410,6 @@ function newSlideTab(): void {
 function newMarkdownTab(): void {
   try {
     tabManager?.openMarkdownTab()
-    recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'md' })
   } catch (err) {
     surfaceNewTabError(err)
@@ -2535,7 +2431,7 @@ async function newPdfTab(): Promise<void> {
     applyPendingProject(filePath)
     // route directly (not via openDocumentPath) so creating a pdf emits only
     // file_new and counts one doc-open — same as the blank workbook above
-    if (routeDocumentPath(filePath)) recordStarPromptDocOpen()
+    routeDocumentPath(filePath)
     analytics.track('file_new', { kind: 'pdf' })
   } catch (err) {
     surfaceNewTabError(err)
@@ -2578,56 +2474,13 @@ function statEntries(paths: string[]): RecentEntry[] {
 }
 
 function registerHomeIpc(): void {
-  // signed-in means GenOffice's own device-code login; the shared gsk CLI key
-  // is only a silent fallback, deliberately not shown here to nudge users onto our key
-  ipcMain.handle(HOME_CHANNELS.accountStatus, async () => {
-    if (!loadGenofficeAuth()) return { loggedIn: false }
-    await proxyBootstrap
-    const info = await gskLoginInfo()
-    return info
-      ? { loggedIn: true, email: info.email, creditBalance: info.creditBalance }
-      : { loggedIn: true }
-  })
-
-  // login progress is streamed to the requesting renderer; the auth URL is
-  // kept main-side so the "open manually" rescue never opens a renderer-supplied URL
-  let pendingLoginUrl = ''
-  ipcMain.handle(HOME_CHANNELS.accountLogin, async (event) => {
-    analytics.track('login_click')
-    const sender = event.sender
-    pendingLoginUrl = ''
-    await proxyBootstrap
-    const send = (payload: AccountLoginEvent) => {
-      if (!sender.isDestroyed()) sender.send(HOME_CHANNELS.accountLoginEvent, payload)
-    }
-    // open the browser on the first url event only; later events refresh the rescue URL
-    let opened = false
-    const launched = startGenofficeLogin((progress) => {
-      if (progress.url) {
-        pendingLoginUrl = progress.url
-        if (!opened) {
-          opened = true
-          void shell.openExternal(progress.url)
-        }
-      }
-      if (progress.phase === 'success') analytics.track('login_success')
-      send(progress)
-    })
-    if (launched) send({ phase: 'launched' })
-    return launched
-  })
-
-  ipcMain.handle(HOME_CHANNELS.accountLoginOpenUrl, () => {
-    if (pendingLoginUrl) void shell.openExternal(pendingLoginUrl)
-  })
-
-  ipcMain.handle(HOME_CHANNELS.accountLogout, async () => {
-    await genofficeLogout()
-    // the cloud projects cache belongs to the account that just signed out
-    clearCloudProjectsStore(cloudProjectsStorePath())
-  })
-
   ipcMain.handle(HOME_CHANNELS.getAppVersion, (): string => app.getVersion())
+
+  ipcMain.handle(HOME_CHANNELS.openCompanySite, () => {
+    shell.openExternal('https://fang-tang.cn').catch(() => {
+      // no browser handler available; nothing actionable for the user here
+    })
+  })
 
   ipcMain.handle(HOME_CHANNELS.recents, (_event, query: unknown): RecentPage =>
     pageRecentPaths(readRecentFiles(), query, new Set(readStarredFiles())),
@@ -2872,72 +2725,6 @@ function registerHomeIpc(): void {
     return picked
   })
 
-  ipcMain.handle(HOME_CHANNELS.openGenTeam, () => {
-    shell.openExternal(GENTEAM_URL).catch(() => {
-      // no browser handler available; nothing actionable for the user here
-    })
-  })
-
-  ipcMain.handle(HOME_CHANNELS.openCreditUsage, () => {
-    shell.openExternal(CREDIT_USAGE_URL).catch(() => {
-      // no browser handler available; nothing actionable for the user here
-    })
-  })
-
-  ipcMain.handle(HOME_CHANNELS.openGitHubRepo, () => {
-    shell.openExternal(GITHUB_REPO_URL).catch(() => {
-      // no browser handler available; nothing actionable for the user here
-    })
-  })
-
-  ipcMain.handle(HOME_CHANNELS.githubStars, () => fetchGithubStars())
-
-  // returning true also counts as "shown": the renderer displays it
-  // unconditionally, so no separate mark-shown round-trip is needed
-  ipcMain.handle(HOME_CHANNELS.starPromptShouldShow, (): StarPromptShow => {
-    if (starPromptSessionGrant) return starPromptSessionGrant
-    const now = Date.now()
-    const state = readStarPrompt()
-    const docOpens = state.docOpens ?? 0
-    // dev preview of the card without waiting out the value thresholds
-    // (same pattern as GENOFFICE_FAKE_UPDATE); nothing is recorded
-    if (!app.isPackaged && process.env.GENOFFICE_FORCE_STAR_PROMPT) return { show: true, docOpens }
-    const grant = (): StarPromptShow => {
-      writeStarPrompt(withShown(state, now))
-      starPromptSessionGrant = { show: true, docOpens }
-      return starPromptSessionGrant
-    }
-    // first launch after an upgrade: skip the value gates once for a
-    // never-prompted user (they are a proven repeat user already)
-    if (upgradeStarPromptPending) {
-      upgradeStarPromptPending = false
-      if (shouldShowUpgradeStarPrompt(state)) return grant()
-    }
-    if (!shouldShowStarPrompt(state, now)) return { show: false, docOpens }
-    return grant()
-  })
-
-  ipcMain.handle(HOME_CHANNELS.starPromptAction, (_event, action: unknown) => {
-    if (action !== 'starred' && action !== 'later') return
-    // the card was reacted to — drop the session grant so a later query (new
-    // shell window on macOS) re-evaluates the real rules (snooze / resolved)
-    starPromptSessionGrant = null
-    // 'later' needs no write: the display was already counted by the query
-    if (action === 'starred') writeStarPrompt(withResolved(readStarPrompt()))
-  })
-
-  const cloudProjectsStorePath = () => join(app.getPath('userData'), 'cloud-projects.json')
-
-  ipcMain.handle(HOME_CHANNELS.cloudProjectsCached, () =>
-    readCloudProjectsStore(cloudProjectsStorePath()),
-  )
-
-  ipcMain.handle(HOME_CHANNELS.cloudProjects, () => syncCloudProjects(cloudProjectsStorePath()))
-
-  ipcMain.handle(HOME_CHANNELS.openCloudProject, (_event, projectUrl: unknown) => {
-    const url = cloudProjectExternalUrl(projectUrl)
-    if (url) void shell.openExternal(url)
-  })
 }
 
 function stringPaths(value: unknown): string[] {
@@ -3741,7 +3528,7 @@ function installDockMenu(): void {
 // Prefer proxy env vars (terminal launch); a packaged app launched from Finder inherits no shell
 // env vars, so fall back to the system HTTP proxy. The renderer uses Chromium's system proxy and
 // is unaffected. Same bootstrap as slides-main startSlidesStandalone.
-// awaited by login IPC so the first status probe / login click cannot race the proxy resolution
+// awaited before the first AI request so it cannot race the proxy resolution
 let proxyBootstrap: Promise<void> = Promise.resolve()
 
 async function installMainProcessProxy(): Promise<void> {
@@ -3755,9 +3542,8 @@ async function installMainProcessProxy(): Promise<void> {
   ].find((v) => v && /^https?:\/\//.test(v))
   if (!proxyUrl) {
     try {
-      // PAC/rule proxies answer per-host: probe the host the login flow, the
-      // Genspark LLM proxy and the gsk CLI actually target
-      const resolved = await session.defaultSession.resolveProxy('https://www.genspark.ai/')
+      // PAC/rule proxies answer per-host: probe a representative overseas API host
+      const resolved = await session.defaultSession.resolveProxy('https://api.anthropic.com/')
       const m = /PROXY\s+([^;\s]+)/.exec(resolved)
       if (m) proxyUrl = `http://${m[1]}`
     } catch {
@@ -3765,9 +3551,6 @@ async function installMainProcessProxy(): Promise<void> {
     }
   }
   if (!proxyUrl) return
-  // spawned gsk CLI children (login/search/…) do their own fetch and never see
-  // the dispatcher below — forward the proxy to them via env
-  setGskProxyUrl(proxyUrl)
   try {
     const { ProxyAgent, setGlobalDispatcher } = await import('undici')
     setGlobalDispatcher(new ProxyAgent(proxyUrl))
@@ -3817,6 +3600,10 @@ app.on('second-instance', (_event, argv, _cwd, additionalData) => {
 installNavigationGuard(app)
 installContextMenu(app, () => contextMenuLabels(currentLang()))
 registerAiIpc()
+const mcpHub = new McpHub(
+  loadMcpConfig(undefined, join(app.getPath('userData'), 'fangtang-mcp.json')).servers,
+)
+registerMcpIpc(mcpHub)
 registerProjectIpc()
 registerDocsIpc()
 registerHomeIpc()
@@ -3877,28 +3664,6 @@ app.whenReady().then(async () => {
   // native menus/dialogs/scrollbars follow the persisted theme from first paint
   nativeTheme.themeSource = currentTheme()
   // stamp the star-prompt install-age clock on the first launch carrying the feature,
-  // and detect upgrade launches (version changed since the previous run)
-  try {
-    const settings = readAppSettings(APP_SETTINGS_PATH())
-    const starState = readStarPrompt()
-    const stamped = withFirstRun(starState, Date.now())
-    if (stamped !== starState) writeStarPrompt(stamped)
-
-    const prevVersion =
-      typeof settings[LAST_RUN_VERSION_KEY] === 'string'
-        ? (settings[LAST_RUN_VERSION_KEY] as string)
-        : null
-    const currentVersion = app.getVersion()
-    upgradeStarPromptPending = isUpgradeLaunch(
-      prevVersion,
-      currentVersion,
-      settings.onboardingSeen === true,
-    )
-    if (prevVersion !== currentVersion)
-      writeAppSetting(APP_SETTINGS_PATH(), LAST_RUN_VERSION_KEY, currentVersion)
-  } catch {
-    // settings write failures must never block startup
-  }
   initAnalytics()
   analytics.track('app_launch')
   startSheetsCaptureServer()
@@ -3924,4 +3689,5 @@ app.on('before-quit', () => {
   // No close prompt may fall through to "Save" during shutdown
   markSheetsShuttingDown()
   stopSheetsSidecar()
+  void mcpHub.shutdown()
 })

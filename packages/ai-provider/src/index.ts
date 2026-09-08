@@ -7,18 +7,17 @@ export type {
   AiSettings,
   AiStreamChunk,
   AiStreamRequest,
-  GenSparkAccountStatus,
   LegacyAiSettings,
 } from './types'
+export type { AiFactoryDefaults } from './providers'
 export {
   AI_PROVIDERS,
   DEFAULT_MAX_OUTPUT_TOKENS,
-  GENSPARK_LLM_BASE_URLS,
+  FALLBACK_AI_PROVIDER,
   MAX_MAX_OUTPUT_TOKENS,
   MIN_MAX_OUTPUT_TOKENS,
   activeProvider,
   clampMaxOutputTokens,
-  cloudToolsEnabled,
   defaultAiSettings,
   maxOutputTokensOf,
   resolveAiSettings,

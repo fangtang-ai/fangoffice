@@ -210,6 +210,8 @@ export class AgentLoop<TSnapshot = unknown> {
   private turnText = ''
   private turnReasoning = ''
   private toolCalls: AgentToolCall[] = []
+  /** Gemini 3 thought signature stamped on this turn's text parts (echoed back with the assistant message) */
+  private turnSignature: string | undefined = undefined
   /** tools actually executed during this run, fed to skill.verifyResponse */
   private executedCalls: ExecutedToolCall[] = []
   /** verifyResponse may force one extra corrective turn per run — never more */
@@ -520,6 +522,7 @@ export class AgentLoop<TSnapshot = unknown> {
     const generation = this.generation
     this.turnText = ''
     this.turnReasoning = ''
+    this.turnSignature = undefined
     this.toolCalls = []
     this.turnStopReason = null
     // Some transports emit an extra onDone after cancel — this turn may finalize only once
@@ -542,6 +545,10 @@ export class AgentLoop<TSnapshot = unknown> {
         onReasoning: (text) => {
           if (generation !== this.generation || settled) return
           this.turnReasoning += text
+        },
+        onThoughtSignature: (signature) => {
+          if (generation !== this.generation || settled) return
+          this.turnSignature = signature
         },
         onToolCall: (call) => {
           if (generation !== this.generation || settled) return
@@ -665,9 +672,17 @@ export class AgentLoop<TSnapshot = unknown> {
     this.history.push({
       role: 'assistant',
       text: this.turnText,
-      toolCalls: toolCalls.map(({ id, name, input }) => ({ id, name, input })),
+      // Gemini 3: thought signatures ride back on the functionCall parts (and
+      // the turn text) — without them the next request is rejected with HTTP 400
+      toolCalls: toolCalls.map(({ id, name, input, thoughtSignature }) => ({
+        id,
+        name,
+        input,
+        ...(thoughtSignature ? { thoughtSignature } : {}),
+      })),
       // interleaved-thinking models degrade in tool loops unless their reasoning is echoed back
       ...(this.turnReasoning ? { reasoning: this.turnReasoning } : {}),
+      ...(this.turnSignature ? { thoughtSignature: this.turnSignature } : {}),
     })
     const generation = this.generation
     const results: AgentToolResult[] = []

@@ -17,9 +17,12 @@ export const ja = {
   aiQcPageSkipped: 'ページ {n}:自動レイアウトチェックをスキップ',
   aiQcStopped: 'レイアウトチェックを停止しました',
   aiQcCapped: '残り {count} ページは未チェック(1回の上限)',
-  aiGskLoginBtn: 'Genspark にサインイン',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'AI アシスタント',
   aiOpenAssistant: 'AI アシスタントを開く',
+  aiAssistantTitle: 'AI アシスタント',
+  aiSkillsTip: 'ドキュメント生成スキルを選択',
+  aiSkillNone: 'スキルなし',
+  aiSkillsLabel: 'スキル',
   aiFactCheckBtn: 'AI ファクトチェック',
   aiFactCheckPrompt:
     'このスライドの内容をファクトチェックしてください:数値・日付・名称・主張を確認し、誤りを指摘して修正してください',
@@ -113,8 +116,7 @@ export const ja = {
   aiErrOverloaded: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
   aiErrNetwork:
     'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
-  aiCreditsExhausted:
-    'Gensparkクレジットを使い切りました。genspark.ai/pricing でチャージしてから再試行してください',
+  aiCreditsExhausted: 'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
   aiErrRequestFailed: 'リクエストの送信に失敗しました: {msg}',
   aiErrGenerateFailed: '生成に失敗しました',
   aiErrRegenFailed: 'ページの再生成に失敗しました',

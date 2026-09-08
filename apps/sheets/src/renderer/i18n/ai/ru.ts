@@ -4,10 +4,13 @@ export const ru = {
   aiComposerPlaceholderBuild: 'Опишите таблицу, данные или диаграмму для создания…',
   aiEmptyBuildTitle: 'Пусть ИИ построит эту книгу за вас',
   aiEmptyBuildBody: 'Опишите нужную таблицу, данные или диаграмму — ИИ создаст их на месте.',
-  aiGskLoginBtn: 'Войти в Genspark',
   aiUndelivered: 'Не отправлено',
   aiRetry: 'Повторить',
   aiOpenAssistant: 'Открыть ИИ-помощника',
+  aiAssistantTitle: 'ИИ-ассистент',
+  aiSkillsTip: 'Выбрать навык генерации',
+  aiSkillNone: 'Без навыка',
+  aiSkillsLabel: 'Навыки',
   aiAskBtn: 'Спросить ИИ',
   aiCheckBtn: 'ИИ-проверка',
   aiCheckPrompt:
@@ -49,13 +52,10 @@ export const ru = {
   aiFileTooltip:
     'SHA-256 {sha}\nПри сохранении перезаписываются только изменённые элементы; всё остальное сохраняется без изменений.',
   aiFileMeta: 'Листов: {sheets} · элементов: {entries}',
-  aiGensparkAccount: 'Учётная запись Genspark',
   aiAccountChecking: 'Проверка…',
   aiLoggedIn: 'Вход выполнен',
   aiLoggedInAs: 'Вход выполнен: {email}',
-  aiNotLoggedIn: 'Вход не выполнен (для функций ИИ требуется учётная запись Genspark)',
   aiWaitingBrowserLogin: 'Ожидание входа в браузере…',
-  aiLoginGenspark: 'Войти в Genspark',
   aiModel: 'Модель',
   aiCancel: 'Отмена',
   aiSave: 'Сохранить',
@@ -65,8 +65,7 @@ export const ru = {
   aiOverloadedError: 'Сервис ИИ сейчас перегружен — повторите попытку чуть позже',
   aiNetworkError:
     'Проблема с сетью: не удалось подключиться к сервису ИИ. Проверьте подключение и повторите попытку',
-  aiCreditsExhausted:
-    'Кредиты Genspark исчерпаны. Пополните баланс на genspark.ai/pricing и повторите попытку',
+  aiCreditsExhausted: 'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
   aiToolWorkbookContext: 'Чтение сведений о книге',
   aiToolReadRange: 'Чтение диапазона',
   aiToolReadRangeOf: 'Чтение диапазона {range}',

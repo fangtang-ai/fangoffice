@@ -11,15 +11,18 @@ function collector() {
   const deltas: string[] = []
   const toolCalls: AgentToolCall[] = []
   const stopReasons: string[] = []
+  const signatures: string[] = []
   return {
     deltas,
     toolCalls,
     stopReasons,
+    signatures,
     cb: {
       signal: new AbortController().signal,
       onDelta: (text: string) => deltas.push(text),
       onToolCall: (call: AgentToolCall) => toolCalls.push(call),
       onStopReason: (reason: string) => stopReasons.push(reason),
+      onThoughtSignature: (signature: string) => signatures.push(signature),
     },
   }
 }
@@ -439,6 +442,27 @@ describe('streamForProvider: gemini', () => {
     expect(toolCalls[0]).toMatchObject({ name: 'set_cell', input: { a1: '42' } })
   })
 
+  it('captures thought signatures from text and functionCall parts', async () => {
+    const body = sseStream([
+      'data: {"candidates":[{"content":{"parts":[{"text":"searching","thoughtSignature":"sig-text"}]}}]}',
+      'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"web_search","args":{"query":"方塘"}},"thoughtSignature":"sig-fn"}]}}]}',
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse(body)))
+    const { toolCalls, signatures, cb } = collector()
+    await streamForProvider(
+      'gemini',
+      { apiKey: 'k', model: 'gemini-3.7-flash' },
+      'sys',
+      [],
+      [],
+      100,
+      cb,
+    )
+    // signatures ride to the loop: text via onThoughtSignature, the call on the toolCall
+    expect(signatures).toEqual(['sig-text'])
+    expect(toolCalls[0]).toMatchObject({ name: 'web_search', thoughtSignature: 'sig-fn' })
+  })
+
   it('throws when the prompt is blocked instead of finishing an empty turn', async () => {
     const body = sseStream(['data: {"promptFeedback":{"blockReason":"SAFETY"}}'])
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse(body)))
@@ -822,80 +846,6 @@ describe('streamForProvider: openai-compatible', () => {
   })
 })
 
-describe('streamForProvider: genspark', () => {
-  it('routes claude models to the Anthropic-compatible proxy endpoint', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(okResponse(sseStream([])))
-    vi.stubGlobal('fetch', fetchMock)
-    const { cb } = collector()
-    await streamForProvider(
-      'genspark',
-      { apiKey: 'gsk-k', model: 'claude-opus-4-7' },
-      'sys',
-      [],
-      [],
-      100,
-      cb,
-    ).catch(() => {})
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://www.genspark.ai/api/anthropic/v1/messages',
-      expect.objectContaining({ headers: expect.objectContaining({ 'x-api-key': 'gsk-k' }) }),
-    )
-  })
-
-  it('routes other models to the OpenAI-compatible proxy', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(okResponse(sseStream(['data: [DONE]'])))
-    vi.stubGlobal('fetch', fetchMock)
-    const { cb } = collector()
-    await streamForProvider(
-      'genspark',
-      { apiKey: 'gsk-k', model: 'gpt-5.2' },
-      'sys',
-      [],
-      [],
-      100,
-      cb,
-    ).catch(() => {})
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://www.genspark.ai/api/llm_proxy/v1/chat/completions',
-      expect.anything(),
-    )
-  })
-
-  it('stamps X-Agent-Type on both proxy routes for billing attribution', async () => {
-    for (const model of ['claude-opus-4-7', 'gpt-5.2']) {
-      const fetchMock = vi.fn().mockResolvedValue(okResponse(sseStream([])))
-      vi.stubGlobal('fetch', fetchMock)
-      const { cb } = collector()
-      await streamForProvider('genspark', { apiKey: 'gsk-k', model }, 'sys', [], [], 100, cb).catch(
-        () => {},
-      )
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          headers: expect.objectContaining({ 'X-Agent-Type': 'genoffice' }),
-        }),
-      )
-    }
-  })
-
-  it('never sends X-Agent-Type to direct vendor APIs', async () => {
-    for (const [provider, model] of [
-      ['anthropic', 'claude-opus-4-7'],
-      ['gemini', 'gemini-2.5-flash'],
-      ['openai', 'gpt-4.1-mini'],
-    ] as const) {
-      const fetchMock = vi.fn().mockResolvedValue(okResponse(sseStream([])))
-      vi.stubGlobal('fetch', fetchMock)
-      const { cb } = collector()
-      await streamForProvider(provider, { apiKey: 'k', model }, 'sys', [], [], 100, cb).catch(
-        () => {},
-      )
-      const headers = fetchMock.mock.calls[0]![1].headers as Record<string, string>
-      expect(headers['X-Agent-Type']).toBeUndefined()
-    }
-  })
-})
-
 describe('streamForProvider: 200 + non-stream JSON instead of SSE', () => {
   const creditsNotice =
     'Your Genspark credits have been exhausted. Please visit https://www.genspark.ai/pricing to purchase more credits.'
@@ -1047,8 +997,8 @@ describe('streamForProvider: interleaved-thinking reasoning', () => {
     const reasoning: string[] = []
     const { deltas, cb } = collector()
     await streamForProvider(
-      'genspark',
-      { apiKey: 'k', model: 'deep-seek-v4-flash' },
+      'deepseek',
+      { apiKey: 'k', model: 'deepseek-v4-flash' },
       'sys',
       toolLoopMessages,
       [],
@@ -1066,7 +1016,7 @@ describe('streamForProvider: interleaved-thinking reasoning', () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(reasoningTurn()))
     vi.stubGlobal('fetch', fetchMock)
     await streamForProvider(
-      'genspark',
+      'deepseek',
       { apiKey: 'k', model: 'gpt-5.6-luna' },
       'sys',
       toolLoopMessages,

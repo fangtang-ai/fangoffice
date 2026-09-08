@@ -167,12 +167,6 @@ export interface PdfAiDeps {
   /** Queue a pending delete of an existing image */
   deleteImage(ref: PageImageRef): void
   searchImages(query: string, maxResults: number): Promise<ImageSearchResponse>
-  /** live predicate: gsk login && the Genspark-cloud-tools toggle; false hides generate_image */
-  gskTools?(): boolean
-  generateImage(op: { prompt: string; aspectRatio?: string }): Promise<{
-    url?: string
-    error?: string
-  }>
   /** Download a URL (main-process, SSRF-guarded) and re-encode as PNG; null on failure */
   fetchImage(url: string): Promise<{ png: string; width: number; height: number } | null>
   /** Session watermark / header-footer configuration; null when none is queued */
@@ -642,7 +636,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: 'image_search',
     description:
-      'Search the web for images. Returns a numbered list with direct imageUrl links; pick one and pass its URL to insert_image. Use for real photos/logos; use generate_image for custom illustrations.',
+      'Search the web for images. Returns a numbered list with direct imageUrl links; pick one and pass its URL to insert_image. Use for real photos/logos/illustrations.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -650,26 +644,6 @@ export const AGENT_TOOLS: AgentToolDef[] = [
         max_results: { type: 'integer', description: 'Max results, default 8' },
       },
       required: ['query'],
-    },
-  },
-  {
-    name: 'generate_image',
-    description:
-      'Generate an image with AI from a text prompt; returns an image URL to pass to insert_image. Use for custom illustrations/icons/diagrams; for real photos prefer image_search.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        prompt: {
-          type: 'string',
-          description:
-            'Image description, English works better (keep any text to render in the image verbatim)',
-        },
-        aspect_ratio: {
-          type: 'string',
-          description: 'Aspect ratio: 1:1|4:3|16:9|9:16|3:4|2:3|3:2|auto',
-        },
-      },
-      required: ['prompt'],
     },
   },
   {
@@ -689,14 +663,14 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: 'insert_image',
     description:
-      'Download an image URL (from image_search or generate_image) and place it on a page (takes effect on save). Position it either with anchor_text (a verbatim text fragment on the page) plus placement, or with explicit x/y in points measured from the page top-left as displayed; with neither, the image is centered on the page.',
+      'Download an image URL (from image_search) and place it on a page (takes effect on save). Position it either with anchor_text (a verbatim text fragment on the page) plus placement, or with explicit x/y in points measured from the page top-left as displayed; with neither, the image is centered on the page.',
     inputSchema: {
       type: 'object',
       properties: {
         page: { type: 'integer', description: 'Page number (1-based)' },
         url: {
           type: 'string',
-          description: 'Direct image link (from image_search or generate_image)',
+          description: 'Direct image link (from image_search)',
         },
         anchor_text: {
           type: 'string',
@@ -784,7 +758,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: 'replace_image',
     description:
-      'Swap an existing page image\'s pixels for a downloaded URL (from image_search or generate_image) in place — footprint and z-order survive; the new image stretches to the old footprint (takes effect on save). Call list_page_images first; image_number refers to that listing. This is the tool for "change/AI-edit this image": generate_image with the desired edit, then replace_image with the returned URL.',
+      'Swap an existing page image\'s pixels for a downloaded URL (from image_search or one the user provided) in place — footprint and z-order survive; the new image stretches to the old footprint (takes effect on save). Call list_page_images first; image_number refers to that listing.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2879,24 +2853,6 @@ async function imageSearchTool(
   return { output: lines.join('\n') || '(no images found)', summary }
 }
 
-async function generateImageTool(
-  deps: PdfAiDeps,
-  input: Record<string, unknown>,
-): Promise<ToolExecution> {
-  const summary = t('aiToolGenImage')
-  const prompt = String(input.prompt ?? '').trim()
-  if (!prompt) return err('prompt must not be empty', summary)
-  const r = await deps.generateImage({
-    prompt,
-    aspectRatio: input.aspect_ratio === undefined ? undefined : String(input.aspect_ratio),
-  })
-  if (!r.url) return err(`image generation failed: ${r.error ?? 'unknown error'}`, summary)
-  return {
-    output: `Generated image URL: ${r.url}\nInsert it into the document with insert_image.`,
-    summary,
-  }
-}
-
 async function insertImageTool(
   deps: PdfAiDeps,
   input: Record<string, unknown>,
@@ -2908,7 +2864,7 @@ async function insertImageTool(
   if ('bad' in r) return err(r.bad, summary)
   const url = String(input.url ?? '')
   if (!/^https?:\/\//.test(url))
-    return err('invalid url; pass an imageUrl from image_search or generate_image', summary)
+    return err('invalid url; pass an imageUrl from image_search', summary)
   const geom = deps.pageGeom(r.origIdx)
   if (!geom) return err('Document not ready', summary)
   const size = geomDispSize(geom)
@@ -3401,8 +3357,6 @@ export async function executePdfTool(
       return deleteNoteTool(deps, input)
     case 'image_search':
       return imageSearchTool(deps, input)
-    case 'generate_image':
-      return generateImageTool(deps, input)
     case 'list_page_images':
       return listPageImagesTool(deps, input)
     case 'insert_image':

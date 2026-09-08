@@ -1,14 +1,12 @@
 import { ANTHROPIC_BASE_URL } from './protocols/anthropic'
 import { GEMINI_BASE_URL } from './protocols/gemini'
-import { AI_PROVIDERS, GENSPARK_LLM_BASE_URLS } from './providers'
+import { AI_PROVIDERS } from './providers'
 import type { AiProviderConfig, AiProviderId, AiProviderMeta } from './types'
 
 /** The three wire protocols every provider maps onto. */
 export type AiProtocol = 'anthropic' | 'gemini' | 'openai-compatible'
 
 export interface ProviderCapabilities {
-  /** 'gsk-login': the Genspark session key is injected by the main process; 'api-key': the user supplies their own key */
-  auth: 'gsk-login' | 'api-key'
   /** chat models accept image input (declarative; for custom endpoints it is assumed, not known) */
   vision: boolean
 }
@@ -132,43 +130,26 @@ function fixedEndpoint(
 }
 
 export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
-  genspark: {
-    meta: metaOf('genspark'),
-    capabilities: { auth: 'gsk-login', vision: true },
-    // Route by model id prefix: claude uses the Anthropic protocol (preserves image
-    // input fidelity), the rest OpenAI-compatible. The proxy's gemini endpoint was
-    // removed server-side (405 as of 2026-08-31) along with its gemini models.
-    resolveEndpoint(config) {
-      if (config.model.startsWith('claude')) {
-        return { protocol: 'anthropic', baseUrl: GENSPARK_LLM_BASE_URLS.anthropic }
-      }
-      return {
-        protocol: 'openai-compatible',
-        baseUrl: GENSPARK_LLM_BASE_URLS.openai,
-        ...(modelHasFixedSampling(config.model) ? { omitTemperature: true } : {}),
-      }
-    },
-  },
   anthropic: {
     meta: metaOf('anthropic'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('anthropic', ANTHROPIC_BASE_URL),
   },
   gemini: {
     meta: metaOf('gemini'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('gemini', GEMINI_BASE_URL),
   },
   deepseek: {
     meta: metaOf('deepseek'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.deepseek.com/v1', {
       bodyExtras: DEEPSEEK_NON_THINKING,
     }),
   },
   openai: {
     meta: metaOf('openai'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     // every current OpenAI model accepts the renamed field, so it is safe endpoint-wide;
     // other openai-compatible vendors (and the LiteLLM-backed Genspark proxy) still expect `max_tokens`
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.openai.com/v1', {
@@ -177,19 +158,19 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
   },
   kimi: {
     meta: metaOf('kimi'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.moonshot.ai/v1', {
       omitTemperature: true,
     }),
   },
   glm: {
     meta: metaOf('glm'),
-    capabilities: { auth: 'api-key', vision: false },
+    capabilities: { vision: false },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://open.bigmodel.cn/api/paas/v4'),
   },
   qwen: {
     meta: metaOf('qwen'),
-    capabilities: { auth: 'api-key', vision: false },
+    capabilities: { vision: false },
     resolveEndpoint: fixedEndpoint(
       'openai-compatible',
       'https://dashscope.aliyuncs.com/compatible-mode/v1',
@@ -197,32 +178,32 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
   },
   doubao: {
     meta: metaOf('doubao'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://ark.cn-beijing.volces.com/api/v3'),
   },
   minimax: {
     meta: metaOf('minimax'),
-    capabilities: { auth: 'api-key', vision: false },
+    capabilities: { vision: false },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.minimax.io/v1'),
   },
   xai: {
     meta: metaOf('xai'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.x.ai/v1'),
   },
   mistral: {
     meta: metaOf('mistral'),
-    capabilities: { auth: 'api-key', vision: false },
+    capabilities: { vision: false },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://api.mistral.ai/v1'),
   },
   openrouter: {
     meta: metaOf('openrouter'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint: fixedEndpoint('openai-compatible', 'https://openrouter.ai/api/v1'),
   },
   'opencode-zen': {
     meta: metaOf('opencode-zen'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     // Claude and Qwen ride /v1/messages, Gemini its native generateContent path
     resolveEndpoint: opencodeEndpoint(OPENCODE_GATEWAY_ROOTS.zen, {
       anthropic: /^(claude-|qwen)/,
@@ -231,7 +212,7 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
   },
   'opencode-go': {
     meta: metaOf('opencode-go'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     // MiniMax and Qwen 3.8 Flash ride /v1/messages; the rest is chat-completions
     // (the Go docs table lists every Qwen on Messages, but the client config
     // OpenCode ships routes only 3.8 Flash there — follow the running client)
@@ -241,7 +222,7 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
   },
   custom: {
     meta: metaOf('custom'),
-    capabilities: { auth: 'api-key', vision: true },
+    capabilities: { vision: true },
     resolveEndpoint(config) {
       if (!config.baseUrl) throw new Error('A custom provider requires a Base URL')
       return {

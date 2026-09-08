@@ -17,9 +17,12 @@ export const fr = {
   aiQcPageSkipped: 'Page {n} : vérification automatique de la mise en page ignorée',
   aiQcStopped: 'Vérification de la mise en page arrêtée',
   aiQcCapped: '{count} page(s) restante(s) non vérifiée(s) (limite par exécution)',
-  aiGskLoginBtn: 'Se connecter à Genspark',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'Assistant IA',
   aiOpenAssistant: "Ouvrir l'assistant IA",
+  aiAssistantTitle: 'Assistant IA',
+  aiSkillsTip: 'Choisir une compétence de génération',
+  aiSkillNone: 'Aucune compétence',
+  aiSkillsLabel: 'Compétences',
   aiFactCheckBtn: 'Vérification IA',
   aiFactCheckPrompt:
     'Vérifiez les faits de cette présentation : contrôlez les chiffres, dates, noms et affirmations, puis signalez et corrigez les erreurs',
@@ -116,8 +119,7 @@ export const fr = {
   aiErrOverloaded: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
   aiErrNetwork:
     'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
-  aiCreditsExhausted:
-    'Vos crédits Genspark sont épuisés. Rechargez sur genspark.ai/pricing puis réessayez',
+  aiCreditsExhausted: 'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
   aiErrRequestFailed: "Échec de l'envoi de la requête : {msg}",
   aiErrGenerateFailed: 'Échec de la génération',
   aiErrRegenFailed: 'Échec de la régénération de la diapositive',

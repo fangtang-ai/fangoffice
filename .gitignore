@@ -41,3 +41,9 @@ __pycache__/
 # One-off verification tests kept while chasing a fix; promote to a real test
 # file (or delete) instead of committing them under this name.
 _scratch-*
+
+# ZCode CLI session state
+.zcode/
+
+# Local deployment secrets (never commit; see resources/*.json $comment)
+apps/shell/resources/*.local.json

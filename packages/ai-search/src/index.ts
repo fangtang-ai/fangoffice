@@ -1,9 +1,8 @@
 /**
- * Search utilities (main process) — gsk (Genspark CLI) first, then Serper Google API,
- * then Tavily, with DuckDuckGo as the keyless last resort. Runs in the main process
- * (Node fetch / child process) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY,
+ * Search utilities (main process) — Serper Google API first, then Tavily,
+ * with DuckDuckGo as the keyless last resort. Runs in the main process
+ * (Node fetch) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY,
  * the Tavily key reuses TAVILY_API_KEY.
- * For gsk auth see ./gsk.ts (`gsk login` or GSK_API_KEY).
  */
 
 import {
@@ -13,11 +12,8 @@ import {
   type ImageSearchResult,
   type WebSearchResult,
 } from './shared'
-import { gskImageSearch, gskWebSearch, hasGskAuth } from './gsk'
 
 export type { ImageSearchResult, WebSearchResult } from './shared'
-export * from './gsk'
-export * from './genoffice-auth'
 
 const SERPER_KEY = () => process.env.SERPER_API_KEY ?? ''
 const TAVILY_KEY = () => process.env.TAVILY_API_KEY ?? ''
@@ -27,22 +23,12 @@ const TAVILY_KEY = () => process.env.TAVILY_API_KEY ?? ''
 export async function webSearch(
   query: string,
   maxResults = 6,
-  useGsk = true,
 ): Promise<{
   results: WebSearchResult[]
   answer?: string
   method: string
   error?: string
 }> {
-  // useGsk=false: the user turned Genspark cloud tools off — skip straight to the free backends
-  if (useGsk && hasGskAuth()) {
-    try {
-      const r = await gskWebSearch(query, maxResults)
-      if (r.results.length) return { ...r, method: 'gsk' }
-    } catch {
-      /* fall back to Serper/Tavily/DuckDuckGo */
-    }
-  }
   const key = SERPER_KEY()
   if (key) {
     try {
@@ -125,20 +111,11 @@ export async function webSearch(
 export async function imageSearch(
   query: string,
   maxResults = 8,
-  useGsk = true,
 ): Promise<{
   images: ImageSearchResult[]
   method: string
   error?: string
 }> {
-  if (useGsk && hasGskAuth()) {
-    try {
-      const images = await gskImageSearch(query, maxResults)
-      if (images.length) return { images, method: 'gsk' }
-    } catch {
-      /* fall back to Serper/DuckDuckGo */
-    }
-  }
   const key = SERPER_KEY()
   if (key) {
     try {

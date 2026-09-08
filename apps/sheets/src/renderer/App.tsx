@@ -54,6 +54,7 @@ import {
   type UniverRuntime,
   type UniverWorksheet,
 } from './univer-state'
+import { AiSkillPicker, useAiSkills } from '@genoffice/ui'
 import { pushBulkFillUndo } from './bulk-fill-undo'
 import {
   applyAiPivotAdd,
@@ -130,6 +131,8 @@ import {
   AgentLoop,
   COMPLETED_VIA_TOOLS_TEXT,
   composeSkills,
+  createMcpPresetHooks,
+  createPresetSkill,
   type AgentImage,
 } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider'
@@ -195,7 +198,6 @@ import { createFilesSkill } from './ai/files-skill'
 import { createMergeSkill } from './ai/merge-skill'
 import { mergeAttachedWorkbooks } from './merge-workbooks'
 import { createSearchSkill } from './ai/search-skill'
-import { createImageSkill } from './ai/image-skill'
 import { ATTACHMENT_IMAGE_EXTS } from '../shared/desktop-api'
 import type {
   AttachmentAddResult,
@@ -824,25 +826,15 @@ export function App(): React.JSX.Element {
   const aiSettingsRef = useRef<AiSettings | null>(null)
   aiSettingsRef.current = aiSettings
 
-  /** gsk login state for the cloud-tools gate (refreshed on mount and window focus) */
-  const gskLoggedInRef = useRef(false)
-  useEffect(() => {
-    let alive = true
-    const refresh = () => {
-      void window.desktopApi
-        ?.aiGskStatus()
-        .then((s) => {
-          if (alive) gskLoggedInRef.current = !!s?.loggedIn
-        })
-        .catch(() => {})
-    }
-    refresh()
-    window.addEventListener('focus', refresh)
-    return () => {
-      alive = false
-      window.removeEventListener('focus', refresh)
-    }
-  }, [])
+  // built-in generation skill (技能) selected in the composer; live-read per turn
+  const { presets: skillOptions, active: activeSkill, pick: pickSkill } = useAiSkills(
+    'sheets',
+    () => window.desktopApi?.getAiFeatures?.(),
+    () => window.desktopApi?.getPresetCatalog?.(),
+  )
+  const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
+  activeSkillRef.current.current = activeSkill
+
   const [aiBusy, setAiBusy] = useState(false)
   // Display history survives restarts via localStorage; the AgentLoop's model
   // context does not, so restored turns are read-only transcript.
@@ -1108,8 +1100,13 @@ export function App(): React.JSX.Element {
           },
         }),
         createSearchSkill(),
-        createImageSkill(
-          () => gskLoggedInRef.current && aiSettingsRef.current?.gskToolsEnabled !== false,
+        createPresetSkill(
+          activeSkillRef.current,
+          createMcpPresetHooks({
+            status: () => window.desktopApi.mcpStatus(),
+            listTools: (server) => window.desktopApi.mcpListTools(server),
+            callTool: (server, tool, args) => window.desktopApi.mcpCallTool(server, tool, args),
+          }),
         ),
       ]),
       events: {
@@ -1246,22 +1243,6 @@ export function App(): React.JSX.Element {
             }
             return next
           })
-          // Signed-out failures get an inline sign-in button; detected via
-          // gsk status rather than matching the localized error text
-          void window.desktopApi
-            .aiGskStatus()
-            .then((status) => {
-              if (status.loggedIn) return
-              setChat((previous) => {
-                const next = [...previous]
-                const last = next.at(-1)
-                if (last?.role === 'assistant' && last.isError) {
-                  next[next.length - 1] = { ...last, loginRequired: true }
-                }
-                return next
-              })
-            })
-            .catch(() => {})
           setAiRunScope(undefined)
           void autoSaveCompletedAiRun().finally(() => setAiBusy(false))
         },
@@ -1274,10 +1255,10 @@ export function App(): React.JSX.Element {
     if (!settings) return false
     const config = settings.providers[settings.provider]
     if (!config?.model) return false
-    // Genspark's key never lands in the settings file; the main process injects
-    // it from the gsk login state. When logged out, requests return an error
-    // guiding sign-in — not intercepted here.
-    return settings.provider === 'genspark' || !!config.apiKey
+    // anonymous OpenAI-compatible endpoints (Ollama etc.) need only a base URL;
+    // anything else requires its key. Unconfigured requests error in the main
+    // process with a localized hint — not intercepted here.
+    return !!config.apiKey || (settings.provider === 'custom' && !!config.baseUrl)
   }
 
   /** Image attachments read as base64 and sent multimodal with this user message
@@ -5343,6 +5324,16 @@ export function App(): React.JSX.Element {
         selectionFormat={selectionFormat}
         statusMessage={message}
         aiBusy={aiBusy}
+        skillsSlot={
+          <AiSkillPicker
+            presets={skillOptions}
+            activeId={activeSkill?.id ?? null}
+            onPick={pickSkill}
+            label={t('aiSkillsLabel')}
+            noneLabel={t('aiSkillNone')}
+            tip={t('aiSkillsTip')}
+          />
+        }
         chat={chat}
         historicChat={historicChat}
         attachments={attachments}

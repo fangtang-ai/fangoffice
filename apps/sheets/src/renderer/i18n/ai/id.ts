@@ -4,10 +4,13 @@ export const id = {
   aiComposerPlaceholderBuild: 'Jelaskan tabel, data, atau bagan yang akan dibuat…',
   aiEmptyBuildTitle: 'Biarkan AI membangun buku kerja ini untuk Anda',
   aiEmptyBuildBody: 'Jelaskan tabel, data, atau bagan yang Anda perlukan — AI langsung membuatnya.',
-  aiGskLoginBtn: 'Masuk ke Genspark',
   aiUndelivered: 'Tidak terkirim',
   aiRetry: 'Coba lagi',
   aiOpenAssistant: 'Buka asisten AI',
+  aiAssistantTitle: 'Asisten AI',
+  aiSkillsTip: 'Pilih keterampilan pembuatan dokumen',
+  aiSkillNone: 'Tanpa keterampilan',
+  aiSkillsLabel: 'Keterampilan',
   aiAskBtn: 'Tanya AI',
   aiCheckBtn: 'Pemeriksaan AI',
   aiCheckPrompt:
@@ -48,13 +51,10 @@ export const id = {
   aiFileTooltip:
     'SHA-256 {sha}\nPenyimpanan hanya menulis ulang entri yang diedit; sisanya tetap dipertahankan.',
   aiFileMeta: '{sheets} lembar · {entries} entri',
-  aiGensparkAccount: 'Akun Genspark',
   aiAccountChecking: 'Memeriksa…',
   aiLoggedIn: 'Sudah masuk',
   aiLoggedInAs: 'Sudah masuk: {email}',
-  aiNotLoggedIn: 'Belum masuk (fitur AI memerlukan akun Genspark)',
   aiWaitingBrowserLogin: 'Menunggu proses masuk di browser…',
-  aiLoginGenspark: 'Masuk ke Genspark',
   aiModel: 'Model',
   aiCancel: 'Batal',
   aiSave: 'Simpan',
@@ -64,8 +64,7 @@ export const id = {
   aiOverloadedError: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
   aiNetworkError:
     'Masalah jaringan: tidak dapat terhubung ke layanan AI. Periksa koneksi Anda lalu coba lagi',
-  aiCreditsExhausted:
-    'Kredit Genspark Anda telah habis. Isi ulang di genspark.ai/pricing lalu coba lagi',
+  aiCreditsExhausted: 'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
   aiToolWorkbookContext: 'Baca info buku kerja',
   aiToolReadRange: 'Baca rentang',
   aiToolReadRangeOf: 'Baca rentang {range}',

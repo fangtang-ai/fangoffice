@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import type { Block } from '@genoffice/docx-engine'
-import { AgentLoop, composeSkills, type AgentImage } from '@genoffice/agent-core'
+import { AgentLoop, composeSkills, createPresetSkill, type AgentImage } from '@genoffice/agent-core'
+import { createMcpPresetHooks } from '@genoffice/agent-core'
 import type { AiSettings, AttachmentAddResult, AttachmentMeta } from '../../shared/ipc'
 import { ATTACHMENT_IMAGE_EXTS } from '../../shared/ipc'
 import type { PmNode } from '../editor/convert'
@@ -25,8 +26,8 @@ import { createFilesSkill } from './files-skill'
 import { createElectronTransport } from './transport'
 import { useI18n, t as tModule, aiLangDirective, type StringKey } from '../i18n/locale'
 import { Markdown } from '@genoffice/ui'
-import { AiComposer, AiTypingIndicator } from '@genoffice/ui'
-import { GensparkMark } from '../components/icons'
+import { AiComposer, AiSkillPicker, AiTypingIndicator, useAiSkills } from '@genoffice/ui'
+import { AiMark } from '../components/icons'
 import sendEnterOn from '../assets/send-enter-on.png'
 import sendEnterOff from '../assets/send-enter-off.png'
 import sendStop from '../assets/send-stop.png'
@@ -74,8 +75,6 @@ interface ChatEntry {
   error?: string
   streaming?: boolean
   turnLimit?: boolean
-  /** the run failed because Genspark is signed out — render an inline sign-in button */
-  loginRequired?: boolean
   /** tool executions performed during this assistant turn */
   tools?: ToolActivity[]
   /** document state before this turn's first edit — rendered as an inline roll-back action */
@@ -323,6 +322,15 @@ export function AiPanel({
     () => localStorage.getItem(TRACK_CHANGES_KEY) === '1',
   )
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
+  // built-in generation skill (技能) selected in the composer; the live ref is
+  // read by the preset skill before every model turn
+  const { presets: skillOptions, active: activeSkill, pick: pickSkill } = useAiSkills(
+    'docs',
+    () => window.desktop.getAiFeatures?.(),
+    () => window.desktop.getPresetCatalog?.(),
+  )
+  const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
+  activeSkillRef.current.current = activeSkill
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [attachNotice, setAttachNotice] = useState<string | null>(null)
   /** data-URL previews for image attachments, keyed by path (Genspark composer thumbnails) */
@@ -602,6 +610,14 @@ export function AiPanel({
           () => hfAccessRef.current,
         ),
         createFilesSkill(availableAttachments),
+        createPresetSkill(
+          activeSkillRef.current,
+          createMcpPresetHooks({
+            status: () => window.desktop.mcpStatus(),
+            listTools: (server) => window.desktop.mcpListTools(server),
+            callTool: (server, tool, args) => window.desktop.mcpCallTool(server, tool, args),
+          }),
+        ),
       ]),
       captureSnapshot: () => editorRef.current.getJSON() as PmNode,
       events: {
@@ -696,22 +712,6 @@ export function AiPanel({
             }
             return next
           })
-          // Signed-out failures get an inline sign-in button; detected via
-          // gsk status rather than matching the localized error text
-          void window.desktop
-            .aiGskStatus()
-            .then((status) => {
-              if (status.loggedIn) return
-              setChat((prev) => {
-                const next = [...prev]
-                const last = next.at(-1)
-                if (last?.role === 'assistant' && last.error) {
-                  next[next.length - 1] = { ...last, loginRequired: true }
-                }
-                return next
-              })
-            })
-            .catch(() => {})
           setBusy(false)
         },
       },
@@ -1038,7 +1038,7 @@ export function AiPanel({
         aria-label={t('appExpandAiPanel')}
         onClick={onExpand}
       >
-        <GensparkMark size={22} />
+        <AiMark size={22} />
       </button>
     )
   }
@@ -1070,7 +1070,7 @@ export function AiPanel({
       />
       <div className="ai-panel-header">
         <span className="ai-panel-title">
-          <GensparkMark size={22} />
+          <AiMark size={22} />
           {t('aiPanelTitle')}
         </span>
         <div className="ai-panel-header-actions">
@@ -1188,11 +1188,6 @@ export function AiPanel({
               {entry.tools && entry.tools.length > 0 && <ToolChipList tools={entry.tools} />}
               {entry.error && (
                 <div className="ai-msg-error">{t('aiErrorPrefix', { error: entry.error })}</div>
-              )}
-              {entry.loginRequired && (
-                <button className="ai-login-btn" onClick={() => void window.desktop.aiGskLogin()}>
-                  {t('aiGskLoginBtn')}
-                </button>
               )}
               {showToolbar && (
                 <div className="ai-msg-toolbar">
@@ -1410,6 +1405,14 @@ export function AiPanel({
           onPasteFiles={(files) => void onPasteFiles(files)}
           footerStart={
             <>
+              <AiSkillPicker
+                presets={skillOptions}
+                activeId={activeSkill?.id ?? null}
+                onPick={pickSkill}
+                label={t('aiSkillsLabel')}
+                noneLabel={t('aiSkillNone')}
+                tip={t('aiSkillsTip')}
+              />
               <button
                 className="ai-attach-btn"
                 onClick={pickAttachments}

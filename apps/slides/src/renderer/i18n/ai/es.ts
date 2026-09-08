@@ -17,9 +17,12 @@ export const es = {
   aiQcPageSkipped: 'Página {n}: comprobación automática de diseño omitida',
   aiQcStopped: 'Comprobación de diseño detenida',
   aiQcCapped: '{count} página(s) más sin comprobar (límite por ejecución)',
-  aiGskLoginBtn: 'Iniciar sesión en Genspark',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'Asistente de IA',
   aiOpenAssistant: 'Abrir el asistente de IA',
+  aiAssistantTitle: 'Asistente de IA',
+  aiSkillsTip: 'Elegir habilidad de generación',
+  aiSkillNone: 'Sin habilidad',
+  aiSkillsLabel: 'Habilidades',
   aiFactCheckBtn: 'Verificación IA',
   aiFactCheckPrompt:
     'Verifica los datos de esta presentación: comprueba cifras, fechas, nombres y afirmaciones, y señala y corrige los errores',
@@ -117,8 +120,7 @@ export const es = {
     'El servicio de IA está saturado en este momento; inténtalo de nuevo en unos instantes',
   aiErrNetwork:
     'Problema de red: no se pudo conectar con el servicio de IA. Comprueba tu conexión e inténtalo de nuevo',
-  aiCreditsExhausted:
-    'Tus créditos de Genspark se han agotado. Recarga en genspark.ai/pricing e inténtalo de nuevo',
+  aiCreditsExhausted: 'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
   aiErrRequestFailed: 'No se pudo enviar la solicitud: {msg}',
   aiErrGenerateFailed: 'Error de generación',
   aiErrRegenFailed: 'No se pudo rehacer la diapositiva',

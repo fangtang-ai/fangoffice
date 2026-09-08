@@ -1197,30 +1197,6 @@ describe('image_search / generate_image', () => {
     expect(result.output).toContain('boom')
   })
 
-  it('returns the generated image URL and errors when generation fails', async () => {
-    const ok = await executePdfTool(makeDeps(), call('generate_image', { prompt: 'a diagram' }))
-    expect(ok.isError).toBeUndefined()
-    expect(ok.output).toContain('https://img.example/generated.png')
-
-    const failed = await executePdfTool(
-      makeDeps({ generateImage: async () => ({ error: 'not logged in' }) }),
-      call('generate_image', { prompt: 'a diagram' }),
-    )
-    expect(failed.isError).toBe(true)
-    expect(failed.output).toContain('not logged in')
-  })
-})
-
-describe('list_page_images', () => {
-  it('numbers images top-to-bottom with top-left-origin coordinates', async () => {
-    const result = await executePdfTool(makeDeps(), call('list_page_images', {}))
-    expect(result.isError).toBeUndefined()
-    expect(result.output).toContain('Page 1 (600 × 800 pt):')
-    // [50,600,150,700] sits higher on the page (y=100 from top) → image 1
-    expect(result.output).toContain('image 1: 100 × 100 pt at x=50, y=100, below the text')
-    expect(result.output).toContain('image 2: 100 × 100 pt at x=200, y=600, above the text')
-  })
-
   it('marks images that already have a pending edit', async () => {
     const deps = makeDeps({ isImageClaimed: (ref) => ref.rect[0] === 50 })
     const result = await executePdfTool(deps, call('list_page_images', { page: 1 }))

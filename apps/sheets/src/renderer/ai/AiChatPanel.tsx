@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { AiComposer, AiTypingIndicator } from '@genoffice/ui'
-import { GensparkMark } from '../ribbon-icons'
+import { AiMark } from '../ribbon-icons'
 import type { ChangePlan } from '../../domain/workbook.types'
 import { ATTACHMENT_IMAGE_EXTS, type AttachmentMeta } from '../../shared/desktop-api'
 import { useI18n, type TFunc } from '../i18n/locale'
@@ -198,8 +198,6 @@ export interface AiChatMessage {
   readonly undelivered?: boolean | undefined
   /** this user message was written to the project-store chat log (Retry re-persists when it wasn't) */
   readonly persisted?: boolean | undefined
-  /** the run failed because Genspark is signed out — render an inline sign-in button */
-  readonly loginRequired?: boolean | undefined
   /** Set when this message reflects an auto-applied plan; renders an inline [Undo] button. */
   readonly autoApplied?: { readonly opCount: number; readonly undoSteps: number } | undefined
   /** attachments consumed from the composer by this user message (read-only echo chips) */
@@ -232,6 +230,7 @@ export function AiChatPanel({
   onCitation,
   onExpand,
   onCollapse,
+  skillsSlot,
 }: {
   readonly isOpen: boolean
   /** the workbook has cells with content — empty workbooks get "build me a sheet" copy instead */
@@ -278,6 +277,8 @@ export function AiChatPanel({
   readonly onCitation: (href: string) => void
   readonly onExpand: () => void
   readonly onCollapse: () => void
+  /** generation-skill picker (技能) rendered at the front of the composer footer */
+  readonly skillsSlot?: React.ReactNode
 }): React.JSX.Element {
   const { t, lang } = useI18n()
   // Panel chrome follows the UI language; message text follows its own content (dir=auto below)
@@ -442,7 +443,7 @@ export function AiChatPanel({
           data-tip={t('aiOpenAssistant')}
           aria-label={t('aiOpenAssistant')}
         >
-          <GensparkMark size={22} />
+          <AiMark size={22} />
         </button>
       </aside>
     )
@@ -507,12 +508,12 @@ export function AiChatPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="Genspark"
+        aria-label={t('aiAssistantTitle')}
       />
       <header className="ai-panel-header">
         <span className="ai-panel-title">
-          <GensparkMark size={22} />
-          Genspark
+          <AiMark size={22} />
+          {t('aiAssistantTitle')}
         </span>
         <div className="ai-panel-header-actions">
           {(chat.length > 0 || historicChat.length > 0) && (
@@ -625,14 +626,6 @@ export function AiChatPanel({
                       </button>
                     )}
                   </div>
-                )}
-                {entry.loginRequired && (
-                  <button
-                    className="ai-login-btn"
-                    onClick={() => void window.desktopApi.aiGskLogin()}
-                  >
-                    {t('aiGskLoginBtn')}
-                  </button>
                 )}
               </>
             )}
@@ -808,14 +801,17 @@ export function AiChatPanel({
           sendIconDisabled={<img src={sendEnterOff} alt="" aria-hidden />}
           stopIcon={<img src={sendStop} alt="" aria-hidden />}
           footerStart={
-            <button
-              className="ai-attach-btn"
-              onClick={onPickAttachments}
-              data-tip={t('aiAttachTitle')}
-              aria-label={t('aiAttachTitle')}
-            >
-              <img src={attachIcon} alt="" aria-hidden />
-            </button>
+            <>
+              {skillsSlot}
+              <button
+                className="ai-attach-btn"
+                onClick={onPickAttachments}
+                data-tip={t('aiAttachTitle')}
+                aria-label={t('aiAttachTitle')}
+              >
+                <img src={attachIcon} alt="" aria-hidden />
+              </button>
+            </>
           }
           textareaRef={inputRef}
           onChange={onPromptChange}

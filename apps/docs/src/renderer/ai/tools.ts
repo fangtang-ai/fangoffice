@@ -179,26 +179,6 @@ export const AGENT_TOOLS: AgentToolDef[] = [
     },
   },
   {
-    name: 'generate_image',
-    description:
-      'Generate an illustration with AI from a text prompt and insert it into the document (at the cursor / end of document). For illustration/diagram-style art that image_search cannot find, or when the user asks to generate/draw a picture. Requires Genspark login with cloud tools enabled.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        prompt: {
-          type: 'string',
-          description: 'detailed English description of the image to generate',
-        },
-        aspectRatio: {
-          type: 'string',
-          description: 'e.g. "1:1", "16:9", "4:3"; omit for the default',
-        },
-        maxWidthPx: { type: 'integer', description: 'maximum width (px), default 480' },
-      },
-      required: ['prompt'],
-    },
-  },
-  {
     name: 'insert_chart',
     description:
       'Insert a chart (saved as a native Word chart). Data must be real: from the document content or web_search results — do not make up numbers.',
@@ -516,31 +496,6 @@ async function executeAsyncTool(
         blockLabel: 'Image (web)',
       })
     }
-    case 'generate_image': {
-      const prompt = String(call.input.prompt ?? '').trim()
-      if (!prompt) return fail(t('aiSumGenerateImage'), 'prompt must not be empty')
-      const aspectRatio = String(call.input.aspectRatio ?? '').trim()
-      const generated = await window.desktop.aiGenerateImage({
-        prompt,
-        ...(aspectRatio ? { aspectRatio } : {}),
-      })
-      if (signal?.aborted)
-        return fail(t('aiSumGenerateImage'), 'stopped by the user; the image was not inserted')
-      if (!generated.url) {
-        return fail(t('aiSumGenerateImage'), generated.error ?? 'image generation failed')
-      }
-      return insertImageFromUrl(
-        editor,
-        generated.url,
-        Number(call.input.maxWidthPx) || 480,
-        signal,
-        {
-          failLabel: t('aiSumGenerateImage'),
-          doneLabel: t('aiSumInsertedGenImage'),
-          blockLabel: 'Image (AI)',
-        },
-      )
-    }
     case 'create_document': {
       const typeRaw = call.input.type === undefined ? 'docx' : String(call.input.type)
       if (typeRaw !== 'docx' && typeRaw !== 'pdf' && typeRaw !== 'md')
@@ -678,7 +633,6 @@ export function executeTool(
     call.name === 'web_search' ||
     call.name === 'image_search' ||
     call.name === 'insert_image' ||
-    call.name === 'generate_image' ||
     call.name === 'create_document'
   ) {
     return executeAsyncTool(editor, call, signal)

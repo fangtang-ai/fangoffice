@@ -86,12 +86,8 @@ export const IPC_CHANNELS = {
   aiStream: 'ai:stream',
   aiStreamCancel: 'ai:stream-cancel',
   aiStreamChunk: 'ai:stream-chunk',
-  aiGskStatus: 'ai:gsk-status',
-  aiGskLogin: 'ai:gsk-login',
   aiImageSearch: 'ai:image-search',
   aiFetchImage: 'ai:fetch-image',
-  // sheets: prefix — slides' ai:generate-image only registers once a slides view exists
-  aiGenerateImage: 'sheets:ai-generate-image',
   // Chat attachments (sheets: prefix — docs already registers global files:* in
   // the shell; avoids collisions)
   captureScreenSources: 'sheets:capture-screen-sources',

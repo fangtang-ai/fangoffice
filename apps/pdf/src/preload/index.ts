@@ -1,3 +1,4 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Lang } from '@genoffice/i18n'
 import type { AiStreamChunk } from '@genoffice/ai-provider'
@@ -36,7 +37,21 @@ const api: PdfApi = {
   imageSearch: (query, maxResults) =>
     ipcRenderer.invoke(AI_CHANNELS.imageSearch, query, maxResults),
   fetchImage: (url) => ipcRenderer.invoke(AI_CHANNELS.fetchImage, url),
-  generateImage: (op) => ipcRenderer.invoke(PDF_CHANNELS.generateImage, op),
+  mcpStatus: async () => (await ipcRenderer.invoke('mcp:status')) as PdfApi['mcpStatus'] extends () => Promise<infer T> ? T : never,
+  mcpListTools: async (server: string) =>
+    (await ipcRenderer.invoke('mcp:list-tools', server)) as PdfApi['mcpListTools'] extends (s: string) => Promise<infer T> ? T : never,
+  mcpCallTool: async (server: string, tool: string, args: Record<string, unknown>) =>
+    (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as PdfApi['mcpCallTool'] extends (s: string, t: string, a: Record<string, unknown>) => Promise<infer T> ? T : never,
+  getAiFeatures: async () => {
+    const result: unknown = await ipcRenderer.invoke('ai:get-features')
+    return result && typeof result === 'object' ? (result as { disabledPresets?: string[] }) : {}
+  },
+  getPresetCatalog: async () => {
+    const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
+    return Array.isArray(result) ? (result as PresetSkillDef[]) : []
+  },
+  setAiFeatures: (features: { disabledPresets?: string[] }) =>
+    ipcRenderer.invoke('ai:set-features', features),
   listSavedSignatures: () => ipcRenderer.invoke(PDF_CHANNELS.listSignatures),
   addSavedSignature: (data) => ipcRenderer.invoke(PDF_CHANNELS.addSignature, data),
   removeSavedSignature: (id) => ipcRenderer.invoke(PDF_CHANNELS.removeSignature, id),
@@ -82,7 +97,6 @@ const api: PdfApi = {
     return () => ipcRenderer.removeListener('app:chrome-pressed', listener)
   },
   getAiSettings: () => ipcRenderer.invoke(AI_CHANNELS.getSettings),
-  gskStatus: () => ipcRenderer.invoke(AI_CHANNELS.gskStatus),
   aiStream: (request) => ipcRenderer.invoke(AI_CHANNELS.stream, request),
   aiStreamCancel: (requestId) => ipcRenderer.invoke(AI_CHANNELS.streamCancel, requestId),
   onAiStream: (handler) => {

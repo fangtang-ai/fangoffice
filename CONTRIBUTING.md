@@ -1,4 +1,4 @@
-# Contributing to GenOffice
+# Contributing to 方塘Office
 
 Thanks for your interest in contributing. This document covers the local
 setup, the checks a change must pass, and the conventions used in this
@@ -88,7 +88,7 @@ over them. Point the output directory at an APFS path instead of moving the
 repository:
 
 ```bash
-BUILD_DIR=/tmp/genoffice-release npm run dist:mac
+BUILD_DIR=/tmp/fangtang-release npm run dist:mac
 ```
 
 `dist:win` additionally expects the xlsx sidecar at the MinGW cross-compilation
@@ -114,7 +114,7 @@ testing and local overrides:
 | `GENOFFICE_LANG`                                            | Force the UI language instead of following the OS locale                      |
 | `GENOFFICE_FAKE_UPDATE`                                     | Exercise the updater UI without a real release feed                           |
 | `GENOFFICE_CLOUD_SLIDE`, `GENOFFICE_CLOUD_SLIDE_TIER`       | Route slide generation through the cloud endpoint                             |
-| `GSK_API_KEY`, `GSK_CLI_PATH`                               | Genspark credentials / CLI location for the built-in AI provider              |
+| `GSK_API_KEY`, `GSK_CLI_PATH`                               | 方塘 credentials / CLI location for the built-in AI provider              |
 | `AI_SEARCH_DISABLE_GSK`, `SERPER_API_KEY`, `TAVILY_API_KEY` | Disable the gsk search backend / supply a Serper or Tavily key                |
 | `XLSX_SIDECAR_PATH`, `XLSX_OPEN_PATH`, `XLSX_DEBUG_PORT`    | Point at a locally built xlsx sidecar and its debug port                      |
 | `*_DEV_PORT`, `*_RENDERER_URL`                              | Per-app Vite dev server ports and renderer URLs (set by `npm run dev`)        |

@@ -41,7 +41,6 @@ import type {
   AiSettings,
   AiStreamChunk,
   AiStreamRequest,
-  GenSparkAccountStatus,
 } from '@genoffice/ai-provider'
 import type { FaceVerticalMetrics } from '@genoffice/font-metrics'
 
@@ -56,17 +55,20 @@ export type {
   AiSettings,
   AiStreamChunk,
   AiStreamRequest,
-  GenSparkAccountStatus,
 } from '@genoffice/ai-provider'
 export { AI_PROVIDERS } from '@genoffice/ai-provider'
 
 // ---- agent protocol: canonical types live in @genoffice/agent-core ----
+import type { McpCallResult, McpServerInfo, McpToolInfo, PresetSkillDef } from '@genoffice/agent-core'
 
 export type {
   AgentMessage,
   AgentToolCall,
   AgentToolDef,
   AgentToolResult,
+  McpCallResult,
+  McpServerInfo,
+  McpToolInfo,
 } from '@genoffice/agent-core'
 
 // ---- chat attachments (local files fed to the agent via tools) ----
@@ -281,14 +283,20 @@ export interface DesktopApi {
     base64Parts: string[],
     outPath?: string,
   ): Promise<{ ok: boolean; path?: string; error?: string }>
+  /** built-in skill visibility (Settings → 技能); shared across editors */
+  getAiFeatures(): Promise<{ disabledPresets?: string[] }>
+  /** effective built-in skill catalog (file presets replace compiled-in per app) */
+  getPresetCatalog(): Promise<PresetSkillDef[]>
+  /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
+  mcpStatus(): Promise<McpServerInfo[]>
+  mcpListTools(server: string): Promise<McpToolInfo[]>
+  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+
+  setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   aiChat(request: AiChatRequest): Promise<AiChatResponse>
   /** start a streaming AI call; deltas arrive via onAiStream with the same requestId */
   aiStream(request: AiStreamRequest): Promise<void>
   aiStreamCancel(requestId: string): Promise<void>
-  /** Genspark account status (gsk login state); withEmail also returns the email (needs a network request, slower) */
-  aiGskStatus(withEmail?: boolean): Promise<GenSparkAccountStatus>
-  /** Open the browser to log in to Genspark (fire-and-forget; aiGskStatus flips to logged-in when done) */
-  aiGskLogin(): Promise<void>
   webSearch(
     query: string,
     maxResults?: number,
@@ -316,11 +324,6 @@ export interface DesktopApi {
     error?: string
   }>
   fetchImage(url: string): Promise<{ base64: string; mime: string } | null>
-  /** AI image generation via the Genspark cloud channel (requires login + cloud tools) */
-  aiGenerateImage(op: {
-    prompt: string
-    aspectRatio?: string
-  }): Promise<{ url?: string; error?: string }>
   /** file picker for chat attachments (multi-select) */
   pickAttachments(): Promise<AttachmentAddResult | null>
   /** validate dropped paths and return attachment metadata */

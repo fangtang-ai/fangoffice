@@ -15,6 +15,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { cargoOrFail } from './lib/cargo-resolve.mjs'
 
 function fatal(msg) {
   console.error(`[sidecar-universal] ERROR: ${msg}`)
@@ -28,11 +29,12 @@ if (process.platform !== 'darwin') fatal('macOS only (needs lipo)')
 // exactly like the native:build script does.
 const sheetsDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 const TARGETS = ['x86_64-apple-darwin', 'aarch64-apple-darwin']
+const cargo = cargoOrFail()
 
 for (const target of TARGETS) {
   console.log(`[sidecar-universal] cargo build --target ${target}`)
   execFileSync(
-    'cargo',
+    cargo,
     [
       'build',
       '--release',

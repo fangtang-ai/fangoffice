@@ -17,9 +17,12 @@ export const ko = {
   aiQcPageSkipped: '{n}페이지: 자동 레이아웃 검사 건너뜀',
   aiQcStopped: '레이아웃 검사를 중지했습니다',
   aiQcCapped: '나머지 {count}페이지는 검사하지 않음(회당 상한)',
-  aiGskLoginBtn: 'Genspark 로그인',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'AI 어시스턴트',
   aiOpenAssistant: 'AI 도우미 열기',
+  aiAssistantTitle: 'AI 어시스턴트',
+  aiSkillsTip: '문서 생성 스킬 선택',
+  aiSkillNone: '스킬 없음',
+  aiSkillsLabel: '스킬',
   aiFactCheckBtn: 'AI 팩트체크',
   aiFactCheckPrompt:
     '이 슬라이드의 내용을 팩트체크해 주세요: 수치, 날짜, 이름, 주장을 확인하고 오류를 지적하여 수정해 주세요',
@@ -114,8 +117,7 @@ export const ko = {
   aiErrOverloaded: 'AI 서비스가 혼잡합니다. 잠시 후 다시 시도해 주세요',
   aiErrNetwork:
     '네트워크에 문제가 있어 AI 서비스에 연결할 수 없습니다. 연결을 확인한 후 다시 시도해 주세요',
-  aiCreditsExhausted:
-    'Genspark 크레딧을 모두 사용했습니다. genspark.ai/pricing에서 충전한 후 다시 시도해 주세요',
+  aiCreditsExhausted: '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
   aiErrRequestFailed: '요청 전송 실패: {msg}',
   aiErrGenerateFailed: '생성 실패',
   aiErrRegenFailed: '페이지 다시 생성 실패',

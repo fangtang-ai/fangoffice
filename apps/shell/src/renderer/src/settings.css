@@ -447,3 +447,31 @@
     transform: rotate(360deg);
   }
 }
+
+/* Settings → Skills (built-in generation presets) */
+.set-skills-desc {
+  margin-bottom: 12px;
+}
+
+.set-skills-group {
+  margin-bottom: 8px;
+}
+
+.set-skills-app {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 8px 0 2px;
+}
+
+.set-skill-row {
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.set-skill-row:last-child {
+  border-bottom: none;
+}

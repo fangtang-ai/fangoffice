@@ -41,6 +41,18 @@ export {
 } from './safe-remote-url'
 export { fetchRemoteImage, remoteImageHeaders } from './remote-image'
 export {
+  applySearchProviderEnv,
+  loadFangTangDefaults,
+  type FangTangDefaultsFile,
+} from './factory-defaults'
+export { readAiFeatures, writeAiFeatures, type AiFeaturesFile } from './ai-features'
+export {
+  bundledPresetsDir,
+  loadPresetFiles,
+  parsePresetMarkdown,
+  type PresetFileDef,
+} from './preset-files'
+export {
   buildPrintableHtml,
   printHtmlToPdf,
   sanitizePrintableBody,

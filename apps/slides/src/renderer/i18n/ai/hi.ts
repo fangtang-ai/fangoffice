@@ -17,9 +17,12 @@ export const hi = {
   aiQcPageSkipped: 'पेज {n}: स्वचालित लेआउट जाँच छोड़ दी गई',
   aiQcStopped: 'लेआउट जाँच रोक दी गई',
   aiQcCapped: 'शेष {count} पेज नहीं जाँचे गए (प्रति रन सीमा)',
-  aiGskLoginBtn: 'Genspark में साइन इन करें',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'AI सहायक',
   aiOpenAssistant: 'AI सहायक खोलें',
+  aiAssistantTitle: 'AI सहायक',
+  aiSkillsTip: 'दस्तावेज़ निर्माण कौशल चुनें',
+  aiSkillNone: 'कोई कौशल नहीं',
+  aiSkillsLabel: 'कौशल',
   aiFactCheckBtn: 'AI तथ्य जाँच',
   aiFactCheckPrompt:
     'इस प्रेज़ेंटेशन की तथ्य जाँच करें: आँकड़े, तिथियाँ, नाम और दावे सत्यापित करें, फिर त्रुटियाँ बताएं और सुधारें',
@@ -114,8 +117,7 @@ export const hi = {
   aiErrOverloaded: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
   aiErrNetwork:
     'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
-  aiCreditsExhausted:
-    'आपके Genspark क्रेडिट समाप्त हो गए हैं। genspark.ai/pricing पर रिचार्ज करें और फिर से प्रयास करें',
+  aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
   aiErrRequestFailed: 'अनुरोध भेजने में विफल: {msg}',
   aiErrGenerateFailed: 'जनरेशन विफल',
   aiErrRegenFailed: 'स्लाइड फिर से बनाने में विफल',

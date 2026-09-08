@@ -17,9 +17,12 @@ export const id = {
   aiQcPageSkipped: 'Halaman {n}: pemeriksaan tata letak otomatis dilewati',
   aiQcStopped: 'Pemeriksaan tata letak dihentikan',
   aiQcCapped: '{count} halaman lagi tidak diperiksa (batas per proses)',
-  aiGskLoginBtn: 'Masuk ke Genspark',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'Asisten AI',
   aiOpenAssistant: 'Buka asisten AI',
+  aiAssistantTitle: 'Asisten AI',
+  aiSkillsTip: 'Pilih keterampilan pembuatan dokumen',
+  aiSkillNone: 'Tanpa keterampilan',
+  aiSkillsLabel: 'Keterampilan',
   aiFactCheckBtn: 'Cek Fakta AI',
   aiFactCheckPrompt:
     'Periksa fakta dek ini: verifikasi angka, tanggal, nama, dan klaim, lalu tunjukkan dan perbaiki kesalahannya',
@@ -115,8 +118,7 @@ export const id = {
   aiErrOverloaded: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
   aiErrNetwork:
     'Masalah jaringan: tidak dapat terhubung ke layanan AI. Periksa koneksi Anda lalu coba lagi',
-  aiCreditsExhausted:
-    'Kredit Genspark Anda telah habis. Isi ulang di genspark.ai/pricing lalu coba lagi',
+  aiCreditsExhausted: 'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
   aiErrRequestFailed: 'Gagal mengirim permintaan: {msg}',
   aiErrGenerateFailed: 'Pembuatan gagal',
   aiErrRegenFailed: 'Gagal membuat ulang halaman',

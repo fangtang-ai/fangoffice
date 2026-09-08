@@ -15,6 +15,7 @@ export {
   type PopoverDismissOptions,
 } from './popover-dismiss'
 export { Dropdown, type DropdownOption } from './dropdown'
+export { AiSkillPicker, aiSkillStorageKey, useAiSkills, type AiSkillOption } from './ai-skill'
 export {
   useRibbonCollapse,
   RibbonCollapseButton,

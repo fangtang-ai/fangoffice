@@ -1,44 +1,6 @@
 import type { AiProviderId, AiProviderMeta, AiSettings, LegacyAiSettings } from './types'
 
-/**
- * Genspark server-side LLM proxy endpoints. All three protocols share the
- * api_key from the gsk login; model ids follow the proxy's own naming scheme,
- * which differs from the official vendor ids.
- */
-export const GENSPARK_LLM_BASE_URLS = {
-  anthropic: 'https://www.genspark.ai/api/anthropic',
-  openai: 'https://www.genspark.ai/api/llm_proxy/v1',
-} as const
-
-/**
- * Splits GenOffice usage out of the proxy's default "Claw" billing bucket
- * (the backend attributes gsk-key traffic by X-Agent-Type). Only sent to the
- * Genspark proxy — never to direct vendor APIs.
- */
-export const GENSPARK_AGENT_TYPE = 'genoffice'
-
-export function gensparkAttributionHeaders(baseUrl?: string): Record<string, string> {
-  return baseUrl?.startsWith('https://www.genspark.ai')
-    ? { 'X-Agent-Type': GENSPARK_AGENT_TYPE }
-    : {}
-}
-
 export const AI_PROVIDERS: AiProviderMeta[] = [
-  {
-    id: 'genspark',
-    label: 'Genspark',
-    // must stay within the proxy's served set (GET /api/llm_proxy/v1/models);
-    // bare gpt-5.6 and the gemini family dropped off it (verified 2026-08-31)
-    models: [
-      'claude-opus-4-7',
-      'claude-opus-4-8',
-      'claude-sonnet-4-6',
-      'gpt-5.6-terra',
-      'gpt-5.6-luna',
-    ],
-    defaultModel: 'claude-opus-4-7',
-    keyPlaceholder: 'Not required - sign in to Genspark',
-  },
   {
     id: 'anthropic',
     label: 'Claude',
@@ -220,51 +182,79 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
 ]
 
 /**
- * Fresh settings with every provider's default model and an empty key,
- * except providers listed in `defaultApiKeys` (e.g. an app-specific
- * preconfigured Anthropic key). Callers own that policy; this package
- * has no hardcoded keys.
+ * Out-of-box AI configuration for a deployment (editor/admin supplied): one
+ * provider with its key/base URL/model. Empty values mean "not preconfigured"
+ * — the app then starts on `custom` with nothing filled in and the AI panels
+ * surface a not-configured hint until Settings is filled in.
  */
-export function defaultAiSettings(
-  defaultApiKeys?: Partial<Record<AiProviderId, string>>,
-): AiSettings {
+export interface AiFactoryDefaults {
+  provider?: AiProviderId
+  apiKey?: string
+  baseUrl?: string
+  model?: string
+  maxOutputTokens?: number
+}
+
+/** The provider the app starts on when nothing is preconfigured. */
+export const FALLBACK_AI_PROVIDER: AiProviderId = 'custom'
+
+/**
+ * Fresh settings with every provider's default model and an empty key. When
+ * `factory` carries a usable provider (plus optional key/base URL/model), that
+ * provider becomes the out-of-box default with the values applied.
+ */
+export function defaultAiSettings(factory?: AiFactoryDefaults): AiSettings {
   const providers = {} as AiSettings['providers']
   for (const meta of AI_PROVIDERS) {
     providers[meta.id] = {
-      apiKey: defaultApiKeys?.[meta.id] ?? '',
+      apiKey: '',
       model: meta.defaultModel,
       baseUrl: meta.needsBaseUrl ? '' : undefined,
     }
   }
-  return { provider: 'genspark', providers, gskToolsEnabled: true }
-}
-
-/** false only on an explicit opt-out; absent (pre-toggle settings files) means on */
-export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>): boolean {
-  return settings.gskToolsEnabled !== false
+  let provider = FALLBACK_AI_PROVIDER
+  if (factory?.provider && AI_PROVIDERS.some((meta) => meta.id === factory.provider)) {
+    provider = factory.provider
+    const config = providers[provider]!
+    providers[provider] = {
+      ...config,
+      ...(factory.apiKey ? { apiKey: factory.apiKey } : {}),
+      ...(factory.model ? { model: factory.model } : {}),
+      ...(config.baseUrl !== undefined || factory.baseUrl
+        ? { baseUrl: factory.baseUrl ?? config.baseUrl ?? '' }
+        : {}),
+    }
+  }
+  return {
+    provider,
+    providers,
+    ...(factory?.maxOutputTokens !== undefined
+      ? { maxOutputTokens: clampMaxOutputTokens(factory.maxOutputTokens) }
+      : {}),
+  }
 }
 
 /**
  * The stored provider selection is honored only when its config is usable
  * (api-key providers need a key and a model id; providers flagged
  * needsBaseUrl also need a base URL). Anything else — including unknown
- * ids from a hand-edited
- * settings file — falls back to genspark, so a half-filled setup degrades
- * to the signed-in default instead of silently disabling AI.
+ * ids from a hand-edited settings file — falls back to `fallback` (the
+ * deployment's factory default), so a half-filled setup degrades to the
+ * preconfigured provider instead of silently disabling AI.
  */
-export function activeProvider(settings: AiSettings): AiProviderId {
+export function activeProvider(settings: AiSettings, fallback: AiProviderId = FALLBACK_AI_PROVIDER): AiProviderId {
   const provider = settings.provider
-  if (provider === 'genspark') return 'genspark'
+  if (provider === fallback) return provider
   const meta = AI_PROVIDERS.find((m) => m.id === provider)
   const config = settings.providers?.[provider]
-  if (!meta || !config?.model) return 'genspark'
+  if (!meta || !config?.model) return fallback
   if (meta.needsBaseUrl) {
     // Custom OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) accept
     // anonymous requests: base URL + model suffice, the key stays optional.
-    if (!config.baseUrl) return 'genspark'
+    if (!config.baseUrl) return fallback
     return provider
   }
-  if (!config.apiKey) return 'genspark'
+  if (!config.apiKey) return fallback
   return provider
 }
 
@@ -279,15 +269,6 @@ const RETIRED_MODELS: Partial<Record<AiProviderId, Record<string, string>>> = {
   deepseek: {
     'deepseek-chat': 'deepseek-v4-flash',
     'deepseek-reasoner': 'deepseek-v4-flash',
-  },
-  // proxy stopped serving bare gpt-5.6 (400) and removed the gemini route
-  // entirely (405), verified 2026-08-31; gemini selections fall back to the
-  // provider default since no gemini id is served at all
-  genspark: {
-    'gpt-5.6': 'gpt-5.6-terra',
-    'gemini-3.1-pro-preview': 'claude-opus-4-7',
-    'gemini-3-flash-preview': 'claude-opus-4-7',
-    'gemini-3.7-flash': 'claude-opus-4-7',
   },
 }
 
@@ -363,12 +344,17 @@ export function resolveAiSettings(
     }
     return defaults
   }
+  // the removed genspark provider (pre-fork settings files) can never be
+  // usable again — remap it to the deployment's factory default
+  const storedProvider = (stored as { provider?: string }).provider
   return {
-    provider: stored.provider ?? defaults.provider,
+    provider:
+      storedProvider === undefined || storedProvider === 'genspark'
+        ? defaults.provider
+        : (stored.provider as AiSettings['provider']),
     // Trim before migrating: a pasted " deepseek-reasoner " must still hit
     // the retired-id remap instead of being sent to the API verbatim.
     providers: migrateRetiredModels(trimConfigs({ ...defaults.providers, ...stored.providers })),
-    gskToolsEnabled: stored.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
     // clamped on read: a hand-edited settings file with an absurd cap must not be
     // forwarded to the endpoint verbatim
     ...(stored.maxOutputTokens !== undefined || defaults.maxOutputTokens !== undefined

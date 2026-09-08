@@ -4,10 +4,13 @@ export const ja = {
   aiComposerPlaceholderBuild: '作りたい表・データ・グラフを入力…',
   aiEmptyBuildTitle: 'AI にシート作りを任せる',
   aiEmptyBuildBody: '欲しい表・データ・グラフを伝えると、AI がその場で作成します。',
-  aiGskLoginBtn: 'Genspark にサインイン',
   aiUndelivered: '送信できませんでした',
   aiRetry: '再試行',
   aiOpenAssistant: 'AI アシスタントを開く',
+  aiAssistantTitle: 'AI アシスタント',
+  aiSkillsTip: 'ドキュメント生成スキルを選択',
+  aiSkillNone: 'スキルなし',
+  aiSkillsLabel: 'スキル',
   aiAskBtn: 'AI に修正依頼',
   aiCheckBtn: 'AI チェック',
   aiCheckPrompt:
@@ -48,13 +51,10 @@ export const ja = {
   aiFileTooltip:
     'SHA-256 {sha}\n保存時は編集されたエントリのみを書き換え、その他はそのまま保持します。',
   aiFileMeta: 'シート {sheets} 件 · エントリ {entries} 件',
-  aiGensparkAccount: 'Genspark アカウント',
   aiAccountChecking: '確認中…',
   aiLoggedIn: 'サインイン済み',
   aiLoggedInAs: 'サインイン済み: {email}',
-  aiNotLoggedIn: '未サインイン（AI 機能には Genspark アカウントへのサインインが必要です）',
   aiWaitingBrowserLogin: 'ブラウザーでのサインインを待機中…',
-  aiLoginGenspark: 'Genspark にサインイン',
   aiModel: 'モデル',
   aiCancel: 'キャンセル',
   aiSave: '保存',
@@ -64,8 +64,7 @@ export const ja = {
   aiOverloadedError: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
   aiNetworkError:
     'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
-  aiCreditsExhausted:
-    'Gensparkクレジットを使い切りました。genspark.ai/pricing でチャージしてから再試行してください',
+  aiCreditsExhausted: 'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
   aiToolWorkbookContext: 'ブック情報を読み取り',
   aiToolReadRange: '範囲を読み取り',
   aiToolReadRangeOf: '範囲 {range} を読み取り',

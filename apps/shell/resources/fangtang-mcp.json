@@ -1,0 +1,4 @@
+{
+  "$comment": "方塘Office 内置 MCP 服务器配置（部署时由 IT 修改）。transport: stdio（本地命令）| http（远程流式 HTTP）。stdio 填 command/args/env；http 填 url/headers。enabled=false 停用；alwaysAvailable=true 时所有 AI 会话可用，否则仅当会话选中的技能声明引用该服务器时可用（技能的 mcpServers 字段）。密钥严禁提交本仓库：所有字符串字段支持 ${VAR} 环境变量展开（如 headers 里的 Bearer ${MCP_TOKEN}），也可在本目录放 fangtang-mcp.local.json（已被 .gitignore 忽略，打包时优先读取）或用户目录 userData/fangtang-mcp.json 追加/覆盖同名服务器。",
+  "mcpServers": {}
+}

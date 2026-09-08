@@ -1,3 +1,4 @@
+import type { PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { RenderSlide } from '@genoffice/pptx-render'
@@ -138,16 +139,6 @@ const api: SlidesApi = {
       atIndex,
       deckName,
     ),
-  cloudGenStatus: () => ipcRenderer.invoke('slides:cloud-gen-status'),
-  cloudGeneratePage: (op: {
-    brief: string
-    title?: string
-    styleSkill?: string
-    deckContext?: Record<string, unknown>
-    images?: { url: string; caption?: string }[]
-    width?: number
-    height?: number
-  }) => ipcRenderer.invoke('slides:cloud-page-generate', op),
   localGeneratePage: (op: { specJson: string }) =>
     ipcRenderer.invoke('slides:local-page-generate', op),
   editText: (op: EditTextOp) => ipcRenderer.invoke('slides:edit-text', op),
@@ -350,9 +341,18 @@ const api: SlidesApi = {
   setAiSettings: (settings: AiSettings) => ipcRenderer.invoke('ai:set-settings', settings),
   aiStream: (request: AiStreamRequest) => ipcRenderer.invoke('ai:stream', request),
   aiStreamCancel: (requestId: string) => ipcRenderer.invoke('ai:stream-cancel', requestId),
-  aiGskStatus: (withEmail?: boolean) => ipcRenderer.invoke('ai:gsk-status', withEmail),
-  aiGskLogin: () => ipcRenderer.invoke('ai:gsk-login'),
   aiLogRunFailure: (entry: AiRunFailure) => ipcRenderer.invoke('ai:log-run-failure', entry),
+  getAiFeatures: () => ipcRenderer.invoke('ai:get-features'),
+  getPresetCatalog: async () => {
+    const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
+    return Array.isArray(result) ? (result as PresetSkillDef[]) : []
+  },
+  mcpStatus: () => ipcRenderer.invoke('mcp:status'),
+  mcpListTools: (server: string) => ipcRenderer.invoke('mcp:list-tools', server),
+  mcpCallTool: (server: string, tool: string, args: Record<string, unknown>) =>
+    ipcRenderer.invoke('mcp:call-tool', server, tool, args),
+  setAiFeatures: (features: { disabledPresets?: string[] }) =>
+    ipcRenderer.invoke('ai:set-features', features),
   webSearch: (query: string, maxResults?: number) =>
     ipcRenderer.invoke('ai:web-search', query, maxResults),
   imageSearch: (query: string, maxResults?: number) =>
@@ -372,16 +372,6 @@ const api: SlidesApi = {
     url: string
     keepSrcRect?: boolean
   }) => ipcRenderer.invoke('ai:replace-picture-url', op),
-  generateImage: (op: {
-    prompt: string
-    model?: string
-    referenceImageUrls?: string[]
-    aspectRatio?: string
-    imageSize?: string
-  }) => ipcRenderer.invoke('ai:generate-image', op),
-  analyzeMedia: (op: { mediaUrls: string[]; requirements: string }) =>
-    ipcRenderer.invoke('ai:analyze-media', op),
-  gskStatus: () => ipcRenderer.invoke('ai:gsk-status'),
   onAiStream: (handler: (chunk: AiStreamChunk) => void) => {
     const listener = (_e: IpcRendererEvent, chunk: AiStreamChunk) => handler(chunk)
     ipcRenderer.on('ai:stream-chunk', listener)

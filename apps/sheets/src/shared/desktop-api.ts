@@ -1,3 +1,4 @@
+import type { McpCallResult, McpServerInfo, McpToolInfo, PresetSkillDef } from '@genoffice/agent-core'
 import { z } from 'zod'
 
 import {
@@ -18,7 +19,6 @@ import type {
   AiSettings,
   AiStreamChunk,
   AiStreamRequest,
-  GenSparkAccountStatus,
 } from '@genoffice/ai-provider'
 
 const MAX_RANGE_CELLS = 100_000
@@ -2386,7 +2386,6 @@ export const aiSettingsInputSchema = z
   .object({
     provider: z.string().min(1),
     providers: z.record(z.string(), aiProviderConfigSchema),
-    gskToolsEnabled: z.boolean().optional(),
     // bounds are enforced by clampMaxOutputTokens on read; the schema only
     // rejects nonsense (this object is .strict(), so an omitted key here would
     // make the whole settings save fail)
@@ -2408,6 +2407,8 @@ const agentToolCallSchema = z
     id: z.string(),
     name: z.string(),
     input: z.record(z.string(), z.unknown()),
+    // Gemini 3: echoed back on functionCall parts (absent for other providers)
+    thoughtSignature: z.string().optional(),
   })
   .strict()
 
@@ -2434,6 +2435,8 @@ const agentMessageSchema = z.union([
       toolCalls: z.array(agentToolCallSchema).optional(),
       // captured model thinking, echoed back for interleaved-thinking models
       reasoning: z.string().optional(),
+      // Gemini 3: signature stamped on the turn's text parts
+      thoughtSignature: z.string().optional(),
     })
     .strict(),
   z.object({ role: z.literal('tool'), results: z.array(agentToolResultSchema) }).strict(),
@@ -2745,21 +2748,22 @@ export interface DesktopApi {
   getAiSettings(): Promise<AiSettings>
   setAiSettings(settings: AiSettings): Promise<void>
   aiChat(request: AiChatRequest): Promise<AiChatResponse>
+  /// built-in skill visibility (Settings → 技能); shared across editors
+  getAiFeatures(): Promise<{ disabledPresets?: string[] }>
+  /** effective built-in skill catalog (file presets replace compiled-in per app) */
+  getPresetCatalog(): Promise<PresetSkillDef[]>
+  /// built-in MCP servers (fangtang-mcp.json): status, tools, tool calls
+  mcpStatus(): Promise<McpServerInfo[]>
+  mcpListTools(server: string): Promise<McpToolInfo[]>
+  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+  setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   /// start a streaming AI call; deltas arrive via onAiStream with the same requestId
   aiStream(request: AiStreamRequest): Promise<void>
   aiStreamCancel(requestId: string): Promise<void>
-  /// Genspark account status (gsk login state); withEmail also returns the email
-  /// (needs a network request, slower)
-  aiGskStatus(withEmail?: boolean): Promise<GenSparkAccountStatus>
-  /// Opens the browser to sign in to Genspark (fire-and-forget; aiGskStatus
-  /// becomes signed-in on completion)
-  aiGskLogin(): Promise<void>
   /// Web search (main-process Serper/DuckDuckGo, shared with docs/slides)
   webSearch(query: string, maxResults?: number): Promise<WebSearchResult>
   /// Image search (same shared main-process channel as docs/slides)
   imageSearch(query: string, maxResults?: number): Promise<ImageSearchResponse>
-  /// AI image generation via the Genspark account (sheets-owned channel)
-  generateImage(op: { prompt: string; aspectRatio?: string }): Promise<GenerateImageResult>
   /// Downloads an image URL in the main process (SSRF-guarded); null on failure
   fetchImage(url: string): Promise<{ base64: string; mime: string } | null>
   onAiStream(handler: (chunk: AiStreamChunk) => void): () => void
@@ -2802,7 +2806,3 @@ export interface ImageSearchResponse {
   error?: string
 }
 
-export interface GenerateImageResult {
-  url?: string
-  error?: string
-}

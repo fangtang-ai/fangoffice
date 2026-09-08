@@ -161,8 +161,7 @@ describe('brief provenance gate (regenerate_slide / generate_deck)', () => {
   const cloudAccess = () =>
     mkAccess({
       regenerateSlide: async () => null,
-      generatePageCloud: async () => ({ ok: false, error: 'cloud down' }),
-      isCloudPageGenEnabled: async () => true,
+      generatePageLocal: async () => ({ ok: false, error: 'pipeline down' }),
       landGeneratedPages: async () => ({ ok: true, pages: 1 }),
     })
 
@@ -182,7 +181,7 @@ describe('brief provenance gate (regenerate_slide / generate_deck)', () => {
       name: 'regenerate_slide',
       input: { slideIndex: 0, brief: 'Redo this page as a three column card layout' },
     })
-    // Fails later in the cloud pipeline (mocked down), not at the provenance gate
+    // Fails later in the generation pipeline (mocked down), not at the provenance gate
     expect(r.output).not.toContain('dataSource')
   })
 

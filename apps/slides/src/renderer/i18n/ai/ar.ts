@@ -17,9 +17,12 @@ export const ar = {
   aiQcPageSkipped: 'الصفحة {n}: تم تخطي فحص التخطيط التلقائي',
   aiQcStopped: 'تم إيقاف فحص التخطيط',
   aiQcCapped: '{count} صفحة أخرى لم تُفحص (حد لكل تشغيل)',
-  aiGskLoginBtn: 'تسجيل الدخول إلى Genspark',
-  aiPanelTitle: 'Genspark',
+  aiPanelTitle: 'مساعد الذكاء الاصطناعي',
   aiOpenAssistant: 'فتح مساعد الذكاء الاصطناعي',
+  aiAssistantTitle: 'مساعد الذكاء الاصطناعي',
+  aiSkillsTip: 'اختر مهارة إنشاء المستندات',
+  aiSkillNone: 'بلا مهارة',
+  aiSkillsLabel: 'المهارات',
   aiFactCheckBtn: 'تدقيق حقائق AI',
   aiFactCheckPrompt:
     'تحقق من حقائق هذا العرض: راجع الأرقام والتواريخ والأسماء والادعاءات، ثم أشر إلى الأخطاء وصححها',
@@ -112,8 +115,7 @@ export const ar = {
   aiErrOverloaded: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
   aiErrNetwork:
     'مشكلة في الشبكة: تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقق من الاتصال وحاول مجددًا',
-  aiCreditsExhausted:
-    'نفدت أرصدة Genspark لديك. يرجى إعادة الشحن عبر genspark.ai/pricing ثم المحاولة مجددًا',
+  aiCreditsExhausted: 'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
   aiErrRequestFailed: 'فشل إرسال الطلب: {msg}',
   aiErrGenerateFailed: 'فشل الإنشاء',
   aiErrRegenFailed: 'فشلت إعادة إنشاء الصفحة',

@@ -11,7 +11,7 @@ import {
 
 import {
   CaretIcon,
-  GensparkMark,
+  AiMark,
   RIBBON_GLYPH_ICONS,
   RedoIcon,
   SaveAsIcon,
@@ -160,6 +160,8 @@ interface ExcelShellProps {
   readonly sheetHasContent: boolean
   /// true while the real LLM agent is running (composer disabled meanwhile).
   readonly aiBusy: boolean
+  /** generation-skill picker (技能) node forwarded into the AI composer footer */
+  readonly skillsSlot?: React.ReactNode
   readonly chat: readonly AiChatMessage[]
   readonly historicChat?: readonly AiChatMessage[]
   /// Chat attachments (chips + 📎 button + drag-and-drop), same structure as the
@@ -306,6 +308,7 @@ export function ExcelShell({
   selectionFormat,
   sheetHasContent,
   aiBusy,
+  skillsSlot,
   chat,
   historicChat,
   attachments,
@@ -656,6 +659,7 @@ export function ExcelShell({
           prompt={prompt}
           preview={preview}
           aiBusy={aiBusy}
+          skillsSlot={skillsSlot}
           onPromptChange={onPromptChange}
           onSend={onSend}
           onStop={onStop}
@@ -2533,10 +2537,10 @@ function Ribbon({
           onClick={onAiToggle}
         >
           <span className="tool-icon-row">
-            <GensparkMark size={26} />
+            <AiMark size={26} />
           </span>
           <span>
-            <strong>Genspark AI</strong>
+            <strong>{t('aiAssistantTitle')}</strong>
           </span>
         </button>
         <button

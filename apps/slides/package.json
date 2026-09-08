@@ -1,6 +1,6 @@
 {
   "name": "@genoffice/slides",
-  "productName": "GenOffice Slides",
+  "productName": "方塘Office Slides",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
@@ -23,6 +23,7 @@
     "@genoffice/ai-search": "*",
     "@genoffice/file-parse": "*",
     "@genoffice/i18n": "*",
+    "@genoffice/mcp-bridge": "*",
     "@genoffice/pptx-engine": "*",
     "@genoffice/pptx-render": "*",
     "@genoffice/project-store": "*",
@@ -45,10 +46,10 @@
     "vite": "^7.3.1",
     "vitest": "^4.1.0"
   },
-  "author": "GenOffice",
+  "author": "方塘",
   "build": {
-    "appId": "com.genoffice.slides",
-    "productName": "GenOffice Slides",
+    "appId": "com.fangtang.slides",
+    "productName": "方塘Office Slides",
     "electronVersion": "43.3.0",
     "directories": {
       "output": "release"
