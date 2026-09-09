@@ -2213,7 +2213,7 @@ function allowPdfWrite(wcId: number, filePath: string): void {
 // Fidelity-harness escape hatch: headless runs have no save dialog to authorize
 // paths, so an explicitly configured directory (set only by our test scripts)
 // is treated as pre-authorized for PDF export.
-const testExportDir = process.env.GENOFFICE_TEST_EXPORT_DIR || null
+const testExportDir = process.env.FANGTANG_TEST_EXPORT_DIR || null
 
 function canPdfWrite(wcId: number, filePath: string): boolean {
   if (testExportDir && filePath.startsWith(testExportDir + '/')) return true
@@ -4224,7 +4224,7 @@ export function startDocsStandalone(): void {
   registerDocsIpc()
 
   app.whenReady().then(() => {
-    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? app.getLocale()))
+    setUiLang(normalizeLang(process.env.FANGTANG_LANG ?? app.getLocale()))
     // packaged builds get the Dock icon from icon.icns; dev shows Electron's default
     if (isDev && process.platform === 'darwin') {
       app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))

@@ -43,7 +43,7 @@ export function extractFontCdnBaseUrl(pkg: unknown): string | null {
  * all downloadable-font UI stays disabled while local font installation works.
  */
 export function fontCdnBaseUrl(): string | null {
-  if (!app.isPackaged) return normalizeFontCdnBaseUrl(process.env.GENOFFICE_FONT_CDN_URL)
+  if (!app.isPackaged) return normalizeFontCdnBaseUrl(process.env.FANGTANG_FONT_CDN_URL)
   try {
     const pkg = JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8')) as unknown
     return extractFontCdnBaseUrl(pkg)

@@ -2,7 +2,7 @@
  * Shared launcher for Electron E2E tests.
  *
  * Each test boots the built shell (`apps/shell/out`) against a scratch
- * userData dir (via GENOFFICE_USER_DATA) so runs never touch real settings
+ * userData dir (via FANGTANG_USER_DATA) so runs never touch real settings
  * and never collide with a running install's single-instance lock.
  * Build first: `npm run build:all`.
  */
@@ -21,7 +21,7 @@ const SHELL_MAIN = join(SHELL_DIR, 'out/main/index.js')
 interface LaunchOptions {
   /** reuse a previous scratch dir to simulate a second launch */
   userDataDir?: string
-  /** UI language override (GENOFFICE_LANG); defaults to English for stable assertions */
+  /** UI language override (FANGTANG_LANG); defaults to English for stable assertions */
   lang?: string
   /** pre-seed app-settings.json with onboardingSeen=true to start at the home screen */
   onboardingSeen?: boolean
@@ -67,8 +67,8 @@ export async function launchShell(options: LaunchOptions): Promise<LaunchedApp> 
     args,
     env: {
       ...hostEnv,
-      GENOFFICE_USER_DATA: userDataDir,
-      GENOFFICE_LANG: options.lang ?? 'en',
+      FANGTANG_USER_DATA: userDataDir,
+      FANGTANG_LANG: options.lang ?? 'en',
       ...(process.platform === 'linux' ? { ELECTRON_DISABLE_SANDBOX: '1' } : {}),
     },
     // Playwright's Electron screencast wedges the page CDP session on Linux

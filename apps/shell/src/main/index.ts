@@ -168,7 +168,7 @@ import { isUpdateChannel, type UpdateChannel } from '../shared/update-api'
 // ANY unpacked run (`npm run shell`, `npm run dev`, `npx electron .`) must not
 // share the installed app's userData or single-instance lock — otherwise a dev
 // run silently quits and forwards its argv to the running installed 方塘Office.
-// GENOFFICE_USER_DATA: test drivers point this at a scratch dir so an
+// FANGTANG_USER_DATA: test drivers point this at a scratch dir so an
 // automated instance can run alongside the dev instance (separate lock).
 if (!app.isPackaged)
   app.setPath(
@@ -238,7 +238,7 @@ configureMarkdownRuntime({
 
 // ---- UI language ----
 // Persisted in userData/app-settings.json so the editor modules can read the
-// same file when they pick up i18n later. GENOFFICE_LANG overrides for tests.
+// same file when they pick up i18n later. FANGTANG_LANG overrides for tests.
 
 const APP_SETTINGS_PATH = () => join(app.getPath('userData'), 'app-settings.json')
 
@@ -246,8 +246,8 @@ let uiLang: Lang | null = null
 
 function currentLang(): Lang {
   if (uiLang) return uiLang
-  if (process.env.GENOFFICE_LANG) {
-    uiLang = normalizeLang(process.env.GENOFFICE_LANG)
+  if (process.env.FANGTANG_LANG) {
+    uiLang = normalizeLang(process.env.FANGTANG_LANG)
     setUiLang(uiLang)
     return uiLang
   }

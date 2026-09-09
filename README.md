@@ -108,27 +108,101 @@ The sheets app additionally needs a Rust toolchain for its xlsx sidecar
 (`cargo` on PATH); `npm run build -w @genoffice/sheets` compiles it
 automatically.
 
-## Deployment configuration
+## 部署配置指南（IT）
 
-| File / directory (in `apps/shell/resources/`) | Purpose                                                                    |
-| --------------------------------------------- | -------------------------------------------------------------------------- |
-| `fangtang-defaults.json`                      | Factory AI endpoint: `provider` / `baseUrl` / `apiKey` / `model` / `maxOutputTokens` |
-| `fangtang-mcp.json`                           | Built-in MCP servers (`stdio` / `http`, `enabled`, `alwaysAvailable`)      |
-| `presets/<app>/*.md`                          | Built-in generation skills per editor; file presets replace the compiled-in catalog for that app |
+应用启动时读取三类配置：**环境变量**、**出厂配置文件**（随安装包内置）、**用户级覆盖**（每台机器的 userData 目录）。所有密钥严禁写入本仓库——仓库里的模板只含空值，真实值通过环境变量、`.local.json` 或 userData 注入。
 
-These files are installed next to the app (`Resources/`) and read at startup;
-environment variables `FANGTANG_AI_PROVIDER` / `FANGTANG_AI_BASE_URL` /
-`FANGTANG_AI_API_KEY` / `FANGTANG_AI_MODEL` override the AI defaults, and
-`FANGTANG_UPDATE_URL` enables the auto-update feed. Users may extend the MCP
-config with `userData/fangtang-mcp.json` and the preset skills with
-`userData/presets/<app>/*.md`.
+### 1. 文件位置
 
-### Authoring generation skills (presets)
+| 场景 | 位置 |
+| --- | --- |
+| 仓库（开发/构建源） | `apps/shell/resources/`（提交空模板；`*.local.json` 已被 .gitignore 忽略） |
+| 安装后（Windows） | `安装目录\resources\` |
+| 安装后（macOS） | `方塘Office.app/Contents/Resources/` |
+| 用户级覆盖（无需管理员/重打包） | `userData/fangtang-mcp.json`、`userData/presets/<app>/*.md` |
 
-Each skill is one markdown file per editor app: `presets/<app>/<skill>.md`
-(`docs`, `sheets`, `slides`, `pdf`, `markdown`). The optional frontmatter
-carries the display metadata; the rest of the file is the playbook injected
-into the AI chat's system prompt while the skill is selected:
+读取优先级：
+
+- **AI 端点**：环境变量 `FANGTANG_AI_*`（逐字段） > `fangtang-defaults.local.json` > `fangtang-defaults.json`
+- **搜索 key**：环境变量 `SERPER_API_KEY` / `TAVILY_API_KEY` > 配置文件对应字段
+- **MCP 服务器**：`userData/fangtang-mcp.json` 同名服务器整体覆盖内置配置；所有字符串字段支持 `${VAR}` 环境变量展开
+- **技能**：`userData/presets/<app>/*.md` 按 id 覆盖内置；某应用目录存在任意 `.md` 时整体替换该应用内置技能
+
+### 2. 环境变量
+
+| 变量 | 作用 |
+| --- | --- |
+| `FANGTANG_AI_PROVIDER` | 覆盖出厂 provider（`custom`/`anthropic`/`gemini`/`deepseek`/`openai`/`kimi`/`glm`/`qwen`/`doubao`/`minimax`/`xai`/`mistral`/`openrouter`/`opencode-zen`/`opencode-go`） |
+| `FANGTANG_AI_BASE_URL` | 覆盖端点地址（`custom` 必填，其他 provider 可用于区域镜像） |
+| `FANGTANG_AI_API_KEY` | 覆盖 API Key |
+| `FANGTANG_AI_MODEL` | 覆盖默认模型 |
+| `SERPER_API_KEY` | 联网/图片搜索用 Serper（Google 结果，推荐） |
+| `TAVILY_API_KEY` | 联网搜索用 Tavily；两者都不配时回退免 key DuckDuckGo |
+| `FANGTANG_UPDATE_URL` | 自动更新源（HTTPS 前缀）；不设则关闭自动更新 |
+| `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` | 主进程出网代理（访问境外 LLM/搜索 API 时需要） |
+| `FANGTANG_USER_DATA` | （开发调试）指定独立的 userData 目录 |
+| `FANGTANG_LANG` | （开发调试）强制 UI 语言 |
+
+Windows 批量设置示例（登录脚本 / setx）：
+
+```bat
+setx FANGTANG_AI_PROVIDER "custom"
+setx FANGTANG_AI_BASE_URL "https://llm-gateway.company.internal/compatible-mode/v1"
+setx FANGTANG_AI_API_KEY "sk-xxxx"
+setx FANGTANG_AI_MODEL "qwen3.8-max"
+setx SERPER_API_KEY "xxxxxxxx"
+```
+
+macOS/Linux（launchd / systemd / shell profile）同名变量，按各环境标准方式设置即可。
+
+### 3. `fangtang-defaults.json`（出厂 AI 端点）
+
+仓库模板只含空值。IT 有两种注入方式——**方式 A（推荐）**：只设环境变量，文件保持空模板；**方式 B**：编辑安装目录里的 `fangtang-defaults.json`（或同目录放 `fangtang-defaults.local.json`，该文件优先且不入库），完整示例：
+
+```json
+{
+  "provider": "custom",
+  "baseUrl": "https://llm-gateway.company.internal/compatible-mode/v1",
+  "apiKey": "sk-xxxx",
+  "model": "qwen3.8-max",
+  "maxOutputTokens": 32768,
+  "serperApiKey": "xxxxxxxx",
+  "tavilyApiKey": ""
+}
+```
+
+字段说明：`provider` 见上表（`custom` = 任意 OpenAI 兼容接口，必须配 `baseUrl`；其余 provider 有官方默认端点，`baseUrl` 留空即可）；`maxOutputTokens` 为单轮输出上限（缺省 32768，推理模型建议保持默认以上）。**⚠️ 密钥不要写进仓库里的模板文件**——本机调试可用 `.local.json`（不入库），员工机器用环境变量。
+
+### 4. `fangtang-mcp.json`（内置 MCP 服务器）
+
+每个服务器一个键；支持 `stdio`（本地命令）与 `http`（远程流式 HTTP）。`${VAR}` 会被启动时的进程环境变量替换（未知变量展开为空），密钥通过环境注入：
+
+```json
+{
+  "mcpServers": {
+    "wiki": {
+      "transport": "http",
+      "url": "https://wiki.internal.company.cn/mcp",
+      "headers": { "Authorization": "Bearer ${MCP_WIKI_TOKEN}" },
+      "alwaysAvailable": true,
+      "timeoutMs": 30000
+    },
+    "erp": {
+      "transport": "stdio",
+      "command": "C:\\it\\erp-mcp\\erp-mcp.exe",
+      "args": ["--mode", "cli", "--token", "${ERP_TOKEN}"],
+      "env": { "ERP_BASE": "https://erp.internal.company.cn" },
+      "enabled": true
+    }
+  }
+}
+```
+
+字段说明：`enabled: false` 停用；`alwaysAvailable: true` 时该服务器工具进入所有 AI 会话，否则仅当所选技能的 `mcpServers` 声明引用时进入；`timeoutMs` 为单次工具调用超时（缺省 30000）。IT 设置 `MCP_WIKI_TOKEN`、`ERP_TOKEN` 等环境变量即可完成鉴权注入。
+
+### 5. 内置生成技能（presets）
+
+每个技能一个 markdown 文件，按编辑器应用分目录：`presets/<app>/<技能>.md`（`docs` / `sheets` / `slides` / `pdf` / `markdown`）。可选 frontmatter 携带元数据，其余正文为所选技能注入 AI 对话 system prompt 的执行手册（playbook）：
 
 ```markdown
 ---
@@ -136,17 +210,13 @@ id: docs-fangtang-gongwen
 name: 方塘公文写作
 nameEn: FangTang official-document writing
 description: 党政机关公文/总结/述职/讲话稿写作
-mcpServers: erp, wiki        # optional: built-in MCP servers this skill may call
+mcpServers: erp, wiki        # 可选：该技能可调用的内置 MCP 服务器
 ---
 
-<playbook: role, structure, style and interaction rules>
+<执行手册：角色、结构、文风与交互规则>
 ```
 
-Without frontmatter the filename (sans `.md`) becomes the id and display
-name. If an app directory contains any `.md` files, they replace the
-compiled-in presets for that app entirely; user-level files
-(`userData/presets/<app>/*.md`) override bundled files by id and can add new
-skills without repackaging. Enable/disable per app stays in Settings → 技能.
+无 frontmatter 时，文件名（去 `.md`）即 id 与显示名。某应用目录存在任意 `.md` 文件时整体替换该应用内置技能；`userData/presets/<app>/*.md` 按 id 覆盖/新增，无需重打包。各应用的启用/停用开关在 设置 → 技能。
 
 ## FAQ
 

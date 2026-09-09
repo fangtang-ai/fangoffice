@@ -35,7 +35,7 @@ import { createHash } from 'node:crypto'
 
 beforeEach(() => {
   availability.clear()
-  vi.stubEnv('GENOFFICE_FONT_CDN_URL', fontCdnBaseUrl)
+  vi.stubEnv('FANGTANG_FONT_CDN_URL', fontCdnBaseUrl)
   vi.mocked(net.fetch).mockReset()
 })
 afterEach(() => vi.unstubAllEnvs())
@@ -64,7 +64,7 @@ describe('font catalog', () => {
   })
 
   it('hides the downloadable catalog when no CDN URL is configured', () => {
-    vi.stubEnv('GENOFFICE_FONT_CDN_URL', '')
+    vi.stubEnv('FANGTANG_FONT_CDN_URL', '')
     expect(listFontCatalog()).toEqual([])
   })
 
@@ -130,7 +130,7 @@ describe('downloadFontFamily', () => {
   })
 
   it('rejects downloads when no CDN URL is configured', async () => {
-    vi.stubEnv('GENOFFICE_FONT_CDN_URL', '')
+    vi.stubEnv('FANGTANG_FONT_CDN_URL', '')
     await expect(downloadFontFamily(FONT_CATALOG[0]!.family)).rejects.toThrow(/unavailable/)
     expect(net.fetch).not.toHaveBeenCalled()
   })
@@ -171,7 +171,7 @@ describe('missingCatalogFonts', () => {
     const missing = missingCatalogFonts({ deck } as never)
     expect(missing).toEqual(['Poppins', 'Rubik'])
 
-    vi.stubEnv('GENOFFICE_FONT_CDN_URL', '')
+    vi.stubEnv('FANGTANG_FONT_CDN_URL', '')
     expect(missingCatalogFonts({ deck } as never)).toEqual([])
   })
 })

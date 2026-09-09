@@ -4895,7 +4895,7 @@ export function App(): React.JSX.Element {
         createWorkbookSkill(sheetsSkillDeps())
     }
     // Built-app e2e hook, off by default: the preload exposes
-    // __genofficeDebugHooks only when GENOFFICE_DEBUG_HOOKS=1 (scroll/freeze
+    // __genofficeDebugHooks only when FANGTANG_DEBUG_HOOKS=1 (scroll/freeze
     // drivers read Univer's render state through the Facade).
     if ((window as unknown as Record<string, unknown>).__genofficeDebugHooks === true) {
       ;(window as unknown as Record<string, unknown>).__genofficeDebug = {
