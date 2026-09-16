@@ -129,8 +129,17 @@ function creditsNoticeText(value: unknown): string | null {
   if (typeof value === 'string') {
     const t = value.toLowerCase()
     const credits =
+      // Genspark's English notice
       t.includes('genspark.ai/pricing') ||
-      (t.includes('credit') && (t.includes('exhausted') || t.includes('insufficient')))
+      (t.includes('credit') && (t.includes('exhausted') || t.includes('insufficient'))) ||
+      // New API / one-api gateway quota rejections (en + zh variants,
+      // see the zh patterns in the literals below)
+      (t.includes('quota') &&
+        (t.includes('exhausted') ||
+          t.includes('insufficient') ||
+          t.includes('exceeded') ||
+          t.includes('not enough'))) ||
+      (t.includes('额度') && (t.includes('不足') || t.includes('用尽') || t.includes('耗尽')))
     return credits ? value : null
   }
   if (Array.isArray(value) || (value && typeof value === 'object')) {
@@ -151,6 +160,19 @@ export function throwIfCreditsNotice(bodyText: string): void {
   }
   const notice = creditsNoticeText(parsed)
   if (notice) throw new AiCreditsError(notice)
+}
+
+/**
+ * In-band gateway failure carried inside a 200 stream (an SSE `error` event, or
+ * the `error` field of a non-SSE JSON body). Same message extraction as
+ * sseErrorText, but a credits-exhausted notice becomes a typed AiCreditsError
+ * so the apps show the localized "top up" message (errorCode 'credits')
+ * instead of the raw gateway text as a generic failure.
+ */
+export function throwSseError(error: unknown, fallback: string): never {
+  const notice = creditsNoticeText(error)
+  if (notice) throw new AiCreditsError(notice)
+  throw new Error(sseErrorText(error, fallback))
 }
 
 /** Don't throw on parse failure (it would kill the whole stream); return error so the loop feeds it back for retry */

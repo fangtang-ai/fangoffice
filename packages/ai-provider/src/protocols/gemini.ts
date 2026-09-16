@@ -6,9 +6,9 @@ import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
 import { toGeminiSchema } from './gemini-schema'
 import {
   jsonBodyInsteadOfSse,
-  sseErrorText,
   sseLines,
   throwIfCreditsNotice,
+  throwSseError,
   type StreamCallbacks,
 } from './shared'
 
@@ -87,7 +87,7 @@ function emitGeminiJsonMessage(bodyText: string, cb: StreamCallbacks): void {
   let stopReason: string | undefined
   let abnormalFinish: string | undefined
   for (const event of events) {
-    if (event.error) throw new Error(sseErrorText(event.error, 'Gemini error'))
+    if (event.error) throwSseError(event.error, 'Gemini error')
     if (event.promptFeedback?.blockReason) {
       throw new Error(`Gemini blocked the prompt (${event.promptFeedback.blockReason})`)
     }
@@ -195,7 +195,10 @@ async function geminiTurn(
   // headers arrived: ping the renderer watchdog too, or a slow first chunk could trip it
   onBytes()
   if (!response.ok || !response.body) {
-    throw new Error(`Gemini HTTP ${response.status}: ${httpBodyDetail(await response.text())}`)
+    const bodyText = await response.text()
+    // New API-style gateways reject an exhausted quota with a non-2xx JSON error body
+    throwIfCreditsNotice(bodyText)
+    throw new Error(`Gemini HTTP ${response.status}: ${httpBodyDetail(bodyText)}`)
   }
   const jsonBody = await jsonBodyInsteadOfSse(response)
   if (jsonBody !== null) {
@@ -231,7 +234,7 @@ async function geminiTurn(
     } catch {
       continue
     }
-    if (event.error) throw new Error(sseErrorText(event.error, 'Gemini stream error'))
+    if (event.error) throwSseError(event.error, 'Gemini stream error')
     if (event.promptFeedback?.blockReason) {
       throw new Error(`Gemini blocked the prompt (${event.promptFeedback.blockReason})`)
     }
