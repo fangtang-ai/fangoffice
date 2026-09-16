@@ -13,7 +13,7 @@ import { cargoOrFail } from './lib/cargo-resolve.mjs'
 
 /** rustup sits next to cargo in rustup-managed installs; null otherwise. */
 function findRustup(cargo) {
-  const besideCargo = join(dirname(cargo), 'rustup')
+  const besideCargo = join(dirname(cargo), process.platform === 'win32' ? 'rustup.exe' : 'rustup')
   if (existsSync(besideCargo)) return besideCargo
   const pathDirs = (process.env.PATH ?? '').split(':').filter(Boolean)
   for (const dir of pathDirs) {
@@ -50,7 +50,13 @@ if (!installed.includes(TARGET)) {
 
 console.log(`[sidecar-win] cargo build --target ${TARGET}`)
 // cargo resolves --config relative to the cwd, so run from apps/sheets exactly
-// like the other native:build scripts
+// like the other native:build scripts. The config file points the gnu target
+// at `x86_64-w64-mingw32-gcc` (the Homebrew mingw-w64 name used when
+// cross-compiling from macOS); on a Windows host that binary does not exist —
+// the local gcc (MSYS2 ucrt64) IS the x86_64-w64-mingw32 compiler, so override
+// the linker there. Later --config args take precedence over the file.
+const hostLinkerOverride =
+  process.platform === 'win32' ? ['--config', 'target.x86_64-pc-windows-gnu.linker="gcc"'] : []
 execFileSync(
   cargo,
   [
@@ -60,6 +66,7 @@ execFileSync(
     'native/xlsx-engine/Cargo.toml',
     '--config',
     'native/xlsx-engine/.cargo/config.toml',
+    ...hostLinkerOverride,
     '--target',
     TARGET,
   ],
