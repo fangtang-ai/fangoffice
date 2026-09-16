@@ -7,6 +7,9 @@ import iconPptx from './assets/file-pptx.svg'
 import iconPdf from './assets/file-pdf.svg'
 import iconMd from './assets/file-md.svg'
 import type {
+  AccountErrorCode,
+  AccountUsage,
+  AccountView,
   HomeApi,
   ProjectHomeApi,
   ProjectSummaryEntry,
@@ -441,37 +444,188 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
   )
 }
 
-// ── Settings entry (bottom-left) ─────────────────────────
-// Opens the settings modal directly (AI model, language, theme, save location).
+// ── Bottom-left account entry ────────────────────────────
+// Logged out: one-click sign-in through the system browser. Logged in: a small
+// popover with the balance, recharge, settings and sign-out. When the account
+// service is unconfigured (no fangtang-defaults.json), sign-in falls back to
+// opening the settings modal so the button always does something useful.
 
-function SettingsEntry() {
+const ACCOUNT_ERR_KEYS = {
+  'account:not-configured': 'accountErrNotConfigured',
+  'account:busy': 'accountErrBusy',
+  'account:canceled': 'accountErrCanceled',
+  'account:timeout': 'accountErrTimeout',
+  'account:failed': 'accountErrFailed',
+  'account:expired': 'accountErrExpired',
+} as const satisfies Record<AccountErrorCode, StringKey>
+
+function AccountEntry() {
   const { t } = useI18n()
+  const [session, setSession] = useState<AccountView | null>(null)
+  const [usage, setUsage] = useState<AccountUsage | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const menuWrapRef = useRef<HTMLDivElement>(null)
+
+  // unified dismissal: outside press, window blur, chrome press (tab strip / window drag)
+  useDismissablePopover(menuOpen, () => setMenuOpen(false), {
+    inside: () => [menuWrapRef.current],
+  })
+
+  useEffect(() => {
+    let active = true
+    void window.aiOffice.getAccountSession().then((view) => {
+      if (active) setSession(view)
+    })
+    // login/logout/expiry anywhere (incl. another window) re-renders this entry
+    const unsubscribe = window.aiOffice.onAccountSessionChanged((view) => {
+      setSession(view)
+      setBusy(false)
+      setError(null)
+      if (!view.loggedIn) setUsage(null)
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  // balance: pull on sign-in (and on re-mount while signed in)
+  useEffect(() => {
+    if (!session?.loggedIn) return
+    let active = true
+    void window.aiOffice.getAccountUsage().then((u) => {
+      if (active) setUsage(u)
+    })
+    return () => {
+      active = false
+    }
+  }, [session?.loggedIn])
+
+  const login = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      setSession(await window.aiOffice.loginAccount())
+    } catch (e) {
+      // electron prefixes IPC rejections with the error class, so the stable
+      // account:* code stays greppable in the renderer
+      const code = /account:(not-configured|busy|canceled|timeout|failed|expired)/.exec(
+        String(e),
+      )?.[1]
+      if (code === 'not-configured') setSettingsOpen(true)
+      else
+        setError(
+          t(
+            code
+              ? ACCOUNT_ERR_KEYS[`account:${code}` as AccountErrorCode]
+              : 'accountErrFailed',
+          ),
+        )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const loggedIn = session?.loggedIn ?? false
+  const name = session?.displayName || session?.userId || ''
+  const balanceCny = typeof usage?.balanceCny === 'number' ? usage.balanceCny : null
+
   return (
-    <div className="account-entry">
+    <div className="account-entry" ref={menuWrapRef}>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
-      <button
-        className="account-btn"
-        onClick={() => setSettingsOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={settingsOpen}
-        aria-label={t('settings')}
-      >
-        <span className="account-avatar">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
-            <path
-              d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
-              stroke="currentColor"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-        <span className="account-text">
-          <span className="account-name">{t('settings')}</span>
-        </span>
-      </button>
+      {loggedIn ? (
+        <>
+          <button
+            className="account-btn"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label={name}
+          >
+            <span className="account-avatar logged-in">
+              {(name[0] ?? '·').toUpperCase()}
+            </span>
+            <span className="account-text">
+              <span className="account-name">{name}</span>
+              {balanceCny !== null && (
+                <span className="account-sub">¥{balanceCny.toFixed(2)}</span>
+              )}
+            </span>
+            <svg className="account-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="row-menu account-menu" role="menu">
+              {balanceCny !== null && (
+                <div className="account-menu-balance">¥{balanceCny.toFixed(2)}</div>
+              )}
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  window.aiOffice.openRecharge()
+                }}
+              >
+                {t('accountRecharge')}
+              </button>
+              <div className="row-menu-divider" />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  setSettingsOpen(true)
+                }}
+              >
+                {t('settings')}
+              </button>
+              <div className="row-menu-divider" />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  void window.aiOffice.logoutAccount()
+                }}
+              >
+                {t('accountSignOut')}
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <button
+          className="account-btn"
+          onClick={() => void login()}
+          disabled={busy}
+          aria-label={t('accountSignIn')}
+        >
+          <span className={`account-avatar${busy ? ' waiting' : ''}`}>
+            {busy ? (
+              <svg className="account-spinner" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.6" />
+                <path d="M14.5 8A6.5 6.5 0 0 0 8 1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
+                <path
+                  d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
+          </span>
+          <span className="account-text">
+            <span className="account-name">{t('accountSignIn')}</span>
+            {error && <span className="account-sub error">{error}</span>}
+          </span>
+        </button>
+      )}
     </div>
   )
 }
@@ -1572,7 +1726,7 @@ export function Home() {
           </>
         )}
 
-        <SettingsEntry />
+        <AccountEntry />
       </aside>
 
       {selectedProjectId ? renderProjectContent() : renderGlobalContent()}

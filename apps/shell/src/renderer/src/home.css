@@ -271,6 +271,23 @@ body.vib .home {
   color: #b3261e;
 }
 
+/* logged-in popover: reuses .row-menu styling, opens upward from the entry */
+.account-menu.row-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: auto;
+}
+
+.account-menu-balance {
+  padding: 7px 10px;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+
 /* one-line rescue hint while waiting for the browser sign-in (auto-open may have failed) */
 .login-hint {
   position: absolute;
