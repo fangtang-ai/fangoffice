@@ -129,15 +129,18 @@ export function loadFangTangDefaults(): FangTangDefaultsFile {
 export function loadFangTangAccountConfig(): FangTangAccountConfig {
   const file = readDefaultsFile().account ?? {}
   const env = process.env
-  const config: FangTangAccountConfig = {
+  // merged first, then stripped: exactOptionalPropertyTypes forbids explicit
+  // undefined on the optional target props
+  const merged = {
     logtoEndpoint: env.FANGTANG_LOGTO_ENDPOINT || file.logtoEndpoint,
     logtoClientId: env.FANGTANG_LOGTO_CLIENT_ID || file.logtoClientId,
     logtoApiResource: env.FANGTANG_LOGTO_API_RESOURCE || file.logtoApiResource,
     accountApiBase: env.FANGTANG_ACCOUNT_API_BASE || file.accountApiBase,
     rechargeUrl: env.FANGTANG_ACCOUNT_RECHARGE_URL || file.rechargeUrl,
   }
-  for (const key of Object.keys(config) as Array<keyof FangTangAccountConfig>) {
-    if (!config[key]) delete config[key]
+  const config: FangTangAccountConfig = {}
+  for (const [key, value] of Object.entries(merged)) {
+    if (value) config[key as keyof FangTangAccountConfig] = value
   }
   return config
 }

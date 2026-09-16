@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import brandLogo from './assets/fangtang-logo.png'
 import iconDocx from './assets/file-docx.svg'
@@ -7,9 +7,6 @@ import iconPptx from './assets/file-pptx.svg'
 import iconPdf from './assets/file-pdf.svg'
 import iconMd from './assets/file-md.svg'
 import type {
-  AccountErrorCode,
-  AccountUsage,
-  AccountView,
   HomeApi,
   ProjectHomeApi,
   ProjectSummaryEntry,
@@ -19,6 +16,7 @@ import { useDismissablePopover } from '@genoffice/ui'
 import { fileCountKey, visiblePageCount } from './counts'
 import { useI18n } from './locale'
 import type { I18n, StringKey } from './locale'
+import { useAccount, type AccountApi } from './use-account'
 import { SettingsModal } from './SettingsModal'
 
 declare global {
@@ -450,88 +448,27 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
 // service is unconfigured (no fangtang-defaults.json), sign-in falls back to
 // opening the settings modal so the button always does something useful.
 
-const ACCOUNT_ERR_KEYS = {
-  'account:not-configured': 'accountErrNotConfigured',
-  'account:busy': 'accountErrBusy',
-  'account:canceled': 'accountErrCanceled',
-  'account:timeout': 'accountErrTimeout',
-  'account:failed': 'accountErrFailed',
-  'account:expired': 'accountErrExpired',
-} as const satisfies Record<AccountErrorCode, StringKey>
-
-function AccountEntry() {
+function AccountEntry({ account }: { account: AccountApi }) {
   const { t } = useI18n()
-  const [session, setSession] = useState<AccountView | null>(null)
-  const [usage, setUsage] = useState<AccountUsage | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const menuWrapRef = useRef<HTMLDivElement>(null)
+  const { busy, errorText, errorCode, loggedIn, name, balanceCny, login, logout, recharge } =
+    account
 
   // unified dismissal: outside press, window blur, chrome press (tab strip / window drag)
   useDismissablePopover(menuOpen, () => setMenuOpen(false), {
     inside: () => [menuWrapRef.current],
   })
 
-  useEffect(() => {
-    let active = true
-    void window.aiOffice.getAccountSession().then((view) => {
-      if (active) setSession(view)
-    })
-    // login/logout/expiry anywhere (incl. another window) re-renders this entry
-    const unsubscribe = window.aiOffice.onAccountSessionChanged((view) => {
-      setSession(view)
-      setBusy(false)
-      setError(null)
-      if (!view.loggedIn) setUsage(null)
-    })
-    return () => {
-      active = false
-      unsubscribe()
+  // unconfigured account service → settings modal (where AI providers can be set)
+  const loginOrConfigure = () => {
+    if (errorCode === 'account:not-configured') {
+      setSettingsOpen(true)
+      return
     }
-  }, [])
-
-  // balance: pull on sign-in (and on re-mount while signed in)
-  useEffect(() => {
-    if (!session?.loggedIn) return
-    let active = true
-    void window.aiOffice.getAccountUsage().then((u) => {
-      if (active) setUsage(u)
-    })
-    return () => {
-      active = false
-    }
-  }, [session?.loggedIn])
-
-  const login = async () => {
-    setBusy(true)
-    setError(null)
-    try {
-      setSession(await window.aiOffice.loginAccount())
-    } catch (e) {
-      // electron prefixes IPC rejections with the error class, so the stable
-      // account:* code stays greppable in the renderer
-      const code = /account:(not-configured|busy|canceled|timeout|failed|expired)/.exec(
-        String(e),
-      )?.[1]
-      if (code === 'not-configured') setSettingsOpen(true)
-      else
-        setError(
-          t(
-            code
-              ? ACCOUNT_ERR_KEYS[`account:${code}` as AccountErrorCode]
-              : 'accountErrFailed',
-          ),
-        )
-    } finally {
-      setBusy(false)
-    }
+    void login()
   }
-
-  const loggedIn = session?.loggedIn ?? false
-  const name = session?.displayName || session?.userId || ''
-  const balanceCny = typeof usage?.balanceCny === 'number' ? usage.balanceCny : null
 
   return (
     <div className="account-entry" ref={menuWrapRef}>
@@ -567,7 +504,7 @@ function AccountEntry() {
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false)
-                  window.aiOffice.openRecharge()
+                  recharge()
                 }}
               >
                 {t('accountRecharge')}
@@ -587,7 +524,7 @@ function AccountEntry() {
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false)
-                  void window.aiOffice.logoutAccount()
+                  logout()
                 }}
               >
                 {t('accountSignOut')}
@@ -598,7 +535,7 @@ function AccountEntry() {
       ) : (
         <button
           className="account-btn"
-          onClick={() => void login()}
+          onClick={loginOrConfigure}
           disabled={busy}
           aria-label={t('accountSignIn')}
         >
@@ -622,10 +559,39 @@ function AccountEntry() {
           </span>
           <span className="account-text">
             <span className="account-name">{t('accountSignIn')}</span>
-            {error && <span className="account-sub error">{error}</span>}
+            {errorText && <span className="account-sub error">{errorText}</span>}
           </span>
         </button>
       )}
+    </div>
+  )
+}
+
+/** below this balance the soft banner nags (≈ ten casual chats at V1 pricing;
+ * a constant, not a setting — tune once real consumption data exists) */
+const LOW_BALANCE_CNY = 2
+
+/** soft low-balance reminder above the home content; dismissal lasts for the
+ * session (persisting it would hide the banner forever after one dismiss) */
+function LowBalanceBanner({ balanceCny, onRecharge }: { balanceCny: number; onRecharge: () => void }) {
+  const { t } = useI18n()
+  const [hidden, setHidden] = useState(false)
+  if (hidden || balanceCny >= LOW_BALANCE_CNY) return null
+  return (
+    <div className="low-balance-banner" role="status">
+      <span className="low-balance-text">{t('accountLowBalance')}</span>
+      <button className="low-balance-btn" onClick={onRecharge}>
+        {t('accountRecharge')}
+      </button>
+      <button
+        className="low-balance-dismiss"
+        onClick={() => setHidden(true)}
+        aria-label={t('cancel')}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      </button>
     </div>
   )
 }
@@ -695,9 +661,17 @@ function DropToOpenOverlay(): ReactElement | null {
 
 // ── Main component ──────────────────────────────────────
 
-export function Home() {
+export function Home({ active = true }: { active?: boolean }) {
   const i18n = useI18n()
   const { t, lang } = i18n
+  // one account instance for the whole home (entry menu + low-balance banner);
+  // balance re-pulls when the home tab becomes visible again after editor work
+  const account = useAccount()
+  // only these two flips matter; account is a fresh object each render
+  const { refreshUsage } = account
+  useEffect(() => {
+    if (active) refreshUsage()
+  }, [active, refreshUsage, account.session?.loggedIn])
   // ── Paged list state (rows loaded for the current view + filter) ──
   const [entries, setEntries] = useState<RecentEntry[]>([])
   /** total count under the current view + filter (not just the loaded rows) */
@@ -1726,10 +1700,15 @@ export function Home() {
           </>
         )}
 
-        <AccountEntry />
+        <AccountEntry account={account} />
       </aside>
 
-      {selectedProjectId ? renderProjectContent() : renderGlobalContent()}
+      <div className="home-main">
+        {account.loggedIn && account.balanceCny !== null && (
+          <LowBalanceBanner balanceCny={account.balanceCny} onRecharge={account.recharge} />
+        )}
+        {selectedProjectId ? renderProjectContent() : renderGlobalContent()}
+      </div>
 
       {confirmDelete && (
         <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>

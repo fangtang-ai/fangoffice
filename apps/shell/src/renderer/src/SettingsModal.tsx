@@ -11,6 +11,7 @@ import type { AiSettings } from '@genoffice/ai-provider'
 import { BUILTIN_PRESETS, type AiFeatures, type PresetSkillDef } from '@genoffice/agent-core'
 import { useI18n } from './locale'
 import type { StringKey, TFunc } from './locale'
+import { useAccount, accountBalanceText, accountMonthUsedText } from './use-account'
 import type { AiCatalogEntry, UiTheme } from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
 import './settings.css'
@@ -57,9 +58,10 @@ const CHANNEL_OPTIONS = [
 
 /** GitHub-style abbreviated stargazer count (2591 → "2.6k") — the number is
  * social proof, not a metric; the cached/exact value would only look stale */
-type SectionId = 'aiModel' | 'skills' | 'general' | 'about'
+type SectionId = 'account' | 'aiModel' | 'skills' | 'general' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
+  { id: 'account', labelKey: 'accountSection' },
   { id: 'aiModel', labelKey: 'setSecAiModel' },
   { id: 'skills', labelKey: 'setSecSkills' },
   { id: 'general', labelKey: 'setSecGeneral' },
@@ -67,6 +69,19 @@ const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
 ]
 
 function SectionIcon({ id }: { id: SectionId }) {
+  if (id === 'account') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
+        <path
+          d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
+          stroke="currentColor"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
   if (id === 'aiModel') {
     return (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -229,6 +244,7 @@ function AiModelPane({ t }: { t: TFunc }) {
   return (
     <>
       <h3 className="set-pane-title">{t('setSecAiModel')}</h3>
+      <ManagedAiNote />
       <div className="set-field">
         <div className="set-field-text">
           <label className="set-field-label">{t('setAiProvider')}</label>
@@ -498,6 +514,67 @@ function SkillsPane({ t }: { t: TFunc }) {
   )
 }
 
+/** one-line note on the AI pane: signed-in users are billed from the 方塘 balance */
+function ManagedAiNote() {
+  const { t } = useI18n()
+  const account = useAccount()
+  if (!account.loggedIn) return null
+  return <p className="set-ai-note">{t('accountManagedNote')}</p>
+}
+
+/** Account pane: 方塘 sign-in state, balance, recharge and sign-out */
+function AccountPane() {
+  const { t } = useI18n()
+  const account = useAccount()
+  if (!account.loggedIn) {
+    return (
+      <>
+        <h3 className="set-pane-title">{t('accountSection')}</h3>
+        <Field
+          label={t('accountSection')}
+          value={account.errorText ?? t('accountSignedOut')}
+          action={
+            <button
+              className="set-btn primary"
+              onClick={() => void account.login()}
+              disabled={account.busy}
+            >
+              {t('accountSignIn')}
+            </button>
+          }
+        />
+      </>
+    )
+  }
+  return (
+    <>
+      <h3 className="set-pane-title">{t('accountSection')}</h3>
+      <Field
+        label={t('accountSection')}
+        value={account.name}
+        action={
+          <button className="set-btn danger" onClick={account.logout}>
+            {t('accountSignOut')}
+          </button>
+        }
+      />
+      <Field
+        label={t('accountBalance')}
+        value={accountBalanceText(account.usage) ?? '—'}
+        action={
+          <button className="set-btn" onClick={account.recharge}>
+            {t('accountRecharge')}
+          </button>
+        }
+      />
+      <Field
+        label={t('accountMonthUsed')}
+        value={accountMonthUsedText(account.usage) ?? '—'}
+      />
+    </>
+  )
+}
+
 export interface SettingsModalProps {
   onClose: () => void
 }
@@ -591,6 +668,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             ))}
           </nav>
           <div className="set-pane">
+            {section === 'account' && <AccountPane />}
             {section === 'aiModel' && <AiModelPane t={t} />}
             {section === 'skills' && <SkillsPane t={t} />}
             {section === 'general' && (

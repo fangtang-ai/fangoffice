@@ -95,6 +95,67 @@ body.vib .home {
   height: calc(100vh - 40px);
 }
 
+/* content column: low-balance banner (optional) + the home content itself */
+.home-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.low-balance-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin: 14px 36px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  font-size: 13px;
+}
+
+.low-balance-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+}
+
+.low-balance-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: none;
+  color: var(--accent);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.low-balance-btn:hover {
+  background: var(--accent-soft);
+}
+
+.low-balance-dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.low-balance-dismiss:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
 .sidebar {
   display: flex;
   flex-direction: column;
