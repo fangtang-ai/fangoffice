@@ -7,7 +7,9 @@ import {
   activeProvider,
   clampMaxOutputTokens,
   FALLBACK_AI_PROVIDER,
+  aiDefaultsLayers,
   defaultAiSettings,
+  mainAiSettings,
   maxOutputTokensOf,
   resolveAiSettings,
 } from '../src/providers'
@@ -281,5 +283,62 @@ describe('activeProvider', () => {
     const settings = defaultAiSettings({ provider: 'anthropic', apiKey: 'factory-key' })
     settings.provider = 'nonsense' as AiProviderId
     expect(activeProvider(settings, 'anthropic')).toBe('anthropic')
+  })
+})
+
+describe('aiDefaultsLayers', () => {
+  it('account layer wins over the factory layer, field by field', () => {
+    const folded = aiDefaultsLayers(
+      {
+        provider: 'custom',
+        baseUrl: 'https://factory.example/v1',
+        apiKey: 'factory-key',
+        model: 'factory-model',
+      },
+      { baseUrl: 'https://account.example/v1', apiKey: 'account-key', model: 'account-model' },
+    )
+    expect(folded.provider).toBe('custom')
+    expect(folded.baseUrl).toBe('https://account.example/v1')
+    expect(folded.apiKey).toBe('account-key')
+    expect(folded.model).toBe('account-model')
+  })
+
+  it('no account layer (standalone editor) folds the factory alone', () => {
+    const factory = { provider: 'glm', apiKey: 'factory-key' }
+    expect(aiDefaultsLayers(factory, null)).toEqual(factory)
+    expect(aiDefaultsLayers(undefined, null)).toEqual({})
+  })
+})
+
+describe('mainAiSettings', () => {
+  it('account > factory > stored BYOK > fallback, in one call', () => {
+    // no stored settings: account-managed endpoint is the default
+    const noStored = mainAiSettings(
+      {},
+      { provider: 'custom', baseUrl: 'https://factory/v1' },
+      {
+        provider: 'custom',
+        baseUrl: 'https://account/v1',
+        apiKey: 'account-key',
+        model: 'gpt-x',
+      },
+    )
+    expect(noStored.provider).toBe('custom')
+    expect(noStored.providers.custom.baseUrl).toBe('https://account/v1')
+    expect(noStored.providers.custom.apiKey).toBe('account-key')
+
+    // a usable stored BYOK provider still wins over the managed default
+    const byok = mainAiSettings(
+      {
+        provider: 'anthropic',
+        providers: { anthropic: { apiKey: 'sk-user', model: 'claude-x' } },
+      } as unknown as Parameters<typeof mainAiSettings>[0],
+      undefined,
+      { provider: 'custom', baseUrl: 'https://account/v1', apiKey: 'account-key', model: 'gpt-x' },
+    )
+    expect(byok.provider).toBe('anthropic')
+
+    // no account layer and no factory: pre-account behavior (fallback provider)
+    expect(mainAiSettings({}, undefined, null).provider).toBe(FALLBACK_AI_PROVIDER)
   })
 })

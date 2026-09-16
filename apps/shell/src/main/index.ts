@@ -150,6 +150,7 @@ import { HOME_CHANNELS } from '../shared/home-api'
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
+import { registerAccountIpc } from './auth'
 import { normalizeRecentQuery, pageRecentPaths, statPathEntries } from './recent-files'
 import { isSameFile, isValidRenameName } from './rename-validation'
 import { TabManager } from './tab-manager'
@@ -3606,6 +3607,7 @@ const mcpHub = new McpHub(
 registerMcpIpc(mcpHub)
 registerProjectIpc()
 registerDocsIpc()
+registerAccountIpc()
 registerHomeIpc()
 registerTabsIpc()
 registerDroppedFilesIpc()

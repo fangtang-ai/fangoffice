@@ -21,10 +21,8 @@ import {
   AiTimeoutError,
   isAiNetworkError,
   isAiOverloadedError,
-  defaultAiSettings,
-  activeProvider,
+  mainAiSettings,
   maxOutputTokensOf,
-  resolveAiSettings,
   setAiUserAgent,
   setRescueFetch,
   streamForProvider,
@@ -37,6 +35,7 @@ import {
   applySearchProviderEnv,
   bundledPresetsDir,
   fetchRemoteImage,
+  getAccountManagedDefaults,
   loadPresetFiles,
   loadFangTangDefaults,
   readAiFeatures,
@@ -109,18 +108,11 @@ export function registerAiIpc(): void {
   ipcMain.handle('ai:get-settings', (): AiSettings => {
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
-    const defaults = defaultAiSettings({
-      ...(factory.provider ? { provider: factory.provider as AiSettings['provider'] } : {}),
-      ...(factory.baseUrl ? { baseUrl: factory.baseUrl } : {}),
-      ...(factory.apiKey ? { apiKey: factory.apiKey } : {}),
-      ...(factory.model ? { model: factory.model } : {}),
-      ...(factory.maxOutputTokens ? { maxOutputTokens: factory.maxOutputTokens } : {}),
-    })
-    const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {})
-    const settings = resolveAiSettings(stored, defaults)
-    // a stored BYOK provider is honored when usable; half-filled configs fall back to the factory default
-    settings.provider = activeProvider(settings, defaults.provider)
-    return settings
+    return mainAiSettings(
+      readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {}),
+      factory,
+      getAccountManagedDefaults(),
+    )
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
@@ -189,8 +181,7 @@ export function registerAiIpc(): void {
         onDelta: (text) => send({ requestId, type: 'delta', text }),
         onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
         onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
-        onThoughtSignature: (signature) =>
-          send({ requestId, type: 'signature', text: signature }),
+        onThoughtSignature: (signature) => send({ requestId, type: 'signature', text: signature }),
         onActivity: ping,
         onStopReason: (reason) => {
           stopReason = reason

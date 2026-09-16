@@ -17,8 +17,10 @@ export {
   MAX_MAX_OUTPUT_TOKENS,
   MIN_MAX_OUTPUT_TOKENS,
   activeProvider,
+  aiDefaultsLayers,
   clampMaxOutputTokens,
   defaultAiSettings,
+  mainAiSettings,
   maxOutputTokensOf,
   resolveAiSettings,
 } from './providers'

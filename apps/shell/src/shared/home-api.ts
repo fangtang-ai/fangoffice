@@ -45,6 +45,30 @@ export interface RecentEntry {
   missing?: boolean
 }
 
+/** the account menu's view of the 方塘 account (empty = logged out / unavailable) */
+export interface AccountView {
+  loggedIn: boolean
+  userId?: string
+  displayName?: string
+  avatarUrl?: string
+}
+
+/**
+ * Aggregated usage/balance from GET /api/office/usage. The exact field set is
+ * defined by the site module (New API quota + recent logs); unknown fields are
+ * passed through untouched so the UI can render what exists.
+ */
+export type AccountUsage = Record<string, unknown>
+
+/** the user-facing login errors (stable codes, localized in the renderer) */
+export type AccountErrorCode =
+  | 'account:not-configured'
+  | 'account:busy'
+  | 'account:canceled'
+  | 'account:timeout'
+  | 'account:failed'
+  | 'account:expired'
+
 /** paged query for the home file lists */
 export interface RecentQuery {
   /** number of entries to skip (default 0) */
@@ -128,6 +152,18 @@ export interface HomeApi {
   onThemeChanged(handler: (theme: UiTheme) => void): () => void
   /** open the company website in the default browser */
   openCompanySite(): Promise<void>
+  /** current 方塘 account (anonymous false-login view when not signed in) */
+  getAccountSession(): Promise<AccountView>
+  /** interactive Logto login via the system browser; resolves with the session view */
+  loginAccount(): Promise<AccountView>
+  /** sign out (end Logto session in the browser + clear local tokens) */
+  logoutAccount(): Promise<void>
+  /** aggregated AI usage/balance; null when signed out or the site is unreachable */
+  getAccountUsage(): Promise<AccountUsage | null>
+  /** open the top-up page in the browser (falls back to the company site) */
+  openRecharge(): Promise<void>
+  /** account session changed anywhere (login/logout/expiry, broadcast from main) */
+  onAccountSessionChanged(handler: (session: AccountView) => void): () => void
   /** built-in skill visibility (Settings → 技能); shared across editors */
   getAiFeatures(): Promise<{ disabledPresets?: string[] }>
   /** effective built-in skill catalog (file presets replace compiled-in per app) */
@@ -231,6 +267,11 @@ export const HOME_CHANNELS = {
   getDefaultSaveDir: 'home:get-default-save-dir',
   pickDefaultSaveDir: 'home:pick-default-save-dir',
   openCompanySite: 'home:open-company-site',
+  getAccountSession: 'account:session',
+  loginAccount: 'account:login',
+  logoutAccount: 'account:logout',
+  getAccountUsage: 'account:usage',
+  openRecharge: 'account:open-recharge',
 } as const
 
 export const PROJECT_CHANNELS = {

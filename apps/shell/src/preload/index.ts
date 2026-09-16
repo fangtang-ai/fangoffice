@@ -5,6 +5,8 @@ import { AI_PROVIDERS, getProviderAdapter } from '@genoffice/ai-provider'
 import type { AiSettings } from '@genoffice/ai-provider'
 import { installDropOpenBridge } from '@genoffice/electron-utils/drop-open'
 import type {
+  AccountUsage,
+  AccountView,
   HomeApi,
   RecentEntry,
   RecentPage,
@@ -179,6 +181,31 @@ const homeApi: HomeApi = {
   },
   async openCompanySite() {
     await ipcRenderer.invoke(HOME_CHANNELS.openCompanySite)
+  },
+  async getAccountSession() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAccountSession)
+    return (result && typeof result === 'object' ? result : { loggedIn: false }) as AccountView
+  },
+  async loginAccount() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.loginAccount)
+    return (result && typeof result === 'object' ? result : { loggedIn: false }) as AccountView
+  },
+  async logoutAccount() {
+    await ipcRenderer.invoke(HOME_CHANNELS.logoutAccount)
+  },
+  async getAccountUsage() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAccountUsage)
+    return result && typeof result === 'object' ? (result as AccountUsage) : null
+  },
+  async openRecharge() {
+    await ipcRenderer.invoke(HOME_CHANNELS.openRecharge)
+  },
+  onAccountSessionChanged(handler) {
+    const listener = (_event: IpcRendererEvent, session: unknown) => {
+      if (session && typeof session === 'object') handler(session as AccountView)
+    }
+    ipcRenderer.on('account:session-changed', listener)
+    return () => ipcRenderer.removeListener('account:session-changed', listener)
   },
   // built-in skill visibility + AI settings channels are registered once by the shell's aggregated docs handlers
   async getAiFeatures() {

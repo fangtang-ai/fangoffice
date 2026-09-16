@@ -28,6 +28,7 @@ import {
   configuredDefaultSaveDir,
   contextMenuLabels,
   fetchRemoteImage,
+  getAccountManagedDefaults,
   installContextMenu,
   installNavigationGuard,
   loadFangTangDefaults,
@@ -62,9 +63,7 @@ import {
   isAiNetworkError,
   isAiOverloadedError,
   chatForProvider,
-  defaultAiSettings,
-  activeProvider,
-  resolveAiSettings,
+  mainAiSettings,
   maxOutputTokensOf,
   setAiUserAgent,
   setRescueFetch,
@@ -2586,18 +2585,11 @@ export function registerAiIpc(): void {
   ipcMain.handle('ai:get-settings', (): AiSettings => {
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
-    const defaults = defaultAiSettings({
-      ...(factory.provider ? { provider: factory.provider as AiSettings['provider'] } : {}),
-      ...(factory.baseUrl ? { baseUrl: factory.baseUrl } : {}),
-      ...(factory.apiKey ? { apiKey: factory.apiKey } : {}),
-      ...(factory.model ? { model: factory.model } : {}),
-      ...(factory.maxOutputTokens ? { maxOutputTokens: factory.maxOutputTokens } : {}),
-    })
-    const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {})
-    const settings = resolveAiSettings(stored, defaults)
-    // a stored BYOK provider is honored when usable; half-filled configs fall back to the factory default
-    settings.provider = activeProvider(settings, defaults.provider)
-    return settings
+    return mainAiSettings(
+      readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {}),
+      factory,
+      getAccountManagedDefaults(),
+    )
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {

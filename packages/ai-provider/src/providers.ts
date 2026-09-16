@@ -242,7 +242,64 @@ export function defaultAiSettings(factory?: AiFactoryDefaults): AiSettings {
  * deployment's factory default), so a half-filled setup degrades to the
  * preconfigured provider instead of silently disabling AI.
  */
-export function activeProvider(settings: AiSettings, fallback: AiProviderId = FALLBACK_AI_PROVIDER): AiProviderId {
+/**
+ * One default-endpoint layer: the deployment factory fold and the
+ * account-managed fold share this shape (declared with a plain string
+ * provider so FangTangDefaultsFile passes without a cast at every caller).
+ */
+interface DefaultsLayer {
+  provider?: string
+  apiKey?: string
+  baseUrl?: string
+  model?: string
+  maxOutputTokens?: number
+}
+
+/**
+ * Fold the default-endpoint layers into one `defaultAiSettings` argument:
+ * the account-managed endpoint (shell login state) wins over the deployment
+ * factory defaults. `account` is null whenever the process runs outside the
+ * shell (standalone editors, no login) — the result is then the factory fold
+ * alone, identical to the pre-account behavior.
+ */
+export function aiDefaultsLayers(
+  factory?: DefaultsLayer,
+  account?: DefaultsLayer | null,
+): AiFactoryDefaults {
+  const merged: DefaultsLayer = { ...(factory ?? {}), ...(account ?? {}) }
+  return {
+    // validated by id against AI_PROVIDERS inside defaultAiSettings
+    ...(merged.provider !== undefined ? { provider: merged.provider as AiProviderId } : {}),
+    ...(merged.apiKey !== undefined ? { apiKey: merged.apiKey } : {}),
+    ...(merged.baseUrl !== undefined ? { baseUrl: merged.baseUrl } : {}),
+    ...(merged.model !== undefined ? { model: merged.model } : {}),
+    ...(merged.maxOutputTokens !== undefined ? { maxOutputTokens: merged.maxOutputTokens } : {}),
+  }
+}
+
+/**
+ * The whole ai:get-settings merge: account > factory defaults resolved
+ * against the stored user file, then a usable stored BYOK provider wins
+ * back over the default. Shared by the shell-aggregate and the standalone
+ * editors' IPC handlers — one implementation instead of three drifting
+ * copies of the same fold.
+ */
+export function mainAiSettings(
+  stored: Partial<AiSettings> & LegacyAiSettings,
+  factory?: DefaultsLayer,
+  account?: DefaultsLayer | null,
+): AiSettings {
+  const defaults = defaultAiSettings(aiDefaultsLayers(factory, account))
+  const settings = resolveAiSettings(stored, defaults)
+  // a stored BYOK provider is honored when usable; half-filled configs fall back to the factory default
+  settings.provider = activeProvider(settings, defaults.provider)
+  return settings
+}
+
+export function activeProvider(
+  settings: AiSettings,
+  fallback: AiProviderId = FALLBACK_AI_PROVIDER,
+): AiProviderId {
   const provider = settings.provider
   if (provider === fallback) return provider
   const meta = AI_PROVIDERS.find((m) => m.id === provider)

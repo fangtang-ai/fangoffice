@@ -47,3 +47,5 @@ _scratch-*
 
 # Local deployment secrets (never commit; see resources/*.json $comment)
 apps/shell/resources/*.local.json
+
+tmp/
