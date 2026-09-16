@@ -115,7 +115,6 @@ export const strings = {
     untitled: '未命名',
     noContent: '（无内容）',
     // Account
-    accountGenspark: 'Genspark 账号',
     account: '账号',
     appVersion: '版本 {v}',
     versionLabel: '版本',
@@ -144,7 +143,7 @@ export const strings = {
     setAiKeyHint: '密钥仅保存在本机。',
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '留空使用官方端点。',
-    setAiByokNote: '对话使用你自己的 key；网页搜索、生图等云工具仍需登录 Genspark。',
+    setAiByokNote: '对话默认使用你自己的 key；登录方塘账号后自动切换为账户托管端点。',
     setAiSave: '保存',
     setAiSaved: '已保存',
     setAiTest: '测试连接',
@@ -165,18 +164,18 @@ export const strings = {
     tabList: '全部标签',
     newTab: '新建标签页',
     // First-run onboarding
-    onbTitle1: '欢迎使用 GenOffice',
+    onbTitle1: '欢迎使用方塘Office',
     onbSubtitle1: '第一个开源的 AI 原生 Office 套件',
     onbBody1: '创建文档、制作表格、生成演示、审阅 PDF。AI 深度融入每个环节。',
     onbTitle2: '这只是一个开始',
-    onbBody2: 'GenOffice 目前处于 alpha 阶段。欢迎加入 GenTeam 群聊，分享反馈，一起塑造它的未来。',
+    onbBody2: '登录方塘账号即可使用托管 AI：对话按用量计费，余额不足一键充值。',
     onbSkip: '跳过',
     onbNext: '下一步',
     onbStart: '开始使用',
     onbStepAria: '第 {n} 页，共 {total} 页',
     onbTitle3: '人人免费',
     onbBody3: '无授权费用，无广告，无水印。',
-    onbNote3: 'AI 功能可能消耗 Genspark 积分。',
+    onbNote3: 'AI 对话按用量计费，用量与余额可在设置中查看。',
     onbBack: '上一步',
   },
   en: {
@@ -288,7 +287,6 @@ export const strings = {
     timelineUserAria: 'User',
     untitled: 'Untitled',
     noContent: '(empty)',
-    accountGenspark: 'Genspark Account',
     account: 'Account',
     appVersion: 'Version {v}',
     versionLabel: 'Version',
@@ -318,7 +316,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Leave empty for the official endpoint.',
     setAiByokNote:
-      'Chats use your own key; cloud tools (web search, image generation) still require the Genspark sign-in.',
+      'Chats use your own key by default; after signing in to a Fangtang account the managed endpoint is used automatically.',
     setAiSave: 'Save',
     setAiSaved: 'Saved',
     setAiTest: 'Test connection',
@@ -337,20 +335,20 @@ export const strings = {
     tabList: 'All tabs',
     newTab: 'New tab',
     // First-run onboarding
-    onbTitle1: 'Welcome to GenOffice',
+    onbTitle1: 'Welcome to FangtangOffice',
     onbSubtitle1: 'The first open-source, AI-native office suite',
     onbBody1:
       'Create docs, build sheets, make slides, and review PDFs. AI is built into every step.',
     onbTitle2: 'This is just the beginning',
     onbBody2:
-      'GenOffice is still in alpha. Join the group chat on GenTeam to share feedback and help shape what comes next.',
+      'Sign in to your Fangtang account to use managed AI: chats are billed by usage, with one-click top-up when the balance runs low.',
     onbSkip: 'Skip',
     onbNext: 'Next',
     onbStart: 'Get started',
     onbStepAria: 'Page {n} of {total}',
     onbTitle3: 'Free for everyone',
     onbBody3: 'No license fees. No ads. No watermarks.',
-    onbNote3: 'AI features may consume Genspark credits.',
+    onbNote3: 'AI chats are billed by usage; usage and balance are available in Settings.',
     onbBack: 'Back',
   },
   ja: {
@@ -473,7 +471,6 @@ export const strings = {
     untitled: '無題',
     noContent: '（内容なし）',
     // Account
-    accountGenspark: 'Genspark アカウント',
     account: 'アカウント',
     appVersion: 'バージョン {v}',
     versionLabel: 'バージョン',
@@ -503,7 +500,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '空欄で公式エンドポイントを使用します。',
     setAiByokNote:
-      'チャットは自分のキーを使用します。ウェブ検索や画像生成などのクラウドツールには Genspark へのサインインが必要です。',
+      'チャットは既定で自分のキーを使用します。方塘アカウントにサインインすると、アカウント管理のエンドポイントに自動的に切り替わります。',
     setAiSave: '保存',
     setAiSaved: '保存しました',
     setAiTest: '接続テスト',
@@ -524,20 +521,20 @@ export const strings = {
     tabList: 'すべてのタブ',
     newTab: '新しいタブ',
     // First-run onboarding
-    onbTitle1: 'GenOffice へようこそ',
+    onbTitle1: '方塘Office へようこそ',
     onbSubtitle1: '初のオープンソース AI ネイティブ Office スイート',
     onbBody1:
       '文書の作成、表計算、プレゼン作成、PDF のレビュー。あらゆるステップに AI が組み込まれています。',
     onbTitle2: 'これはまだ始まりにすぎません',
     onbBody2:
-      'GenOffice はまだアルファ版です。GenTeam のグループチャットに参加して、フィードバックを共有し、今後の開発を一緒に形作りましょう。',
+      '方塘アカウントにサインインするとマネージド AI を利用できます。チャットは使用量に応じて課金され、残高不足時はワンクリックでチャージできます。',
     onbSkip: 'スキップ',
     onbNext: '次へ',
     onbStart: 'はじめる',
     onbStepAria: '{total} ページ中 {n} ページ目',
     onbTitle3: 'すべての人に無料',
     onbBody3: 'ライセンス料なし、広告なし、透かしなし。',
-    onbNote3: 'AI 機能は Genspark クレジットを消費する場合があります。',
+    onbNote3: 'AI チャットは使用量に応じて課金されます。使用量と残高は設定で確認できます。',
     onbBack: '戻る',
   },
   ko: {
@@ -658,7 +655,6 @@ export const strings = {
     untitled: '제목 없음',
     noContent: '(내용 없음)',
     // Account
-    accountGenspark: 'Genspark 계정',
     account: '계정',
     appVersion: '버전 {v}',
     versionLabel: '버전',
@@ -688,7 +684,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '비워 두면 공식 엔드포인트를 사용합니다.',
     setAiByokNote:
-      '대화는 자신의 키를 사용합니다. 웹 검색·이미지 생성 등 클라우드 도구는 여전히 Genspark 로그인이 필요합니다.',
+      '대화는 기본적으로 자신의 키를 사용합니다. Fangtang 계정에 로그인하면 계정 관리 엔드포인트로 자동 전환됩니다.',
     setAiSave: '저장',
     setAiSaved: '저장됨',
     setAiTest: '연결 테스트',
@@ -709,20 +705,20 @@ export const strings = {
     tabList: '모든 탭',
     newTab: '새 탭',
     // First-run onboarding
-    onbTitle1: 'GenOffice에 오신 것을 환영합니다',
+    onbTitle1: 'FangtangOffice에 오신 것을 환영합니다',
     onbSubtitle1: '최초의 오픈소스 AI 네이티브 오피스 제품군',
     onbBody1:
       '문서 작성, 스프레드시트 제작, 프레젠테이션 생성, PDF 검토. 모든 단계에 AI가 녹아 있습니다.',
     onbTitle2: '이제 시작일 뿐입니다',
     onbBody2:
-      'GenOffice는 아직 알파 단계입니다. GenTeam 그룹 채팅에 참여해 피드백을 공유하고 앞으로의 방향을 함께 만들어 가세요.',
+      'Fangtang 계정에 로그인하면 관리형 AI를 사용할 수 있습니다. 대화는 사용량에 따라 청구되며, 잔액이 부족하면 한 번의 클릭으로 충전할 수 있습니다.',
     onbSkip: '건너뛰기',
     onbNext: '다음',
     onbStart: '시작하기',
     onbStepAria: '총 {total}페이지 중 {n}페이지',
     onbTitle3: '모두에게 무료',
     onbBody3: '라이선스 비용 없음, 광고 없음, 워터마크 없음.',
-    onbNote3: 'AI 기능은 Genspark 크레딧을 소모할 수 있습니다.',
+    onbNote3: 'AI 대화는 사용량에 따라 청구되며, 설정에서 사용량과 잔액을 확인할 수 있습니다.',
     onbBack: '이전',
   },
   fr: {
@@ -845,7 +841,6 @@ export const strings = {
     untitled: 'Sans titre',
     noContent: '(vide)',
     // Account
-    accountGenspark: 'Compte Genspark',
     account: 'Compte',
     appVersion: 'Version {v}',
     versionLabel: 'Version',
@@ -875,7 +870,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Laisser vide pour le point de terminaison officiel.',
     setAiByokNote:
-      "Les conversations utilisent votre propre clé ; les outils cloud (recherche web, génération d'images) nécessitent toujours la connexion Genspark.",
+      'Les conversations utilisent votre propre clé par défaut ; après connexion à un compte Fangtang, le point de terminaison géré est utilisé automatiquement.',
     setAiSave: 'Enregistrer',
     setAiSaved: 'Enregistré',
     setAiTest: 'Tester la connexion',
@@ -896,20 +891,20 @@ export const strings = {
     tabList: 'Tous les onglets',
     newTab: 'Nouvel onglet',
     // First-run onboarding
-    onbTitle1: 'Bienvenue dans GenOffice',
+    onbTitle1: 'Bienvenue dans FangtangOffice',
     onbSubtitle1: 'La première suite bureautique open source et native IA',
     onbBody1:
       'Créez des documents, des feuilles de calcul et des présentations, et relisez des PDF. L’IA est intégrée à chaque étape.',
     onbTitle2: 'Ce n’est qu’un début',
     onbBody2:
-      'GenOffice est encore en alpha. Rejoignez la discussion de groupe sur GenTeam pour partager vos retours et façonner la suite.',
+      "Connectez-vous à votre compte Fangtang pour utiliser l'IA gérée : les conversations sont facturées à l'usage, avec une recharge en un clic en cas de solde insuffisant.",
     onbSkip: 'Passer',
     onbNext: 'Suivant',
     onbStart: 'Commencer',
     onbStepAria: 'Page {n} sur {total}',
     onbTitle3: 'Gratuit pour tous',
     onbBody3: 'Pas de licence. Pas de publicité. Pas de filigrane.',
-    onbNote3: 'Les fonctions IA peuvent consommer des crédits Genspark.',
+    onbNote3: "Les conversations IA sont facturées à l'usage ; l'utilisation et le solde sont visibles dans les paramètres.",
     onbBack: 'Retour',
   },
   de: {
@@ -1034,7 +1029,6 @@ export const strings = {
     untitled: 'Unbenannt',
     noContent: '(leer)',
     // Account
-    accountGenspark: 'Genspark-Konto',
     account: 'Konto',
     appVersion: 'Version {v}',
     versionLabel: 'Version',
@@ -1064,7 +1058,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Leer lassen für den offiziellen Endpunkt.',
     setAiByokNote:
-      'Chats verwenden Ihren eigenen Schlüssel; Cloud-Tools (Websuche, Bilderzeugung) erfordern weiterhin die Genspark-Anmeldung.',
+      'Chats verwenden standardmäßig Ihren eigenen Schlüssel; nach der Anmeldung bei einem Fangtang-Konto wird automatisch der verwaltete Endpunkt genutzt.',
     setAiSave: 'Speichern',
     setAiSaved: 'Gespeichert',
     setAiTest: 'Verbindung testen',
@@ -1085,20 +1079,20 @@ export const strings = {
     tabList: 'Alle Tabs',
     newTab: 'Neuer Tab',
     // First-run onboarding
-    onbTitle1: 'Willkommen bei GenOffice',
+    onbTitle1: 'Willkommen bei FangtangOffice',
     onbSubtitle1: 'Die erste quelloffene, KI-native Office-Suite',
     onbBody1:
       'Dokumente erstellen, Tabellen bauen, Präsentationen gestalten und PDFs prüfen. KI ist in jedem Schritt integriert.',
     onbTitle2: 'Das ist erst der Anfang',
     onbBody2:
-      'GenOffice ist noch in der Alpha-Phase. Treten Sie dem Gruppenchat auf GenTeam bei, um Feedback zu teilen und die Zukunft mitzugestalten.',
+      'Melden Sie sich bei Ihrem Fangtang-Konto an, um verwaltete KI zu nutzen: Chats werden nach Nutzung abgerechnet, bei niedrigem Guthaben ist eine Aufladung per Klick möglich.',
     onbSkip: 'Überspringen',
     onbNext: 'Weiter',
     onbStart: 'Loslegen',
     onbStepAria: 'Seite {n} von {total}',
     onbTitle3: 'Kostenlos für alle',
     onbBody3: 'Keine Lizenzgebühren. Keine Werbung. Keine Wasserzeichen.',
-    onbNote3: 'KI-Funktionen können Genspark-Credits verbrauchen.',
+    onbNote3: 'KI-Chats werden nach Nutzung abgerechnet; Nutzung und Guthaben finden Sie in den Einstellungen.',
     onbBack: 'Zurück',
   },
   es: {
@@ -1222,7 +1216,6 @@ export const strings = {
     untitled: 'Sin título',
     noContent: '(vacío)',
     // Account
-    accountGenspark: 'Cuenta de Genspark',
     account: 'Cuenta',
     appVersion: 'Versión {v}',
     versionLabel: 'Versión',
@@ -1252,7 +1245,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Deja vacío para usar el endpoint oficial.',
     setAiByokNote:
-      'Los chats usan tu propia clave; las herramientas en la nube (búsqueda web, generación de imágenes) siguen requiriendo el inicio de sesión de Genspark.',
+      'Los chats usan tu propia clave de forma predeterminada; al iniciar sesión en una cuenta Fangtang se usa automáticamente el endpoint gestionado.',
     setAiSave: 'Guardar',
     setAiSaved: 'Guardado',
     setAiTest: 'Probar conexión',
@@ -1273,20 +1266,20 @@ export const strings = {
     tabList: 'Todas las pestañas',
     newTab: 'Nueva pestaña',
     // First-run onboarding
-    onbTitle1: 'Bienvenido a GenOffice',
+    onbTitle1: 'Bienvenido a FangtangOffice',
     onbSubtitle1: 'La primera suite ofimática de código abierto y nativa de IA',
     onbBody1:
       'Crea documentos, hojas de cálculo y presentaciones, y revisa PDF. La IA está integrada en cada paso.',
     onbTitle2: 'Esto es solo el comienzo',
     onbBody2:
-      'GenOffice aún está en alfa. Únete al chat grupal en GenTeam para compartir comentarios y ayudar a dar forma a lo que viene.',
+      'Inicia sesión en tu cuenta Fangtang para usar la IA gestionada: los chats se cobran por uso, con recarga de un clic cuando el saldo se agota.',
     onbSkip: 'Omitir',
     onbNext: 'Siguiente',
     onbStart: 'Empezar',
     onbStepAria: 'Página {n} de {total}',
     onbTitle3: 'Gratis para todos',
     onbBody3: 'Sin licencias. Sin anuncios. Sin marcas de agua.',
-    onbNote3: 'Las funciones de IA pueden consumir créditos de Genspark.',
+    onbNote3: 'Los chats de IA se cobran por uso; el uso y el saldo se consultan en Configuración.',
     onbBack: 'Atrás',
   },
   th: {
@@ -1407,7 +1400,6 @@ export const strings = {
     untitled: 'ไม่มีชื่อ',
     noContent: '(ไม่มีเนื้อหา)',
     // Account
-    accountGenspark: 'บัญชี Genspark',
     account: 'บัญชี',
     appVersion: 'เวอร์ชัน {v}',
     versionLabel: 'เวอร์ชัน',
@@ -1437,7 +1429,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'เว้นว่างเพื่อใช้ปลายทางอย่างเป็นทางการ',
     setAiByokNote:
-      'แชทใช้คีย์ของคุณเอง เครื่องมือคลาวด์ (ค้นเว็บ สร้างภาพ) ยังต้องลงชื่อเข้าใช้ Genspark',
+      'แชทใช้คีย์ของคุณเองเป็นค่าเริ่มต้น เมื่อลงชื่อเข้าใช้บัญชี Fangtang ระบบจะสลับไปใช้ endpoint ที่บัญชีจัดการโดยอัตโนมัติ',
     setAiSave: 'บันทึก',
     setAiSaved: 'บันทึกแล้ว',
     setAiTest: 'ทดสอบการเชื่อมต่อ',
@@ -1458,19 +1450,19 @@ export const strings = {
     tabList: 'แท็บทั้งหมด',
     newTab: 'แท็บใหม่',
     // First-run onboarding
-    onbTitle1: 'ยินดีต้อนรับสู่ GenOffice',
+    onbTitle1: 'ยินดีต้อนรับสู่ FangtangOffice',
     onbSubtitle1: 'ชุดโปรแกรมออฟฟิศ AI-native โอเพนซอร์สตัวแรก',
     onbBody1: 'สร้างเอกสาร ทำสเปรดชีต สร้างงานนำเสนอ และตรวจทาน PDF ทุกขั้นตอนมี AI ในตัว',
     onbTitle2: 'นี่เป็นเพียงจุดเริ่มต้น',
     onbBody2:
-      'GenOffice ยังอยู่ในช่วงอัลฟ่า เข้าร่วมแชทกลุ่มบน GenTeam เพื่อแบ่งปันความคิดเห็นและร่วมกำหนดทิศทางต่อไป',
+      'ลงชื่อเข้าใช้บัญชี Fangtang เพื่อใช้ AI แบบจัดการ: แชทคิดค่าบริการตามการใช้งาน และเติมเงินได้ด้วยคลิกเดียวเมื่อยอดเหลือไม่พอ',
     onbSkip: 'ข้าม',
     onbNext: 'ถัดไป',
     onbStart: 'เริ่มใช้งาน',
     onbStepAria: 'หน้า {n} จาก {total}',
     onbTitle3: 'ฟรีสำหรับทุกคน',
     onbBody3: 'ไม่มีค่าลิขสิทธิ์ ไม่มีโฆษณา ไม่มีลายน้ำ',
-    onbNote3: 'ฟีเจอร์ AI อาจใช้เครดิต Genspark',
+    onbNote3: 'แชท AI คิดค่าบริการตามการใช้งาน ดูการใช้งานและยอดคงเหลือได้ในการตั้งค่า',
     onbBack: 'ย้อนกลับ',
   },
   id: {
@@ -1592,7 +1584,6 @@ export const strings = {
     untitled: 'Tanpa judul',
     noContent: '(kosong)',
     // Account
-    accountGenspark: 'Akun Genspark',
     account: 'Akun',
     appVersion: 'Versi {v}',
     versionLabel: 'Versi',
@@ -1622,7 +1613,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Kosongkan untuk endpoint resmi.',
     setAiByokNote:
-      'Obrolan memakai kunci Anda sendiri; alat cloud (pencarian web, pembuatan gambar) tetap memerlukan login Genspark.',
+      'Obrolan memakai kunci Anda sendiri secara bawaan; setelah masuk ke akun Fangtang, endpoint terkelola dipakai secara otomatis.',
     setAiSave: 'Simpan',
     setAiSaved: 'Tersimpan',
     setAiTest: 'Uji koneksi',
@@ -1643,20 +1634,20 @@ export const strings = {
     tabList: 'Semua tab',
     newTab: 'Tab baru',
     // First-run onboarding
-    onbTitle1: 'Selamat datang di GenOffice',
+    onbTitle1: 'Selamat datang di FangtangOffice',
     onbSubtitle1: 'Suite office open source AI-native pertama',
     onbBody1:
       'Buat dokumen, susun spreadsheet, rancang presentasi, dan tinjau PDF. AI hadir di setiap langkah.',
     onbTitle2: 'Ini baru permulaan',
     onbBody2:
-      'GenOffice masih dalam tahap alpha. Gabung obrolan grup di GenTeam untuk berbagi masukan dan ikut menentukan arah ke depan.',
+      'Masuk ke akun Fangtang untuk memakai AI terkelola: obrolan ditagih sesuai pemakaian, dan dapat diisi ulang sekali klik saat saldo habis.',
     onbSkip: 'Lewati',
     onbNext: 'Berikutnya',
     onbStart: 'Mulai',
     onbStepAria: 'Halaman {n} dari {total}',
     onbTitle3: 'Gratis untuk semua',
     onbBody3: 'Tanpa biaya lisensi. Tanpa iklan. Tanpa watermark.',
-    onbNote3: 'Fitur AI dapat menggunakan kredit Genspark.',
+    onbNote3: 'Obrolan AI ditagih sesuai pemakaian; pemakaian dan saldo bisa dilihat di Pengaturan.',
     onbBack: 'Kembali',
   },
   ru: {
@@ -1779,7 +1770,6 @@ export const strings = {
     untitled: 'Без названия',
     noContent: '(пусто)',
     // Account
-    accountGenspark: 'Учётная запись Genspark',
     account: 'Учётная запись',
     appVersion: 'Версия {v}',
     versionLabel: 'Версия',
@@ -1809,7 +1799,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Оставьте пустым для официальной конечной точки.',
     setAiByokNote:
-      'Чаты используют ваш собственный ключ; облачные инструменты (веб-поиск, генерация изображений) по-прежнему требуют входа в Genspark.',
+      'Диалоги по умолчанию используют ваш собственный ключ; после входа в аккаунт Fangtang автоматически применяется управляемая конечная точка.',
     setAiSave: 'Сохранить',
     setAiSaved: 'Сохранено',
     setAiTest: 'Проверить подключение',
@@ -1830,20 +1820,20 @@ export const strings = {
     tabList: 'Все вкладки',
     newTab: 'Новая вкладка',
     // First-run onboarding
-    onbTitle1: 'Добро пожаловать в GenOffice',
+    onbTitle1: 'Добро пожаловать в FangtangOffice',
     onbSubtitle1: 'Первый открытый AI-нативный офисный пакет',
     onbBody1:
       'Создавайте документы, таблицы и презентации, работайте с PDF. ИИ встроен в каждый шаг.',
     onbTitle2: 'Это только начало',
     onbBody2:
-      'GenOffice пока в альфа-версии. Присоединяйтесь к групповому чату в GenTeam, чтобы делиться отзывами и влиять на дальнейшее развитие.',
+      'Войдите в аккаунт Fangtang, чтобы пользоваться управляемым ИИ: диалоги тарифицируются по использованию, при нехватке баланса пополнить можно одним щелчком.',
     onbSkip: 'Пропустить',
     onbNext: 'Далее',
     onbStart: 'Начать',
     onbStepAria: 'Страница {n} из {total}',
     onbTitle3: 'Бесплатно для всех',
     onbBody3: 'Без лицензий. Без рекламы. Без водяных знаков.',
-    onbNote3: 'Функции ИИ могут расходовать кредиты Genspark.',
+    onbNote3: 'Диалоги с ИИ тарифицируются по использованию; использование и баланс доступны в настройках.',
     onbBack: 'Назад',
   },
   ar: {
@@ -1964,7 +1954,6 @@ export const strings = {
     untitled: 'بدون عنوان',
     noContent: '(فارغ)',
     // Account
-    accountGenspark: 'حساب Genspark',
     account: 'الحساب',
     appVersion: 'الإصدار {v}',
     versionLabel: 'الإصدار',
@@ -1994,7 +1983,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'اتركه فارغًا لاستخدام نقطة النهاية الرسمية.',
     setAiByokNote:
-      'تستخدم المحادثات مفتاحك الخاص؛ أدوات السحابة (بحث الويب وتوليد الصور) ما زالت تتطلب تسجيل الدخول إلى Genspark.',
+      'تستخدم المحادثات مفتاحك الخاص افتراضيًا؛ وبعد تسجيل الدخول إلى حساب Fangtang يتم استخدام نقطة النهاية المُدارة تلقائيًا.',
     setAiSave: 'حفظ',
     setAiSaved: 'تم الحفظ',
     setAiTest: 'اختبار الاتصال',
@@ -2015,20 +2004,20 @@ export const strings = {
     tabList: 'كل علامات التبويب',
     newTab: 'علامة تبويب جديدة',
     // First-run onboarding
-    onbTitle1: 'مرحبًا بك في GenOffice',
+    onbTitle1: 'مرحبًا بك في FangtangOffice',
     onbSubtitle1: 'أول حزمة مكتبية مفتوحة المصدر وأصيلة في الذكاء الاصطناعي',
     onbBody1:
       'أنشئ المستندات وجداول البيانات والعروض التقديمية وراجع ملفات PDF. الذكاء الاصطناعي مدمج في كل خطوة.',
     onbTitle2: 'هذه مجرد البداية',
     onbBody2:
-      'لا يزال GenOffice في مرحلة ألفا. انضم إلى الدردشة الجماعية على GenTeam لمشاركة ملاحظاتك والمساهمة في تشكيل المستقبل.',
+      'سجّل الدخول إلى حساب Fangtang لاستخدام الذكاء الاصطناعي المُدار: تُحتسب المحادثات حسب الاستخدام، ويمكن إعادة الشحن بنقرة واحدة عند نفاد الرصيد.',
     onbSkip: 'تخطي',
     onbNext: 'التالي',
     onbStart: 'ابدأ الآن',
     onbStepAria: 'الصفحة {n} من {total}',
     onbTitle3: 'مجاني للجميع',
     onbBody3: 'بلا رسوم ترخيص، بلا إعلانات، بلا علامات مائية.',
-    onbNote3: 'قد تستهلك ميزات الذكاء الاصطناعي أرصدة Genspark.',
+    onbNote3: 'تُحتسب محادثات الذكاء الاصطناعي حسب الاستخدام، ويمكن الاطلاع على الاستخدام والرصيد من الإعدادات.',
     onbBack: 'رجوع',
   },
   pt: {
@@ -2143,7 +2132,6 @@ export const strings = {
     timelineUserAria: 'Usuário',
     untitled: 'Sem título',
     noContent: '(vazio)',
-    accountGenspark: 'Conta Genspark',
     account: 'Conta',
     appVersion: 'Versão {v}',
     versionLabel: 'Versão',
@@ -2173,7 +2161,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Deixe vazio para o endpoint oficial.',
     setAiByokNote:
-      'Os chats usam sua própria chave; as ferramentas na nuvem (busca na web, geração de imagens) ainda exigem o login Genspark.',
+      'Os chats usam a sua própria chave por padrão; após iniciar sessão numa conta Fangtang, o endpoint gerido é usado automaticamente.',
     setAiSave: 'Salvar',
     setAiSaved: 'Salvo',
     setAiTest: 'Testar conexão',
@@ -2192,20 +2180,20 @@ export const strings = {
     tabList: 'Todas as guias',
     newTab: 'Nova guia',
     // First-run onboarding
-    onbTitle1: 'Bem-vindo ao GenOffice',
+    onbTitle1: 'Bem-vindo ao FangtangOffice',
     onbSubtitle1: 'A primeira suíte de escritório open source e nativa de IA',
     onbBody1:
       'Crie documentos, planilhas e apresentações e revise PDFs. A IA está integrada em cada etapa.',
     onbTitle2: 'Isto é só o começo',
     onbBody2:
-      'O GenOffice ainda está em alfa. Entre no chat em grupo no GenTeam para compartilhar feedback e ajudar a moldar o que vem a seguir.',
+      'Inicie sessão na sua conta Fangtang para usar a IA gerida: os chats são cobrados por uso, com recarga num clique quando o saldo fica baixo.',
     onbSkip: 'Pular',
     onbNext: 'Avançar',
     onbStart: 'Começar',
     onbStepAria: 'Página {n} de {total}',
     onbTitle3: 'Gratuito para todos',
     onbBody3: "Sem licenças. Sem anúncios. Sem marcas d'água.",
-    onbNote3: 'Os recursos de IA podem consumir créditos Genspark.',
+    onbNote3: 'Os chats de IA são cobrados por uso; o uso e o saldo ficam visíveis nas configurações.',
     onbBack: 'Voltar',
   },
   it: {
@@ -2320,7 +2308,6 @@ export const strings = {
     timelineUserAria: 'Utente',
     untitled: 'Senza titolo',
     noContent: '(vuoto)',
-    accountGenspark: 'Account Genspark',
     account: 'Account',
     appVersion: 'Versione {v}',
     versionLabel: 'Versione',
@@ -2350,7 +2337,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: "Lascia vuoto per l'endpoint ufficiale.",
     setAiByokNote:
-      "Le chat usano la tua chiave; gli strumenti cloud (ricerca web, generazione immagini) richiedono comunque l'accesso Genspark.",
+      "Le chat usano la tua chiave per impostazione predefinita; dopo l'accesso a un account Fangtang viene usato automaticamente l'endpoint gestito.",
     setAiSave: 'Salva',
     setAiSaved: 'Salvato',
     setAiTest: 'Prova connessione',
@@ -2369,20 +2356,20 @@ export const strings = {
     tabList: 'Tutte le schede',
     newTab: 'Nuova scheda',
     // First-run onboarding
-    onbTitle1: 'Benvenuto in GenOffice',
+    onbTitle1: 'Benvenuto in FangtangOffice',
     onbSubtitle1: 'La prima suite per ufficio open source e nativa per l’IA',
     onbBody1:
       'Crea documenti, fogli di calcolo e presentazioni e rivedi i PDF. L’IA è integrata in ogni passaggio.',
     onbTitle2: 'Questo è solo l’inizio',
     onbBody2:
-      'GenOffice è ancora in alpha. Unisciti alla chat di gruppo su GenTeam per condividere feedback e contribuire a plasmare il futuro.',
+      "Accedi al tuo account Fangtang per usare l'IA gestita: le chat vengono addebitate in base all'uso, con ricarica in un clic quando il saldo è esaurito.",
     onbSkip: 'Salta',
     onbNext: 'Avanti',
     onbStart: 'Inizia',
     onbStepAria: 'Pagina {n} di {total}',
     onbTitle3: 'Gratuito per tutti',
     onbBody3: 'Nessuna licenza. Nessuna pubblicità. Nessuna filigrana.',
-    onbNote3: 'Le funzioni IA possono consumare crediti Genspark.',
+    onbNote3: "Le chat IA vengono addebitate in base all'uso; utilizzo e saldo sono visibili nelle impostazioni.",
     onbBack: 'Indietro',
   },
   pl: {
@@ -2496,7 +2483,6 @@ export const strings = {
     timelineUserAria: 'Użytkownik',
     untitled: 'Bez tytułu',
     noContent: '(pusto)',
-    accountGenspark: 'Konto Genspark',
     account: 'Konto',
     appVersion: 'Wersja {v}',
     versionLabel: 'Wersja',
@@ -2526,7 +2512,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Pozostaw puste, aby użyć oficjalnego punktu końcowego.',
     setAiByokNote:
-      'Czaty używają Twojego klucza; narzędzia w chmurze (wyszukiwanie, generowanie obrazów) nadal wymagają logowania Genspark.',
+      'Rozmowy domyślnie używają Twojego klucza; po zalogowaniu do konta Fangtang automatycznie używany jest zarządzany punkt końcowy.',
     setAiSave: 'Zapisz',
     setAiSaved: 'Zapisano',
     setAiTest: 'Testuj połączenie',
@@ -2545,20 +2531,20 @@ export const strings = {
     tabList: 'Wszystkie karty',
     newTab: 'Nowa karta',
     // First-run onboarding
-    onbTitle1: 'Witamy w GenOffice',
+    onbTitle1: 'Witamy w FangtangOffice',
     onbSubtitle1: 'Pierwszy otwartoźródłowy, natywnie oparty na AI pakiet biurowy',
     onbBody1:
       'Twórz dokumenty, arkusze i prezentacje oraz przeglądaj pliki PDF. AI jest wbudowana w każdy etap.',
     onbTitle2: 'To dopiero początek',
     onbBody2:
-      'GenOffice jest wciąż w fazie alfa. Dołącz do czatu grupowego na GenTeam, aby dzielić się opiniami i współtworzyć jego przyszłość.',
+      'Zaloguj się do konta Fangtang, aby korzystać z zarządzanego AI: rozmowy są rozliczane według użycia, a przy niskim saldzie można doładować jednym kliknięciem.',
     onbSkip: 'Pomiń',
     onbNext: 'Dalej',
     onbStart: 'Rozpocznij',
     onbStepAria: 'Strona {n} z {total}',
     onbTitle3: 'Za darmo dla każdego',
     onbBody3: 'Bez opłat licencyjnych. Bez reklam. Bez znaków wodnych.',
-    onbNote3: 'Funkcje AI mogą zużywać kredyty Genspark.',
+    onbNote3: 'Rozmowy z AI są rozliczane według użycia; użycie i saldo można sprawdzić w ustawieniach.',
     onbBack: 'Wstecz',
   },
   nl: {
@@ -2673,7 +2659,6 @@ export const strings = {
     timelineUserAria: 'Gebruiker',
     untitled: 'Naamloos',
     noContent: '(leeg)',
-    accountGenspark: 'Genspark-account',
     account: 'Account',
     appVersion: 'Versie {v}',
     versionLabel: 'Versie',
@@ -2703,7 +2688,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Leeg laten voor het officiële eindpunt.',
     setAiByokNote:
-      'Chats gebruiken je eigen sleutel; cloudtools (webzoeken, beeldgeneratie) vereisen nog steeds de Genspark-login.',
+      'Chats gebruiken standaard je eigen sleutel; na het inloggen op een Fangtang-account wordt automatisch het beheerde endpoint gebruikt.',
     setAiSave: 'Opslaan',
     setAiSaved: 'Opgeslagen',
     setAiTest: 'Verbinding testen',
@@ -2722,20 +2707,20 @@ export const strings = {
     tabList: 'Alle tabbladen',
     newTab: 'Nieuw tabblad',
     // First-run onboarding
-    onbTitle1: 'Welkom bij GenOffice',
+    onbTitle1: 'Welkom bij FangtangOffice',
     onbSubtitle1: 'De eerste open source, AI-native officesuite',
     onbBody1:
       'Maak documenten, bouw spreadsheets, maak presentaties en beoordeel PDF-bestanden. AI zit in elke stap ingebouwd.',
     onbTitle2: 'Dit is nog maar het begin',
     onbBody2:
-      'GenOffice is nog in alfa. Doe mee aan de groepschat op GenTeam om feedback te delen en mee te bepalen wat er komt.',
+      'Log in op je Fangtang-account om beheerde AI te gebruiken: chats worden afgerekend op verbruik, met een klik bij te vullen wanneer het saldo laag is.',
     onbSkip: 'Overslaan',
     onbNext: 'Volgende',
     onbStart: 'Aan de slag',
     onbStepAria: 'Pagina {n} van {total}',
     onbTitle3: 'Gratis voor iedereen',
     onbBody3: 'Geen licentiekosten. Geen advertenties. Geen watermerken.',
-    onbNote3: 'AI-functies kunnen Genspark-credits verbruiken.',
+    onbNote3: 'AI-chats worden afgerekend op verbruik; verbruik en saldo zijn te zien in de instellingen.',
     onbBack: 'Terug',
   },
   ms: {
@@ -2849,7 +2834,6 @@ export const strings = {
     timelineUserAria: 'Pengguna',
     untitled: 'Tanpa tajuk',
     noContent: '(kosong)',
-    accountGenspark: 'Akaun Genspark',
     account: 'Akaun',
     appVersion: 'Versi {v}',
     versionLabel: 'Versi',
@@ -2879,7 +2863,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Biarkan kosong untuk endpoint rasmi.',
     setAiByokNote:
-      'Sembang menggunakan kunci anda sendiri; alat awan (carian web, penjanaan imej) masih memerlukan log masuk Genspark.',
+      'Sembang menggunakan kunci anda sendiri secara lalai; selepas log masuk akaun Fangtang, endpoint terurus digunakan secara automatik.',
     setAiSave: 'Simpan',
     setAiSaved: 'Disimpan',
     setAiTest: 'Uji sambungan',
@@ -2898,20 +2882,20 @@ export const strings = {
     tabList: 'Semua tab',
     newTab: 'Tab baharu',
     // First-run onboarding
-    onbTitle1: 'Selamat datang ke GenOffice',
+    onbTitle1: 'Selamat datang ke FangtangOffice',
     onbSubtitle1: 'Suite pejabat sumber terbuka natif AI yang pertama',
     onbBody1:
       'Cipta dokumen, bina hamparan, hasilkan persembahan dan semak PDF. AI tersedia pada setiap langkah.',
     onbTitle2: 'Ini baru permulaan',
     onbBody2:
-      'GenOffice masih dalam peringkat alfa. Sertai sembang kumpulan di GenTeam untuk berkongsi maklum balas dan membentuk masa depannya.',
+      'Log masuk ke akaun Fangtang untuk menggunakan AI terurus: sembang dibilkan mengikut penggunaan, dan boleh ditambah dengan satu klik apabila baki rendah.',
     onbSkip: 'Langkau',
     onbNext: 'Seterusnya',
     onbStart: 'Mula',
     onbStepAria: 'Halaman {n} daripada {total}',
     onbTitle3: 'Percuma untuk semua',
     onbBody3: 'Tiada yuran lesen. Tiada iklan. Tiada tera air.',
-    onbNote3: 'Ciri AI mungkin menggunakan kredit Genspark.',
+    onbNote3: 'Sembang AI dibilkan mengikut penggunaan; penggunaan dan baki boleh dilihat dalam Tetapan.',
     onbBack: 'Kembali',
   },
   he: {
@@ -3023,7 +3007,6 @@ export const strings = {
     timelineUserAria: 'משתמש',
     untitled: 'ללא שם',
     noContent: '(ריק)',
-    accountGenspark: 'חשבון Genspark',
     account: 'חשבון',
     appVersion: 'גרסה {v}',
     versionLabel: 'גרסה',
@@ -3053,7 +3036,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'השאר ריק לנקודת הקצה הרשמית.',
     setAiByokNote:
-      'שיחות משתמשות במפתח שלך; כלי ענן (חיפוש ברשת, יצירת תמונות) עדיין דורשים כניסת Genspark.',
+      'שיחות משתמשות במפתח שלך כברירת מחדל; לאחר התחברות לחשבון Fangtang נעשה שימוש אוטומטי בנקודת הקצה המנוהלת.',
     setAiSave: 'שמירה',
     setAiSaved: 'נשמר',
     setAiTest: 'בדיקת חיבור',
@@ -3072,19 +3055,19 @@ export const strings = {
     tabList: 'כל הכרטיסיות',
     newTab: 'כרטיסייה חדשה',
     // First-run onboarding
-    onbTitle1: 'ברוכים הבאים ל-GenOffice',
+    onbTitle1: 'ברוכים הבאים ל-FangtangOffice',
     onbSubtitle1: 'חבילת המשרד הראשונה בקוד פתוח שהיא AI-נייטיב',
     onbBody1: 'צרו מסמכים, בנו גיליונות, הכינו מצגות ובדקו קובצי PDF. ה-AI מובנה בכל שלב.',
     onbTitle2: 'זו רק ההתחלה',
     onbBody2:
-      'GenOffice עדיין בגרסת אלפא. הצטרפו לצ׳אט הקבוצתי ב-GenTeam כדי לשתף משוב ולעזור לעצב את ההמשך.',
+      'התחברו לחשבון Fangtang כדי להשתמש בבינה מלאכותית מנוהלת: הצ׳אטים מחויבים לפי שימוש, ואפשר להטעין בלחיצה אחת כשהיתרה נמוכה.',
     onbSkip: 'דילוג',
     onbNext: 'הבא',
     onbStart: 'להתחיל',
     onbStepAria: 'עמוד {n} מתוך {total}',
     onbTitle3: 'חינם לכולם',
     onbBody3: 'ללא דמי רישיון, ללא פרסומות, ללא סימני מים.',
-    onbNote3: 'תכונות AI עשויות לצרוך קרדיטים של Genspark.',
+    onbNote3: 'צ׳אטים של AI מחויבים לפי שימוש; שימוש ויתרה זמינים בהגדרות.',
     onbBack: 'חזרה',
   },
   hi: {
@@ -3199,7 +3182,6 @@ export const strings = {
     timelineUserAria: 'उपयोगकर्ता',
     untitled: 'बिना शीर्षक',
     noContent: '(खाली)',
-    accountGenspark: 'Genspark खाता',
     account: 'खाता',
     appVersion: 'संस्करण {v}',
     versionLabel: 'संस्करण',
@@ -3229,7 +3211,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'आधिकारिक एंडपॉइंट के लिए खाली छोड़ें।',
     setAiByokNote:
-      'चैट आपकी अपनी कुंजी का उपयोग करती हैं; क्लाउड टूल (वेब खोज, छवि निर्माण) के लिए अभी भी Genspark साइन-इन आवश्यक है।',
+      'चैट डिफ़ॉल्ट रूप से आपकी अपनी कुंजी का उपयोग करती हैं; Fangtang खाते में साइन इन करने के बाद मैनेज्ड एंडपॉइंट स्वतः उपयोग होता है।',
     setAiSave: 'सहेजें',
     setAiSaved: 'सहेजा गया',
     setAiTest: 'कनेक्शन परखें',
@@ -3248,20 +3230,20 @@ export const strings = {
     tabList: 'सभी टैब',
     newTab: 'नया टैब',
     // First-run onboarding
-    onbTitle1: 'GenOffice में आपका स्वागत है',
+    onbTitle1: 'FangtangOffice में आपका स्वागत है',
     onbSubtitle1: 'पहला ओपन-सोर्स, AI-नेटिव ऑफ़िस सुइट',
     onbBody1:
       'दस्तावेज़ बनाएँ, स्प्रेडशीट तैयार करें, प्रस्तुतियाँ बनाएँ और PDF की समीक्षा करें। AI हर चरण में शामिल है।',
     onbTitle2: 'यह तो बस शुरुआत है',
     onbBody2:
-      'GenOffice अभी अल्फ़ा में है। GenTeam पर ग्रुप चैट से जुड़ें, फ़ीडबैक साझा करें और आगे की दिशा तय करने में मदद करें।',
+      'मैनेज्ड AI के लिए Fangtang खाते में साइन इन करें: चैट का बिल उपयोग के अनुसार लगेगा, और बैलेंस कम होने पर एक क्लिक में रिचार्ज किया जा सकता है।',
     onbSkip: 'छोड़ें',
     onbNext: 'आगे',
     onbStart: 'शुरू करें',
     onbStepAria: 'कुल {total} में से पृष्ठ {n}',
     onbTitle3: 'सभी के लिए मुफ़्त',
     onbBody3: 'कोई लाइसेंस शुल्क नहीं। कोई विज्ञापन नहीं। कोई वॉटरमार्क नहीं।',
-    onbNote3: 'AI सुविधाएँ Genspark क्रेडिट खर्च कर सकती हैं।',
+    onbNote3: 'AI चैट का बिल उपयोग के अनुसार लगता है; उपयोग और बैलेंस सेटिंग्स में देखे जा सकते हैं।',
     onbBack: 'वापस',
   },
   'zh-TW': {
@@ -3372,7 +3354,6 @@ export const strings = {
     timelineUserAria: '使用者',
     untitled: '未命名',
     noContent: '（無內容）',
-    accountGenspark: 'Genspark 帳號',
     account: '帳號',
     appVersion: '版本 {v}',
     versionLabel: '版本',
@@ -3401,7 +3382,7 @@ export const strings = {
     setAiKeyHint: '金鑰僅儲存在本機。',
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '留空使用官方端點。',
-    setAiByokNote: '對話使用你自己的 key；網頁搜尋、生圖等雲端工具仍需登入 Genspark。',
+    setAiByokNote: '對話預設使用你自己的 key；登入方塘帳號後自動切換為帳戶託管端點。',
     setAiSave: '儲存',
     setAiSaved: '已儲存',
     setAiTest: '測試連線',
@@ -3420,18 +3401,18 @@ export const strings = {
     tabList: '全部分頁',
     newTab: '新分頁',
     // First-run onboarding
-    onbTitle1: '歡迎使用 GenOffice',
+    onbTitle1: '歡迎使用方塘Office',
     onbSubtitle1: '第一個開源的 AI 原生 Office 套件',
     onbBody1: '建立文件、製作試算表、產生簡報、審閱 PDF。AI 深度融入每個環節。',
     onbTitle2: '這只是一個開始',
-    onbBody2: 'GenOffice 目前仍在 alpha 階段。歡迎加入 GenTeam 群聊，分享回饋，一起打造它的未來。',
+    onbBody2: '登入方塘帳號即可使用託管 AI：對話按用量計費，餘額不足一鍵儲值。',
     onbSkip: '略過',
     onbNext: '下一步',
     onbStart: '開始使用',
     onbStepAria: '第 {n} 頁，共 {total} 頁',
     onbTitle3: '人人免費',
     onbBody3: '無授權費用，無廣告，無浮水印。',
-    onbNote3: 'AI 功能可能消耗 Genspark 點數。',
+    onbNote3: 'AI 對話按用量計費，用量與餘額可在設定中查看。',
     onbBack: '上一步',
   },
 } as const
