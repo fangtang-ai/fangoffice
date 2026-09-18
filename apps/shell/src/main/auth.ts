@@ -189,6 +189,9 @@ async function validAccessToken(): Promise<string> {
 }
 
 /** loopback callback: resolve { code, redirectUri } once the browser comes back */
+/** registered in the Logto tenant's 方塘Office app; keep in sync there */
+const LOGIN_LOOPBACK_PORTS = [5731, 5732]
+
 function awaitAuthorizationCode(
   config: AccountOidcConfig,
 ): Promise<{ code: string; redirectUri: string; pkce: PkcePair }> {
@@ -226,17 +229,28 @@ function awaitAuthorizationCode(
     })
     let redirectUri = ''
     const timer = setTimeout(() => settle(new AccountError('account:timeout')), LOGIN_TIMEOUT_MS)
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address()
-      if (!address || typeof address === 'string') {
-        reject(new AccountError('account:failed'))
+    // Logto matches redirect URIs exactly (no wildcard/any-port), so the port is
+    // fixed and must stay in sync with the app's registered redirect URIs in
+    // the Logto tenant (5731 primary, 5732 fallback if 5731 is occupied).
+    const tryListen = (ports: number[]) => {
+      if (ports.length === 0) {
+        settle(new AccountError('account:failed'))
         return
       }
-      redirectUri = `http://127.0.0.1:${address.port}/callback`
-      shell
-        .openExternal(buildAuthorizeUrl(config, redirectUri, pkce, state))
-        .catch(() => settle(new AccountError('account:failed')))
-    })
+      const port = ports[0]!
+      server.once('error', () => {
+        server.removeAllListeners('error')
+        tryListen(ports.slice(1))
+      })
+      server.listen(port, '127.0.0.1', () => {
+        server.removeAllListeners('error')
+        redirectUri = `http://127.0.0.1:${port}/callback`
+        shell
+          .openExternal(buildAuthorizeUrl(config, redirectUri, pkce, state))
+          .catch(() => settle(new AccountError('account:failed')))
+      })
+    }
+    tryListen(LOGIN_LOOPBACK_PORTS)
   })
 }
 
