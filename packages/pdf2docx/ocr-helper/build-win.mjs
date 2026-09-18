@@ -48,7 +48,7 @@ if (!existsSync(csc)) {
   process.exit(1)
 }
 
-const kits = 'C:\\Program Files (x86)\\Windows Kits\\10\\UnionMetadata'
+const kits = process.env.WINDOWS_KITS_DIR ?? 'C:\\Program Files (x86)\\Windows Kits\\10\\UnionMetadata'
 const winmd = newestWith(kits, 'Windows.winmd', /^\d/) ?? join(kits, 'Windows.winmd')
 if (!existsSync(winmd)) {
   console.error(`Windows.winmd not found under ${kits} (install the Windows 10/11 SDK)`)
