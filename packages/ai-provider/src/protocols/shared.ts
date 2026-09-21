@@ -125,7 +125,7 @@ export class AiCreditsError extends Error {
   }
 }
 
-function creditsNoticeText(value: unknown): string | null {
+export function creditsNoticeText(value: unknown): string | null {
   if (typeof value === 'string') {
     const t = value.toLowerCase()
     const credits =

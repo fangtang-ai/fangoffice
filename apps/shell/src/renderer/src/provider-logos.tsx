@@ -200,6 +200,21 @@ const LOGOS: Record<AiProviderId, ReactNode> = {
   ),
   'opencode-zen': opencodeLogo,
   'opencode-go': opencodeLogo,
+  // 方塘（账户计费）: square-pond mark matching the site's tile aesthetic
+  fangtang: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" />
+      <path d="M7.5 14.5c1.5-3.5 7.5-3.5 9 0" />
+      <path d="M7.5 17c1.5-3.5 7.5-3.5 9 0" opacity=".55" />
+    </svg>
+  ),
   custom: (
     <svg
       viewBox="0 0 24 24"

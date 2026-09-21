@@ -172,6 +172,17 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
     keyPlaceholder: 'API Key',
   },
   {
+    // the site's billing proxy (POST /api/office/ai/chat): authenticated with
+    // the user's Logto access token, the site picks the model — hence no key
+    // placeholder and an empty catalog
+    id: 'fangtang',
+    label: '方塘 AI（账户计费）',
+    models: [],
+    defaultModel: '',
+    keyPlaceholder: '账户登录自动配置',
+    needsBaseUrl: true,
+  },
+  {
     id: 'custom',
     label: 'Custom',
     models: [],

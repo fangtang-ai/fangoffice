@@ -15,6 +15,7 @@ import {
   getAccountManagedDefaults,
   loadFangTangAccountConfig,
   setAccountManagedDefaults,
+  setAccountManagedTokenProvider,
   type AccountManagedDefaults,
 } from '@genoffice/electron-utils'
 import type { AccountErrorCode, AccountUsage, AccountView } from '../shared/home-api'
@@ -300,6 +301,10 @@ async function applyAccountAiEndpoint(): Promise<void> {
 }
 
 export function registerAccountIpc(): void {
+  // the fangtang billing proxy authenticates with the user's live Logto access
+  // token; the ai:stream handlers (docs bundle, same process) read it per request
+  setAccountManagedTokenProvider(() => currentSession()?.accessToken ?? null)
+
   ipcMain.handle(HOME_CHANNELS.getAccountSession, (): AccountView => sessionView(currentSession()))
 
   ipcMain.handle(HOME_CHANNELS.loginAccount, async (): Promise<AccountView> => {

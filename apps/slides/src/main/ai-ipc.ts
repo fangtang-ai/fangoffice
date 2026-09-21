@@ -36,6 +36,7 @@ import {
   bundledPresetsDir,
   fetchRemoteImage,
   getAccountManagedDefaults,
+  getAccountManagedToken,
   loadPresetFiles,
   loadFangTangDefaults,
   readAiFeatures,
@@ -151,7 +152,11 @@ export function registerAiIpc(): void {
     const tools = request.tools ?? []
     const maxTokens = request.maxTokens ?? maxOutputTokensOf(settings)
     const provider = settings.provider
-    const config = settings.providers?.[provider]
+    // account-managed fangtang billing carries no static key — each request
+    // rides the shell's latest Logto access token (account-defaults hook)
+    const stored = settings.providers?.[provider]
+    const liveToken = provider === 'fangtang' ? getAccountManagedToken() : null
+    const config = stored && { ...stored, ...(liveToken ? { apiKey: liveToken } : {}) }
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }

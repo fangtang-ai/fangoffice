@@ -1,4 +1,5 @@
 import { chatAnthropic } from './protocols/anthropic'
+import { chatFangtang } from './protocols/fangtang'
 import { chatGemini } from './protocols/gemini'
 import { chatOpenAiCompatible } from './protocols/openai-compatible'
 import { getProviderAdapter, type ResolvedEndpoint } from './registry'
@@ -30,6 +31,8 @@ export async function chatForProvider(
     switch (endpoint.protocol) {
       case 'anthropic':
         return chatAnthropic(wd, config, system, user, endpoint.baseUrl)
+      case 'fangtang':
+        return chatFangtang(endpoint.baseUrl, config, system, user)
       case 'gemini':
         return chatGemini(wd, config, system, user, endpoint.baseUrl, {
           omitTemperature: endpoint.omitTemperature,

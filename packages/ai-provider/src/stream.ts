@@ -1,6 +1,7 @@
 import type { AgentMessage, AgentToolDef } from '@genoffice/agent-core'
 import { withOutputCapFallback } from './output-cap'
 import { streamAnthropic } from './protocols/anthropic'
+import { streamFangtang } from './protocols/fangtang'
 import { streamGemini } from './protocols/gemini'
 import { streamOpenAiCompatible } from './protocols/openai-compatible'
 import type { StreamCallbacks } from './protocols/shared'
@@ -8,6 +9,7 @@ import { getProviderAdapter } from './registry'
 import type { AiProviderConfig, AiProviderId } from './types'
 
 export { streamAnthropic } from './protocols/anthropic'
+export { streamFangtang } from './protocols/fangtang'
 export { streamGemini } from './protocols/gemini'
 export { streamOpenAiCompatible } from './protocols/openai-compatible'
 export { AiCreditsError, sseLines } from './protocols/shared'
@@ -25,8 +27,13 @@ export async function streamForProvider(
 ): Promise<void> {
   const endpoint = getProviderAdapter(provider).resolveEndpoint(config)
   const { baseUrl } = endpoint
+  const protocol = endpoint.protocol
+  if (protocol === 'fangtang') {
+    // the billing proxy owns the model and token budget; no output-cap retry applies
+    return streamFangtang(baseUrl, config, system, messages, cb)
+  }
   return withOutputCapFallback(baseUrl, config.model, maxTokens, (cap) => {
-    switch (endpoint.protocol) {
+    switch (protocol) {
       case 'anthropic':
         return streamAnthropic(config, system, messages, tools, cap, cb, baseUrl)
       case 'gemini':

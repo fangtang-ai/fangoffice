@@ -32,3 +32,22 @@ export function setAccountManagedDefaults(value: AccountManagedDefaults | null):
 export function getAccountManagedDefaults(): AccountManagedDefaults | null {
   return current
 }
+
+/**
+ * Latest-Logto-access-token hook: the shell's auth module registers a reader
+ * over its persisted session; the ai:stream handlers use it to override the
+ * fangtang provider's apiKey with a fresh token per request (the account
+ * layer itself carries no secret — the site mints per-user access). A
+ * callback, not a stored value: token refreshes then need no push, and
+ * logout naturally yields null. Editors running standalone never see a
+ * registration and the fangtang branch stays unauthenticated.
+ */
+let tokenProvider: (() => string | null) | null = null
+
+export function setAccountManagedTokenProvider(read: (() => string | null) | null): void {
+  tokenProvider = read
+}
+
+export function getAccountManagedToken(): string | null {
+  return tokenProvider?.() ?? null
+}

@@ -191,6 +191,8 @@ export async function fetchAccountProfile(
 }
 
 export interface OfficeEndpointReply {
+  data?: unknown
+  provider?: unknown
   baseUrl?: unknown
   apiKey?: unknown
   model?: unknown
@@ -198,18 +200,33 @@ export interface OfficeEndpointReply {
 
 /**
  * Map the site's GET /api/office/ai-endpoint reply to the account-managed
- * defaults layer (an OpenAI-compatible custom provider behind New API).
- * Incomplete replies yield null — the account layer is then simply absent and
- * the editors keep running on factory defaults / BYOK.
+ * defaults layer. `provider: 'fangtang'` selects the site's billing proxy —
+ * it carries no static key, every request rides the user's live Logto access
+ * token (see getAccountManagedToken). Any other shape maps to the legacy
+ * OpenAI-compatible custom provider behind New API. Incomplete replies yield
+ * null — the account layer is then simply absent and the editors keep
+ * running on factory defaults / BYOK.
  */
 export function accountDefaultsFromEndpoint(
   reply: OfficeEndpointReply | null | undefined,
-): { provider: 'custom'; baseUrl: string; apiKey: string; model?: string } | null {
-  if (!reply || typeof reply !== 'object') return null
-  const { baseUrl, apiKey, model } = reply
-  if (typeof baseUrl !== 'string' || !baseUrl || typeof apiKey !== 'string' || !apiKey) {
-    return null
+): { provider: 'custom' | 'fangtang'; baseUrl: string; apiKey: string; model?: string } | null {
+  // ApiResDto.success wraps the payload as {data: …}; tolerate the bare shape too
+  const payload =
+    reply && typeof reply === 'object' && reply.data && typeof reply.data === 'object'
+      ? (reply.data as OfficeEndpointReply)
+      : reply
+  if (!payload || typeof payload !== 'object') return null
+  const { provider, baseUrl, apiKey, model } = payload
+  if (typeof baseUrl !== 'string' || !baseUrl) return null
+  if (provider === 'fangtang') {
+    return {
+      provider: 'fangtang',
+      baseUrl,
+      apiKey: '',
+      ...(typeof model === 'string' && model ? { model } : {}),
+    }
   }
+  if (typeof apiKey !== 'string' || !apiKey) return null
   return {
     provider: 'custom',
     baseUrl,

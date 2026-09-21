@@ -13,9 +13,20 @@ export const ACCOUNT_ERR_KEYS = {
   'account:expired': 'accountErrExpired',
 } as const satisfies Record<AccountErrorCode, StringKey>
 
+/** parse the site's decimal ¥ fields ('0.00' strings since the fangtang
+ * billing update) into numbers; null for absent/other non-numeric shapes */
+function parseCny(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
+
 /** balance in ¥ from the site's usage payload; null when absent/unshaped */
 export function accountBalanceCny(usage: AccountUsage | null): number | null {
-  return usage && typeof usage.balanceCny === 'number' ? usage.balanceCny : null
+  return usage ? parseCny(usage.balanceCny) : null
 }
 
 /** formatted balance ('¥12.34'), null when absent — display-only convenience */
@@ -26,9 +37,9 @@ export function accountBalanceText(usage: AccountUsage | null): string | null {
 
 /** formatted month-to-date spend ('¥3.20'), null when the site gives none */
 export function accountMonthUsedText(usage: AccountUsage | null): string | null {
-  return usage && typeof usage.monthUsedCny === 'number'
-    ? `¥${usage.monthUsedCny.toFixed(2)}`
-    : null
+  if (!usage) return null
+  const used = parseCny(usage.monthUsedCny)
+  return used === null ? null : `¥${used.toFixed(2)}`
 }
 
 /**

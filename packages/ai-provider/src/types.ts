@@ -15,6 +15,7 @@ export type AiProviderId =
   | 'openrouter'
   | 'opencode-zen'
   | 'opencode-go'
+  | 'fangtang'
   | 'custom'
 
 export interface AiProviderConfig {
