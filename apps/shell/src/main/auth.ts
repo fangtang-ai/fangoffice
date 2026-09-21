@@ -340,14 +340,21 @@ export function registerAccountIpc(): void {
     if (!current || !apiBase) return null
     try {
       const accessToken = await validAccessToken()
-      const response = await fetch(new URL('/api/office/usage', apiBase), {
+      // 站点 /api/office/account 返回 balanceCny/monthChargedCny 等；renderer 读 balanceCny + monthUsedCny
+      const response = await fetch(new URL('/api/office/account', apiBase), {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       if (!response.ok) return null
       const body: unknown = await response.json()
-      return body && typeof body === 'object' && !Array.isArray(body)
-        ? (body as AccountUsage)
-        : null
+      // 站点响应包在 { success, code, data } 里,取 data
+      const payload =
+        body && typeof body === 'object' ? (body as { data?: unknown }).data : null
+      const account =
+        payload && typeof payload === 'object' && !Array.isArray(payload)
+          ? (payload as Record<string, unknown>)
+          : null
+      if (!account) return null
+      return { ...account, monthUsedCny: account.monthChargedCny }
     } catch {
       return null
     }

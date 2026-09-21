@@ -54,9 +54,9 @@ export interface AccountView {
 }
 
 /**
- * Aggregated usage/balance from GET /api/office/usage. The exact field set is
- * defined by the site module (New API quota + recent logs); unknown fields are
- * passed through untouched so the UI can render what exists.
+ * Aggregated balance/usage from GET /api/office/account (mapped in main:
+ * monthChargedCny → monthUsedCny). Unknown fields pass through untouched so
+ * the UI can render what exists.
  */
 export type AccountUsage = Record<string, unknown>
 
