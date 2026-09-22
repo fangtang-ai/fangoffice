@@ -50,3 +50,13 @@ _scratch-*
 apps/shell/resources/*.local.json
 
 tmp/
+
+# Local planning/context notes (per-session, never commit)
+CONTEXT.md
+findings.md
+progress.md
+task_plan.md
+.local/
+
+# E2E probe live tokens (never commit)
+scripts/.e2e-*
