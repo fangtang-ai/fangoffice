@@ -100,6 +100,20 @@ async function fangtangTurn(
     }
     throw fangtangError(code, message, `HTTP ${response.status}: ${httpBodyDetail(bodyText)}`)
   }
+  // the site wraps every error in an HTTP-200 envelope; pre-SSE failures
+  // (401 / 余额不足) arrive as JSON, not event-stream — surface the real
+  // reason instead of falling through to "returned no content (empty stream)"
+  if (!(response.headers.get('content-type') ?? '').includes('text/event-stream')) {
+    const bodyText = await response.text()
+    let code: unknown
+    let message: unknown
+    try {
+      ;({ code, message } = JSON.parse(bodyText) as { code?: unknown; message?: unknown })
+    } catch {
+      /* not JSON — httpBodyDetail handles markup/plain text */
+    }
+    throw fangtangError(code, message, `HTTP ${response.status}: ${httpBodyDetail(bodyText)}`)
+  }
   let emitted = false
   let sawDone = false
   for await (const line of sseLines(response.body, onBytes)) {
