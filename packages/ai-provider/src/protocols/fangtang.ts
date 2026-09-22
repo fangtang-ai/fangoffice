@@ -1,32 +1,48 @@
-import type { AgentMessage } from '@genoffice/agent-core'
+import type { AgentMessage, AgentToolDef } from '@genoffice/agent-core'
 import { aiFetch } from '../fetch'
 import { httpBodyDetail } from '../http-error'
 import type { AiChatResponse, AiProviderConfig } from '../types'
 import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
-import { creditsNoticeText, sseErrorText, sseLines, type StreamCallbacks } from './shared'
+import { creditsNoticeText, parseToolInput, sseErrorText, sseLines, type StreamCallbacks } from './shared'
 import { AiCreditsError } from './shared'
 
 /**
  * 方塘站点计费代理（POST /api/office/ai/chat）：一条私有的 SSE 契约——
- * {type:'meta',requestId,model} → {type:'delta',content}* → {type:'usage',…}
- * → {type:'charge',amountFen,…} → {type:'done',requestId}；失败时是
+ * {type:'meta',requestId,model} → {type:'delta',content}* / {type:'tool_call',id,name,arguments}*
+ * → {type:'usage',…} → {type:'charge',amountFen,…} → {type:'done',requestId}；失败时是
  * {type:'error',code,message}。登录用户的 Logto access token 就是 apiKey，
  * 站点按额度扣费；meta/usage/charge 是计费记账，对编辑器会话没有意义，
- * 不透传。
+ * 不透传。tools 按 OpenAI function 格式透传给站点 → NewAPI；
+ * 站点把上游 tool_calls 增量聚合成完整 tool_call 帧后再下发。
  */
 
-/** the proxy only carries plain chat text; stringify anything odd (tool results) */
+/** tool results ride as plain strings; tool_call pairing uses tool_call_id */
 function stringifyContent(value: unknown): string {
   return typeof value === 'string' ? value : JSON.stringify(value)
 }
 
 /** site contract: capability + flat message list (system folded in first) */
-function siteMessages(system: string, messages: AgentMessage[]): Array<{ role: string; content: string }> {
-  const out = [{ role: 'system', content: system }]
+function siteMessages(system: string, messages: AgentMessage[]): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = [{ role: 'system', content: system }]
   for (const m of messages) {
     if (m.role === 'user') out.push({ role: 'user', content: stringifyContent(m.text) })
-    else if (m.role === 'assistant') out.push({ role: 'assistant', content: stringifyContent(m.text) })
-    else for (const r of m.results) out.push({ role: 'tool', content: stringifyContent(r.output) })
+    else if (m.role === 'assistant') {
+      // assistant tool-call turns must carry their calls so the following
+      // tool results pair up (OpenAI tool_calls/tool_call_id contract)
+      out.push({
+        role: 'assistant',
+        content: stringifyContent(m.text),
+        ...(m.toolCalls?.length
+          ? {
+              tool_calls: m.toolCalls.map((call) => ({
+                id: call.id,
+                type: 'function',
+                function: { name: call.name, arguments: JSON.stringify(call.input) },
+              })),
+            }
+          : {}),
+      })
+    } else for (const r of m.results) out.push({ role: 'tool', tool_call_id: r.id, content: stringifyContent(r.output) })
   }
   return out
 }
@@ -52,10 +68,11 @@ export async function streamFangtang(
   config: AiProviderConfig,
   system: string,
   messages: AgentMessage[],
+  tools: AgentToolDef[],
   cb: StreamCallbacks,
 ): Promise<void> {
   const wd = createStreamWatchdog(cb.signal)
-  return wd.guard(() => fangtangTurn(baseUrl, config, system, messages, cb, wd))
+  return wd.guard(() => fangtangTurn(baseUrl, config, system, messages, tools, cb, wd))
 }
 
 async function fangtangTurn(
@@ -63,6 +80,7 @@ async function fangtangTurn(
   config: AiProviderConfig,
   system: string,
   messages: AgentMessage[],
+  tools: AgentToolDef[],
   cb: StreamCallbacks,
   wd: StreamWatchdog,
 ): Promise<void> {
@@ -85,6 +103,14 @@ async function fangtangTurn(
     body: JSON.stringify({
       capability: 'chat',
       messages: siteMessages(system, messages),
+      ...(tools.length > 0
+        ? {
+            tools: tools.map((t) => ({
+              type: 'function',
+              function: { name: t.name, description: t.description, parameters: t.inputSchema },
+            })),
+          }
+        : {}),
     }),
   })
   // headers arrived: ping the renderer watchdog too, or a slow first chunk could trip it
@@ -120,7 +146,7 @@ async function fangtangTurn(
     if (!line.startsWith('data:')) continue
     const payload = line.slice(5).trim()
     if (!payload) continue
-    let event: { type?: unknown; content?: unknown; code?: unknown; message?: unknown }
+    let event: { type?: unknown; content?: unknown; id?: unknown; name?: unknown; arguments?: unknown; code?: unknown; message?: unknown }
     try {
       event = JSON.parse(payload)
     } catch {
@@ -133,6 +159,13 @@ async function fangtangTurn(
           cb.onDelta(event.content)
         }
         break
+      case 'tool_call': {
+        if (typeof event.id !== 'string' || typeof event.name !== 'string' || !event.name) break
+        const { input, error } = parseToolInput(typeof event.arguments === 'string' ? event.arguments : '')
+        emitted = true
+        cb.onToolCall({ id: event.id, name: event.name, input, inputError: error })
+        break
+      }
       case 'done':
         sawDone = true
         break
@@ -154,7 +187,7 @@ export async function chatFangtang(
 ): Promise<AiChatResponse> {
   let content = ''
   try {
-    await streamFangtang(baseUrl, config, system, [{ role: 'user', text: user }], {
+    await streamFangtang(baseUrl, config, system, [{ role: 'user', text: user }], [], {
       onDelta: (text) => {
         content += text
       },

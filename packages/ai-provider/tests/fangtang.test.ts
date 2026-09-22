@@ -38,7 +38,7 @@ describe('fangtang billing proxy', () => {
     ).toThrow('The FangTang provider requires a Base URL')
   })
 
-  it('posts the site contract: bearer token, idempotency-key, system folded first, tool turns stringified', async () => {
+  it('posts the site contract: bearer token, idempotency-key, system folded first, tool turns paired', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       okResponse(
         sseStream([
@@ -58,9 +58,10 @@ describe('fangtang billing proxy', () => {
       '系统提示',
       [
         { role: 'user', text: 'hi' },
-        { role: 'tool', results: [{ id: 't1', name: 'search', output: '{"hits":1}' }] },
+        { role: 'assistant', text: '', toolCalls: [{ id: 'call_1', name: 'search', input: { q: 'x' } }] },
+        { role: 'tool', results: [{ id: 'call_1', name: 'search', output: '{"hits":1}' }] },
       ],
-      [],
+      [{ name: 'search', description: 'Search docs', inputSchema: { type: 'object' } }],
       100,
       cb,
     )
@@ -77,9 +78,43 @@ describe('fangtang billing proxy', () => {
       messages: [
         { role: 'system', content: '系统提示' },
         { role: 'user', content: 'hi' },
-        { role: 'tool', content: '{"hits":1}' },
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'search', arguments: '{"q":"x"}' } }],
+        },
+        { role: 'tool', tool_call_id: 'call_1', content: '{"hits":1}' },
+      ],
+      tools: [
+        { type: 'function', function: { name: 'search', description: 'Search docs', parameters: { type: 'object' } } },
       ],
     })
+  })
+
+  it('maps site tool_call frames to onToolCall', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      okResponse(
+        sseStream([
+          'data: {"type":"meta","requestId":"r1","model":"qwen3.5-plus"}',
+          'data: {"type":"tool_call","id":"call_9","name":"edit_doc","arguments":"{\\"title\\":\\"A\\"}"}',
+          'data: {"type":"usage","inputTokens":10,"outputTokens":2,"totalTokens":12}',
+          'data: {"type":"charge","requestId":"r1","amountFen":3,"inputTokens":10,"outputTokens":2}',
+          'data: {"type":"done","requestId":"r1"}',
+        ]),
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { cb, toolCalls } = collector()
+    await streamForProvider(
+      'fangtang',
+      { apiKey: 't', model: 'm', baseUrl: SITE_URL },
+      'sys',
+      [],
+      [],
+      100,
+      cb,
+    )
+    expect(toolCalls).toEqual([{ id: 'call_9', name: 'edit_doc', input: { title: 'A' }, inputError: undefined }])
   })
 
   it('maps an in-band error event to AiCreditsError for money codes', async () => {

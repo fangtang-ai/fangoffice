@@ -340,7 +340,12 @@ export function registerAccountIpc(): void {
   ipcMain.handle(HOME_CHANNELS.getAccountUsage, async (): Promise<AccountUsage | null> => {
     const current = currentSession()
     const apiBase = loadFangTangAccountConfig().accountApiBase
-    if (!current || !apiBase) return null
+    if (!current || !apiBase) {
+      // misconfigured packaging (missing fangtang-defaults.local.json) must not be fully silent:
+      // balance/AI-endpoint all early-return here and the UI shows "—"
+      if (!apiBase) console.error('[account:usage] accountApiBase missing — fangtang-defaults.local.json not packaged?')
+      return null
+    }
     try {
       const accessToken = await validAccessToken()
       // 站点 /api/office/account 返回 balanceCny/monthChargedCny 等；renderer 读 balanceCny + monthUsedCny

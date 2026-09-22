@@ -10,7 +10,9 @@ export function sseStream(lines: string[]): ReadableStream<Uint8Array> {
 }
 
 export function okResponse(body: ReadableStream<Uint8Array>): Response {
-  return new Response(body, { status: 200 })
+  // SSE responses carry text/event-stream; fangtang's protocol sniffs it to
+  // distinguish pre-SSE 200 error envelopes from real streams
+  return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } })
 }
 
 export function jsonResponse(value: unknown, status = 200): Response {

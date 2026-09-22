@@ -222,7 +222,8 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
   },
   fangtang: {
     meta: metaOf('fangtang'),
-    // the proxy forwards plain chat text; images are not part of its contract
+    // the proxy forwards OpenAI-style function tools as of the tool_call SSE frame;
+    // images are not part of its contract
     capabilities: { vision: false },
     resolveEndpoint(config) {
       // the account layer registers the FULL chat URL (…/api/office/ai/chat),

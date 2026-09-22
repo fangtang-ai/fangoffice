@@ -30,7 +30,7 @@ export async function streamForProvider(
   const protocol = endpoint.protocol
   if (protocol === 'fangtang') {
     // the billing proxy owns the model and token budget; no output-cap retry applies
-    return streamFangtang(baseUrl, config, system, messages, cb)
+    return streamFangtang(baseUrl, config, system, messages, tools, cb)
   }
   return withOutputCapFallback(baseUrl, config.model, maxTokens, (cap) => {
     switch (protocol) {
