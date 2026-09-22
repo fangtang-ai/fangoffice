@@ -20,7 +20,7 @@
  */
 
 const { execFileSync } = require('node:child_process')
-const { existsSync, rmSync } = require('node:fs')
+const { copyFileSync, existsSync, rmSync } = require('node:fs')
 const { join } = require('node:path')
 
 function normalizeHttpsBaseUrl(name, value) {
@@ -504,6 +504,26 @@ const config = {
         `win extraResources source missing: ${WIN_SIDECAR} (cargo build --target ${winSidecarTarget} first)`,
       )
     }
+  },
+  // Windows --dir packs are regenerated from scratch every run, so a
+  // hand-copied fangtang-defaults.local.json (test endpoints, gitignored,
+  // AGENTS.md) vanishes on rebuild and the packaged app silently shows "—"
+  // for balance and errors on AI calls — bit us twice on 2026-09-22. Auto-copy
+  // it into --dir output (free-install/test builds only); NSIS installers must
+  // NEVER carry deployment secrets, so there this hook hard-fails instead.
+  afterPack: async (context) => {
+    if (context.electronPlatformName !== 'win32') return
+    const packedLocal = join(context.appOutDir, 'resources/fangtang-defaults.local.json')
+    if (context.targets?.has?.('nsis')) {
+      if (existsSync(packedLocal)) {
+        throw new Error(
+          'installer must not ship deployment secrets: fangtang-defaults.local.json packed into NSIS output',
+        )
+      }
+      return
+    }
+    const local = join(__dirname, 'resources/fangtang-defaults.local.json')
+    if (existsSync(local)) copyFileSync(local, packedLocal)
   },
   dmg: {
     sign: true,
