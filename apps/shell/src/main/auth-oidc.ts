@@ -153,6 +153,7 @@ export async function exchangeCode(
     redirect_uri: redirectUri,
     client_id: config.clientId,
     code_verifier: verifier,
+    resource: config.apiResource,
   })
 }
 
@@ -165,6 +166,9 @@ export async function refreshTokens(
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
     client_id: config.clientId,
+    // 必须带 resource，否则 Logto 返回无 audience 的 opaque token，
+    // 后端 JWKS 验签直接 401（设置页余额永远显示“—”）
+    resource: config.apiResource,
   })
 }
 
@@ -187,6 +191,35 @@ export async function fetchAccountProfile(
     userId: claims.sub,
     displayName: typeof claims.name === 'string' ? claims.name : undefined,
     avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
+  }
+}
+
+/**
+ * Decode the profile claims straight from the ID token. /oidc/me only accepts
+ * the tenant-default opaque access token — when the token request carries a
+ * `resource` (so the backend gets a verifiable JWT), the minted access token
+ * is resource-specific and /oidc/me answers 401. The ID token minted with
+ * scope `openid profile` already carries sub/name/picture, so no extra
+ * round-trip is needed.
+ */
+export function profileFromIdToken(idToken?: string): AccountProfile | null {
+  if (!idToken) return null
+  const parts = idToken.split('.')
+  if (parts.length < 2) return null
+  try {
+    const claims = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as {
+      sub?: unknown
+      name?: unknown
+      picture?: unknown
+    }
+    if (typeof claims.sub !== 'string' || !claims.sub) return null
+    return {
+      userId: claims.sub,
+      displayName: typeof claims.name === 'string' ? claims.name : undefined,
+      avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
+    }
+  } catch {
+    return null
   }
 }
 

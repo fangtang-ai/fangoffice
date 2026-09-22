@@ -29,6 +29,7 @@ import {
   exchangeCode,
   fetchAccountProfile,
   parseCallbackQuery,
+  profileFromIdToken,
   refreshTokens,
   type AccountOidcConfig,
   type PkcePair,
@@ -246,9 +247,8 @@ function awaitAuthorizationCode(
       server.listen(port, '127.0.0.1', () => {
         server.removeAllListeners('error')
         redirectUri = `http://127.0.0.1:${port}/callback`
-        shell
-          .openExternal(buildAuthorizeUrl(config, redirectUri, pkce, state))
-          .catch(() => settle(new AccountError('account:failed')))
+        const authorizeUrl = buildAuthorizeUrl(config, redirectUri, pkce, state)
+        shell.openExternal(authorizeUrl).catch(() => settle(new AccountError('account:failed')))
       })
     }
     tryListen(LOGIN_LOOPBACK_PORTS)
@@ -266,7 +266,10 @@ async function performLogin(): Promise<AccountSession> {
   const config = requireAccountConfig()
   const { code, redirectUri, pkce } = await awaitAuthorizationCode(config)
   const tokens = await exchangeCode(config, code, redirectUri, pkce.verifier)
-  const profile = await fetchAccountProfile(config.logtoEndpoint, tokens.accessToken)
+  // /oidc/me rejects resource-JWTs (401), so prefer the ID token's own claims;
+  // only fall back to /oidc/me when no ID token was minted
+  const profile = profileFromIdToken(tokens.idToken) ??
+    (await fetchAccountProfile(config.logtoEndpoint, tokens.accessToken))
   return adoptTokens(tokens, profile)
 }
 
