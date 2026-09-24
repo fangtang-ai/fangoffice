@@ -48,7 +48,7 @@ jobs:
           - { platform: linux, os: ubuntu-22.04 }
     env:
       BUILD_DIR: ${{ github.workspace }}/dist-${{ matrix.platform }}
-      FANGTANG_UPDATE_URL: ${{ env.OSS_HTTP_BASE }}/${{ inputs.channel || 'stable' }}
+      FANGTANG_UPDATE_URL: ${{ env.OSS_HTTP_BASE }}/${{ github.event.inputs.channel || 'stable' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      CHANNEL: ${{ inputs.channel || 'stable' }}
+      CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
