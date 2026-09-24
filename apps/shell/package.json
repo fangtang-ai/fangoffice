@@ -1,7 +1,7 @@
 {
   "name": "@genoffice/shell",
   "productName": "方塘Office",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "license": "Apache-2.0",
   "homepage": "https://fang-tang.cn",
   "private": true,
