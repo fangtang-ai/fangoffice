@@ -26,7 +26,7 @@
 
 const { execFileSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
-const { existsSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } = require('node:fs')
+const { existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } = require('node:fs')
 const { join, isAbsolute } = require('node:path')
 const { ymlVersion, releaseUploadDecision } = require('./update-feed-utils.cjs')
 
@@ -78,10 +78,17 @@ async function main() {
   }
   for (const [from, to] of nameMap) console.log(`renamed: ${from} -> ${to}`)
 
-  // electron-builder debug/metadata sidecars — not release artifacts
-  for (const name of staged.filter((f) => /^builder-(debug\.yml|effective-config\.yaml)$/.test(f))) {
-    rmSync(join(dir, name))
-    console.log(`removed: ${name}`)
+  // build byproducts that must never ship: electron-builder debug ymls and
+  // *-unpacked/ app directories (the release = installers + blockmaps + feeds)
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name)
+    if (/^builder-(debug\.yml|effective-config\.yaml)$/.test(name)) {
+      rmSync(p)
+      console.log(`removed: ${name}`)
+    } else if (statSync(p).isDirectory()) {
+      rmSync(p, { recursive: true })
+      console.log(`removed dir: ${name}/`)
+    }
   }
 
   // --- 2. verify every feed entry against the staged bytes -----------------
