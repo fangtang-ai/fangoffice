@@ -109,7 +109,7 @@ testing and local overrides:
 
 | Variable                                                    | Effect                                                                        |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `BUILD_DIR`                                                 | Override the electron-builder output directory (default `apps/shell/release`) |
+| `BUILD_DIR`                                                 | Override the electron-builder output directory (default `<repo>/dist`) |
 | `GENOFFICE_USER_DATA`                                       | Override the Electron userData directory (test isolation)                     |
 | `GENOFFICE_LANG`                                            | Force the UI language instead of following the OS locale                      |
 | `GENOFFICE_FAKE_UPDATE`                                     | Exercise the updater UI without a real release feed                           |

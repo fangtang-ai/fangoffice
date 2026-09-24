@@ -25,7 +25,7 @@ param(
 
     # build into a scratch dir so the developer's release/ win-unpacked
     # (the one they are testing) is never overwritten by a publish run
-    [string]$BuildDir = 'apps/shell/release-publish'
+    [string]$BuildDir = 'dist'
 )
 
 $ErrorActionPreference = 'Stop'

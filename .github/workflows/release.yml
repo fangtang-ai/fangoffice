@@ -1,0 +1,153 @@
+name: Release
+
+# Cross-platform packaging + publishing, triggered by pushing a v* tag
+# (must match apps/shell/package.json version) or manually from the Actions
+# tab. Every platform builds unsigned for now (mac notarization and Windows
+# signing channels are already wired in electron-builder.cjs/notarize-dmg.js;
+# adding certificate secrets later needs no workflow change).
+#
+# Publishing (scripts/stage-release.cjs) renames Chinese-named artifacts to
+# ASCII, rewrites the electron-updater feeds, uploads installers first and
+# feeds last to the OSS update bucket, then verifies both anonymously. The
+# GitHub Release gets the same staged files. OSS upload degrades to a
+# warning when the ALIBABA_CLOUD_* secrets are not configured, so a release
+# can still go out via GitHub while OSS access is being fixed.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'OSS update channel (baked into the auto-update feed URL)'
+        type: choice
+        default: stable
+        options: [stable, beta]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  OSS_HTTP_BASE: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com
+
+jobs:
+  build:
+    name: build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: mac, os: macos-14 }
+          - { platform: win, os: windows-latest }
+          - { platform: linux, os: ubuntu-22.04 }
+    env:
+      BUILD_DIR: ${{ github.workspace }}/dist-${{ matrix.platform }}
+      FANGTANG_UPDATE_URL: ${{ env.OSS_HTTP_BASE }}/${{ inputs.channel || 'stable' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        # SHA-pinned (third-party action); same pin as ci.yml
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch, 2026-07
+        with:
+          toolchain: stable
+
+      - name: Install rpmbuild (linux target needs it)
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS (arm64 dmg + zip, universal sidecar/OCR)
+        if: matrix.platform == 'mac'
+        env:
+          # unsigned build: no keychain identity to discover
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac
+
+      - name: Build Windows (x64 NSIS)
+        if: matrix.platform == 'win'
+        run: npm run dist:win
+
+      - name: Build Linux (AppImage + deb + rpm)
+        if: matrix.platform == 'linux'
+        run: npm run dist:linux
+
+      - name: Upload artifacts
+        # unpinned major tag (not ci.yml's third-party pinning policy — the
+        # v4 SHAs are not recorded in this repo to verify against)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: dist-${{ matrix.platform }}/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish (GitHub Release + OSS)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CHANNEL: ${{ inputs.channel || 'stable' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Verify tag matches packaged version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION=$(node -p "require('./apps/shell/package.json').version")
+          if [ "v$VERSION" != "${{ github.ref_name }}" ]; then
+            echo "tag ${{ github.ref_name }} != packaged version v$VERSION" >&2
+            exit 1
+          fi
+
+      - name: Install aliyun CLI
+        run: |
+          curl -fsSL https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz -o /tmp/aliyun.tgz
+          sudo tar -xzf /tmp/aliyun.tgz -C /usr/local/bin aliyun
+          aliyun version
+
+      - name: Stage and publish to OSS (installers first, feed last)
+        env:
+          ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.OSS_RELEASE_AK_ID }}
+          ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.OSS_RELEASE_AK_SECRET }}
+        run: node scripts/stage-release.cjs --artifacts dist --channel "$CHANNEL" --publish
+
+      - name: Publish GitHub release
+        run: |
+          VERSION=$(node -p "require('./apps/shell/package.json').version")
+          TAG="v$VERSION"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "方塘Office $TAG" --generate-notes
+          fi
+          gh release upload "$TAG" dist/* --clobber

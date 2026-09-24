@@ -60,4 +60,3 @@ task_plan.md
 
 # E2E probe live tokens (never commit)
 scripts/.e2e-*
-apps/shell/release-publish/

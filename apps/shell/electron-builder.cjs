@@ -224,7 +224,8 @@ const config = {
   // the old runtime).
   electronVersion: require('electron/package.json').version,
   directories: {
-    output: process.env.BUILD_DIR || 'release',
+    // Fixed artifact directory: repo-root dist/ (BUILD_DIR still takes priority)
+  output: process.env.BUILD_DIR || join(__dirname, '../../dist'),
   },
   files: ['out/**'],
   extraResources: [
