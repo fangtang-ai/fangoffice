@@ -127,9 +127,10 @@ async function main() {
     for (const m of text.matchAll(/(?:^path:|- url:)\s*(\S+)/gm)) referenced.add(m[1])
   }
   for (const file of files.filter((f) => !feeds.includes(f))) {
-    // .dmg: updater feed intentionally omits it; .blockmap: electron-updater
-    // derives its URL from the artifact name, feeds need not reference it
-    if (!referenced.has(file) && !file.endsWith('.dmg') && !file.endsWith('.blockmap')) {
+    // download-only artifacts the updater feeds intentionally omit:
+    // .dmg = mac manual install, .deb/.rpm = system package managers,
+    // .blockmap = electron-updater derives its URL from the artifact name
+    if (!referenced.has(file) && !/\.(dmg|deb|rpm|blockmap)$/.test(file)) {
       throw new Error(`stray artifact not referenced by any feed: ${file}`)
     }
   }
