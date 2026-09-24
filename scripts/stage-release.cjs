@@ -121,7 +121,9 @@ async function main() {
     for (const m of text.matchAll(/(?:^path:|- url:)\s*(\S+)/gm)) referenced.add(m[1])
   }
   for (const file of files.filter((f) => !feeds.includes(f))) {
-    if (!referenced.has(file) && !file.endsWith('.dmg')) {
+    // .dmg: updater feed intentionally omits it; .blockmap: electron-updater
+    // derives its URL from the artifact name, feeds need not reference it
+    if (!referenced.has(file) && !file.endsWith('.dmg') && !file.endsWith('.blockmap')) {
       throw new Error(`stray artifact not referenced by any feed: ${file}`)
     }
   }
