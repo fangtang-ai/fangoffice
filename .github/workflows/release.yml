@@ -78,7 +78,9 @@ jobs:
         env:
           # unsigned build: no keychain identity to discover
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run dist:mac
+        run: |
+          rustup target add x86_64-apple-darwin
+          npm run dist:mac
 
       - name: Build Windows (x64 NSIS)
         if: matrix.platform == 'win'
