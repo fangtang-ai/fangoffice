@@ -184,7 +184,10 @@ async function main() {
     )
   }
 
-  const oss = (...a) => execFileSync('aliyun', ['oss', ...a], { stdio: 'inherit' })
+  // region is fixed for this bucket (see header); newer aliyun CLI builds
+  // refuse to infer it from credentials env alone ("region can't be empty")
+  const oss = (...a) =>
+    execFileSync('aliyun', ['oss', ...a, '--region', 'cn-hangzhou'], { stdio: 'inherit' })
   for (const file of files.filter((f) => !feeds.includes(f))) {
     oss('cp', join(dir, file), `${ossBase}/${file}`, '--acl', 'public-read', '--force')
   }
