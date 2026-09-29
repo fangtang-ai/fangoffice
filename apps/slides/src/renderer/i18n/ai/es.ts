@@ -121,6 +121,8 @@ export const es = {
   aiErrNetwork:
     'Problema de red: no se pudo conectar con el servicio de IA. Comprueba tu conexión e inténtalo de nuevo',
   aiCreditsExhausted: 'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
+  aiRechargePrompt: 'Sus créditos de IA se han agotado. Recargue para continuar',
+  aiRechargeAction: 'Recargar',
   aiErrRequestFailed: 'No se pudo enviar la solicitud: {msg}',
   aiErrGenerateFailed: 'Error de generación',
   aiErrRegenFailed: 'No se pudo rehacer la diapositiva',

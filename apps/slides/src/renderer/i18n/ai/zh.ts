@@ -111,6 +111,8 @@ export const zh = {
   aiErrOverloaded: 'AI 服务当前繁忙，请稍后重试',
   aiErrNetwork: '网络有问题，无法连接 AI 服务。请检查网络后重试',
   aiCreditsExhausted: '模型服务额度已用尽，请联系管理员或在设置中切换其他模型后重试',
+  aiRechargePrompt: 'AI 额度已用尽，充值后即可继续使用',
+  aiRechargeAction: '立即充值',
   aiErrRequestFailed: '请求发送失败: {msg}',
   aiErrGenerateFailed: '生成失败',
   aiErrRegenFailed: '重做页面失败',

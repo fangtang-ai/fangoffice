@@ -66,6 +66,8 @@ export const hi = {
   aiNetworkError:
     'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
   aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
+  aiRechargePrompt: 'आपके AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए रिचार्ज करें',
+  aiRechargeAction: 'रिचार्ज करें',
   aiToolWorkbookContext: 'कार्यपुस्तिका की जानकारी पढ़ें',
   aiToolReadRange: 'श्रेणी पढ़ें',
   aiToolReadRangeOf: 'श्रेणी {range} पढ़ें',

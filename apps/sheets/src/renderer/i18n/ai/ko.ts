@@ -64,6 +64,8 @@ export const ko = {
   aiNetworkError:
     '네트워크에 문제가 있어 AI 서비스에 연결할 수 없습니다. 연결을 확인한 후 다시 시도해 주세요',
   aiCreditsExhausted: '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
+  aiRechargePrompt: 'AI 사용량을 모두 사용했습니다. 충전 후 계속 이용할 수 있습니다',
+  aiRechargeAction: '충전하기',
   aiToolWorkbookContext: '통합 문서 정보 읽기',
   aiToolReadRange: '범위 읽기',
   aiToolReadRangeOf: '범위 {range} 읽기',

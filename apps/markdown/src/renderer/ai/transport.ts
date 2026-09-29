@@ -3,7 +3,10 @@ import type { AiSettings } from '@genoffice/ai-provider'
 import { t } from '../i18n/locale'
 
 /** The shared IPC transport wired to the markdown preload bridge (window.markdownApi). */
-export function createElectronTransport(getSettings: () => AiSettings): AgentTransport {
+export function createElectronTransport(
+  getSettings: () => AiSettings,
+  onCreditsExhausted?: () => void,
+): AgentTransport {
   return createIpcTransport<AiSettings>({
     onStream: (listener) => window.markdownApi.onAiStream(listener),
     start: (request) => window.markdownApi.aiStream(request),
@@ -12,6 +15,7 @@ export function createElectronTransport(getSettings: () => AiSettings): AgentTra
     unknownErrorText: () => t('aiUnknownError'),
     timeoutErrorText: () => t('aiTimeoutError'),
     creditsErrorText: () => t('aiCreditsExhausted'),
+    creditsKind: onCreditsExhausted,
     networkErrorText: () => t('aiNetworkError'),
     overloadedErrorText: () => t('aiOverloadedError'),
   })

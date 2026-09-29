@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/core'
 import type { Block } from '@genoffice/docx-engine'
 import { AgentLoop, composeSkills, createPresetSkill, type AgentImage } from '@genoffice/agent-core'
@@ -311,6 +312,8 @@ export function AiPanel({
   const isRtl = lang === 'ar' || lang === 'he'
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
+  const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
   /** Wall-clock start of the current run, drives the elapsed badge */
   const runStartedAtRef = useRef(0)
   /** a send waiting on a phased open's tail; Stop / New chat abort it before it runs */
@@ -599,7 +602,10 @@ export function AiPanel({
       ordered: findNumId(blocksRef.current, 'ordered') ?? numIdFallbackRef.current?.ordered ?? null,
     })
     loopRef.current = new AgentLoop<PmNode>({
-      transport: createElectronTransport(() => settingsRef.current),
+      transport: createElectronTransport(
+        () => settingsRef.current,
+        () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
+      ),
       systemSuffix: aiLangDirective,
       skill: composeSkills('docs+files', '', [
         createDocsSkill(
@@ -1433,6 +1439,28 @@ export function AiPanel({
           }
         />
       </div>
+      {rechargeUrl && createPortal(
+        <div
+          className="ai-recharge-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setRechargeUrl(null)}
+        >
+          <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
+            <button
+              className="ai-recharge-btn"
+              onClick={() => {
+                setRechargeUrl(null)
+                window.open(rechargeUrl, '_blank', 'noreferrer')
+              }}
+            >
+              {t('aiRechargeAction')}
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </aside>
   )
 }

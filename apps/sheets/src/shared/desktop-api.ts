@@ -2390,6 +2390,8 @@ export const aiSettingsInputSchema = z
     // rejects nonsense (this object is .strict(), so an omitted key here would
     // make the whole settings save fail)
     maxOutputTokens: z.number().int().positive().optional(),
+    // deployment-provided top-up page echoed back inside stream requests; not used by the stream path
+    rechargeUrl: z.string().optional(),
   })
   .strict()
 

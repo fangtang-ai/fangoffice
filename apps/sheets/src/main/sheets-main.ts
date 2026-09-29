@@ -41,6 +41,7 @@ import {
   configuredDefaultSaveDir,
   applySearchProviderEnv,
   bundledPresetsDir,
+  loadFangTangAccountConfig,
   loadFangTangDefaults,
   loadPresetFiles,
   readAiFeatures,
@@ -2966,11 +2967,14 @@ export function registerSheetsAiIpc(): void {
     sessionFor(event)
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
-    return mainAiSettings(
+    const settings = mainAiSettings(
       readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {}),
       factory,
       getAccountManagedDefaults(),
     )
+    // deployment's top-up page for the credits-exhausted recharge prompt
+    const rechargeUrl = loadFangTangAccountConfig().rechargeUrl
+    return rechargeUrl ? { ...settings, rechargeUrl } : settings
   })
 
   ipcMain.handle(IPC_CHANNELS.aiSetSettings, (event, input: unknown) => {

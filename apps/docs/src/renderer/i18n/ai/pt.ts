@@ -112,6 +112,8 @@ export const pt = {
   aiNetworkError:
     'Problema de rede: não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente',
   aiCreditsExhausted: 'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
+  aiRechargePrompt: 'Seus créditos de IA acabaram. Recarregue para continuar',
+  aiRechargeAction: 'Recarregar',
   aiSumReadAttachment: 'Ler anexo',
   aiSumImageAttachment: 'Imagem anexada {name}',
   aiSumRead: 'Ler {name}',

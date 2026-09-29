@@ -105,6 +105,8 @@ export const he = {
   aiOverloadedError: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
   aiNetworkError: 'בעיית רשת: לא ניתן להתחבר לשירות ה-AI. בדוק את החיבור ונסה שוב',
   aiCreditsExhausted: 'מכסת שירות המודל אזלה. פנו למנהל המערכת או עברו למודל אחר בהגדרות ונסו שוב',
+  aiRechargePrompt: 'יתרת קרדיט ה-AI אזלה. טענו כדי להמשיך להשתמש',
+  aiRechargeAction: 'טעינה',
   aiSumReadAttachment: 'קריאת קובץ מצורף',
   aiSumImageAttachment: 'תמונה מצורפת {name}',
   aiSumRead: 'קריאת {name}',

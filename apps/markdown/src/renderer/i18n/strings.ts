@@ -115,6 +115,8 @@ export const strings = {
     aiOverloadedError: 'AI 服务当前繁忙，请稍后重试',
     aiNetworkError: '网络有问题，无法连接 AI 服务。请检查网络后重试',
     aiCreditsExhausted: '模型服务额度已用尽，请联系管理员或在设置中切换其他模型后重试',
+    aiRechargePrompt: 'AI 额度已用尽，充值后即可继续使用',
+    aiRechargeAction: '立即充值',
     aiOpenAssistant: '打开 AI 助手',
     aiAssistantTitle: 'AI 助手',
     aiSkillsTip: '选择文档生成技能',
@@ -287,6 +289,8 @@ export const strings = {
     aiNetworkError:
       'Network problem: could not reach the AI service. Check your connection and try again',
     aiCreditsExhausted: '模型服務額度已用盡，請聯絡管理員或在設定中切換其他模型後重試',
+    aiRechargePrompt: 'Your AI credits have run out. Top up to keep using AI features',
+    aiRechargeAction: 'Top up',
     aiOpenAssistant: 'Open AI assistant',
     aiAssistantTitle: 'AI 助手',
     aiSkillsTip: '選擇文件產生技能',
@@ -458,6 +462,8 @@ export const strings = {
     aiNetworkError:
       'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
     aiCreditsExhausted: 'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
+    aiRechargePrompt: 'AIの利用枠を使い切りました。チャージすると続きを利用できます',
+    aiRechargeAction: 'チャージする',
     aiOpenAssistant: 'AI アシスタントを開く',
     aiAssistantTitle: 'AI Assistant',
     aiSkillsTip: 'Pick a document generation skill',
@@ -630,6 +636,8 @@ export const strings = {
     aiNetworkError:
       '네트워크에 문제가 있어 AI 서비스에 연결할 수 없습니다. 연결을 확인한 후 다시 시도해 주세요',
     aiCreditsExhausted: 'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
+    aiRechargePrompt: 'AI 사용량을 모두 사용했습니다. 충전 후 계속 이용할 수 있습니다',
+    aiRechargeAction: '충전하기',
     aiOpenAssistant: 'AI 어시스턴트 열기',
     aiAssistantTitle: 'AI アシスタント',
     aiSkillsTip: 'ドキュメント生成スキルを選択',
@@ -805,6 +813,8 @@ export const strings = {
     aiNetworkError:
       'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
     aiCreditsExhausted: '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
+    aiRechargePrompt: 'Vos crédits IA sont épuisés. Rechargez pour continuer',
+    aiRechargeAction: 'Recharger',
     aiOpenAssistant: "Ouvrir l'assistant IA",
     aiAssistantTitle: 'AI 어시스턴트',
     aiSkillsTip: '문서 생성 스킬 선택',
@@ -982,6 +992,8 @@ export const strings = {
     aiNetworkError:
       'Netzwerkproblem: Der KI-Dienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut',
     aiCreditsExhausted: 'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+    aiRechargePrompt: 'Ihr KI-Kontingent ist aufgebraucht. Laden Sie auf, um fortzufahren',
+    aiRechargeAction: 'Aufladen',
     aiOpenAssistant: 'KI-Assistent öffnen',
     aiAssistantTitle: 'Assistant IA',
     aiSkillsTip: 'Choisir une compétence de génération',
@@ -1158,6 +1170,8 @@ export const strings = {
     aiNetworkError:
       'Problema de red: no se pudo conectar con el servicio de IA. Comprueba tu conexión e inténtalo de nuevo',
     aiCreditsExhausted: 'Das Kontingent des Modell-Dienstes ist erschöpft. Wenden Sie sich an Ihren Administrator oder wählen Sie in den Einstellungen ein anderes Modell und versuchen Sie es erneut',
+    aiRechargePrompt: 'Sus créditos de IA se han agotado. Recargue para continuar',
+    aiRechargeAction: 'Recargar',
     aiOpenAssistant: 'Abrir asistente de IA',
     aiAssistantTitle: 'KI-Assistent',
     aiSkillsTip: 'Dokument-Skill wählen',
@@ -1330,6 +1344,8 @@ export const strings = {
     aiNetworkError:
       'เครือข่ายมีปัญหา ไม่สามารถเชื่อมต่อบริการ AI ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองใหม่',
     aiCreditsExhausted: 'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
+    aiRechargePrompt: 'เครดิต AI ของคุณหมดแล้ว เติมเงินเพื่อใช้งานต่อ',
+    aiRechargeAction: 'เติมเงิน',
     aiOpenAssistant: 'เปิดผู้ช่วย AI',
     aiAssistantTitle: 'Asistente de IA',
     aiSkillsTip: 'Elegir habilidad de generación',
@@ -1502,6 +1518,8 @@ export const strings = {
     aiNetworkError:
       'Masalah jaringan: tidak dapat terhubung ke layanan AI. Periksa koneksi Anda lalu coba lagi',
     aiCreditsExhausted: 'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
+    aiRechargePrompt: 'Kredit AI Anda telah habis. Isi ulang untuk melanjutkan',
+    aiRechargeAction: 'Isi ulang',
     aiOpenAssistant: 'Buka asisten AI',
     aiAssistantTitle: 'ผู้ช่วย AI',
     aiSkillsTip: 'เลือกทักษะการสร้างเอกสาร',
@@ -1675,6 +1693,8 @@ export const strings = {
     aiNetworkError:
       'Проблема с сетью: не удалось подключиться к сервису ИИ. Проверьте подключение и повторите попытку',
     aiCreditsExhausted: 'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
+    aiRechargePrompt: 'Кредиты ИИ исчерпаны. Пополните счёт, чтобы продолжить',
+    aiRechargeAction: 'Пополнить',
     aiOpenAssistant: 'Открыть ИИ-ассистента',
     aiAssistantTitle: 'Asisten AI',
     aiSkillsTip: 'Pilih keterampilan pembuatan dokumen',
@@ -1845,6 +1865,8 @@ export const strings = {
     aiNetworkError:
       'مشكلة في الشبكة: تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقق من الاتصال وحاول مجددًا',
     aiCreditsExhausted: 'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
+    aiRechargePrompt: 'لقد نفدت أرصدة الذكاء الاصطناعي. أعد الشحن لمتابعة الاستخدام',
+    aiRechargeAction: 'إعادة الشحن',
     aiOpenAssistant: 'فتح مساعد الذكاء الاصطناعي',
     aiAssistantTitle: 'ИИ-ассистент',
     aiSkillsTip: 'Выбрать навык генерации',
@@ -2020,6 +2042,8 @@ export const strings = {
     aiNetworkError:
       'Problema de rede: não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente',
     aiCreditsExhausted: 'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
+    aiRechargePrompt: 'Seus créditos de IA acabaram. Recarregue para continuar',
+    aiRechargeAction: 'Recarregar',
     aiOpenAssistant: 'Abrir assistente de IA',
     aiAssistantTitle: 'مساعد الذكاء الاصطناعي',
     aiSkillsTip: 'اختر مهارة إنشاء المستندات',
@@ -2194,6 +2218,8 @@ export const strings = {
     aiNetworkError:
       'Problema di rete: impossibile raggiungere il servizio IA. Controlla la connessione e riprova',
     aiCreditsExhausted: 'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
+    aiRechargePrompt: 'I crediti IA sono esauriti. Ricarica per continuare',
+    aiRechargeAction: 'Ricarica',
     aiOpenAssistant: 'Apri assistente IA',
     aiAssistantTitle: 'Assistente de IA',
     aiSkillsTip: 'Escolher habilidade de geração',
@@ -2368,6 +2394,8 @@ export const strings = {
     aiNetworkError:
       'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
     aiCreditsExhausted: 'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
+    aiRechargePrompt: 'Kredyty AI zostały wyczerpane. Doładuj konto, aby kontynuować',
+    aiRechargeAction: 'Doładuj konto',
     aiOpenAssistant: 'Otwórz asystenta AI',
     aiAssistantTitle: 'Assistente IA',
     aiSkillsTip: 'Scegli una competenza di generazione',
@@ -2542,6 +2570,8 @@ export const strings = {
     aiNetworkError:
       'Netwerkprobleem: kan de AI-service niet bereiken. Controleer je verbinding en probeer het opnieuw',
     aiCreditsExhausted: 'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+    aiRechargePrompt: 'Uw AI-credits zijn opgebruikt. Laad op om door te gaan',
+    aiRechargeAction: 'Opladen',
     aiOpenAssistant: 'AI-assistent openen',
     aiAssistantTitle: 'Asystent AI',
     aiSkillsTip: 'Wybierz umiejętność generowania',
@@ -2714,6 +2744,8 @@ export const strings = {
     aiNetworkError:
       'Masalah rangkaian: tidak dapat menghubungi perkhidmatan AI. Semak sambungan anda dan cuba lagi',
     aiCreditsExhausted: 'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
+    aiRechargePrompt: 'Kredit AI anda telah habis. Tambah nilai untuk terus menggunakannya',
+    aiRechargeAction: 'Tambah nilai',
     aiOpenAssistant: 'Buka pembantu AI',
     aiAssistantTitle: 'AI-assistent',
     aiSkillsTip: 'Kies een documentskill',
@@ -2883,6 +2915,8 @@ export const strings = {
     aiOverloadedError: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
     aiNetworkError: 'בעיית רשת: לא ניתן להתחבר לשירות ה-AI. בדוק את החיבור ונסה שוב',
     aiCreditsExhausted: 'Kuota perkhidmatan model telah habis. Hubungi pentadbir anda atau tukar ke model lain dalam Tetapan, kemudian cuba lagi',
+    aiRechargePrompt: 'יתרת קרדיט ה-AI אזלה. טענו כדי להמשיך להשתמש',
+    aiRechargeAction: 'טעינה',
     aiOpenAssistant: 'פתחו את עוזר ה-AI',
     aiAssistantTitle: 'Pembantu AI',
     aiSkillsTip: 'Pilih kemahiran penjanaan dokumen',
@@ -3056,6 +3090,8 @@ export const strings = {
     aiNetworkError:
       'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
     aiCreditsExhausted: 'מכסת שירות המודל אזלה. פנו למנהל המערכת או עברו למודל אחר בהגדרות ונסו שוב',
+    aiRechargePrompt: 'आपके AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए रिचार्ज करें',
+    aiRechargeAction: 'रिचार्ज करें',
     aiOpenAssistant: 'AI सहायक खोलें',
     aiAssistantTitle: 'עוזר AI',
     aiSkillsTip: 'בחרו כישור יצירת מסמכים',
@@ -3225,6 +3261,8 @@ export const strings = {
     aiOverloadedError: 'AI 服務目前繁忙，請稍後重試',
     aiNetworkError: '網路有問題，無法連接 AI 服務。請檢查網路後重試',
     aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
+    aiRechargePrompt: 'AI 額度已用盡，儲值後即可繼續使用',
+    aiRechargeAction: '立即儲值',
     aiOpenAssistant: '開啟 AI 助手',
     aiAssistantTitle: 'AI सहायक',
     aiSkillsTip: 'दस्तावेज़ निर्माण कौशल चुनें',
@@ -3278,3 +3316,4 @@ export const strings = {
     zoomOut: '縮小',
   },
 } as const
+

@@ -3,7 +3,10 @@ import type { AiSettings } from '../../shared/ipc'
 import { t } from '../i18n/locale'
 
 /** The shared IPC transport wired to the slides preload bridge (window.slidesApi). */
-export function createElectronTransport(getSettings: () => AiSettings): AgentTransport {
+export function createElectronTransport(
+  getSettings: () => AiSettings,
+  onCreditsExhausted?: () => void,
+): AgentTransport {
   return createIpcTransport<AiSettings>({
     onStream: (listener) => window.slidesApi.onAiStream(listener),
     start: (request) => window.slidesApi.aiStream(request),
@@ -12,6 +15,7 @@ export function createElectronTransport(getSettings: () => AiSettings): AgentTra
     unknownErrorText: () => t('aiErrUnknown'),
     timeoutErrorText: () => t('aiErrStreamTimeout'),
     creditsErrorText: () => t('aiCreditsExhausted'),
+    creditsKind: onCreditsExhausted,
     networkErrorText: () => t('aiErrNetwork'),
     overloadedErrorText: () => t('aiErrOverloaded'),
   })

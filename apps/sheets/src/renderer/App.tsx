@@ -80,6 +80,7 @@ import {
 import { isNumericIdentifierText } from './cell-warning'
 import { consumePendingUndoCarry, undoStackDepth } from './undo-carry'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 
 import {
   CellValueType,
@@ -836,6 +837,8 @@ export function App(): React.JSX.Element {
   activeSkillRef.current.current = activeSkill
 
   const [aiBusy, setAiBusy] = useState(false)
+  /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
+  const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
   // Display history survives restarts via localStorage; the AgentLoop's model
   // context does not, so restored turns are read-only transcript.
   const [chat, setChat] = useState<readonly AiChatMessage[]>([])
@@ -1086,7 +1089,10 @@ export function App(): React.JSX.Element {
   const agentLoopRef = useRef<AgentLoop | null>(null)
   if (!agentLoopRef.current) {
     agentLoopRef.current = new AgentLoop({
-      transport: createElectronTransport(() => aiSettingsRef.current!),
+      transport: createElectronTransport(
+        () => aiSettingsRef.current!,
+        () => setRechargeUrl(aiSettingsRef.current?.rechargeUrl ?? null),
+      ),
       systemSuffix: aiLangDirective,
       skill: composeSkills('sheets+files', '', [
         createWorkbookSkill(sheetsSkillDeps()),
@@ -5309,6 +5315,28 @@ export function App(): React.JSX.Element {
           onApply={(edit) => chartEditRef.current(chartDialog.editKey, edit)}
           onClose={() => setChartDialog(null)}
         />
+      )}
+      {rechargeUrl && createPortal(
+        <div
+          className="ai-recharge-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setRechargeUrl(null)}
+        >
+          <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
+            <button
+              className="ai-recharge-btn"
+              onClick={() => {
+                setRechargeUrl(null)
+                void window.desktopApi.openExternal(rechargeUrl)
+              }}
+            >
+              {t('aiRechargeAction')}
+            </button>
+          </div>
+        </div>,
+        document.body,
       )}
       <ExcelShell
         prompt={prompt}

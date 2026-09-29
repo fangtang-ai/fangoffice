@@ -62,6 +62,8 @@ export const zhTW = {
   aiOverloadedError: 'AI 服務目前繁忙，請稍後重試',
   aiNetworkError: '網路有問題，無法連接 AI 服務。請檢查網路後重試',
   aiCreditsExhausted: '模型服務額度已用盡，請聯絡管理員或在設定中切換其他模型後重試',
+  aiRechargePrompt: 'AI 額度已用盡，儲值後即可繼續使用',
+  aiRechargeAction: '立即儲值',
   aiToolWorkbookContext: '讀取工作表資訊',
   aiToolReadRange: '讀取範圍',
   aiToolReadRangeOf: '讀取範圍 {range}',

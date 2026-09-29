@@ -56,6 +56,8 @@ export interface IpcTransportOptions<S> {
   timeoutErrorText?(): string
   /** localized message for exhausted credits (errorCode 'credits') */
   creditsErrorText?(): string
+  /** raw credits-error notice (errorCode 'credits'), fired before the localized bubble text — panels use it to open the recharge prompt */
+  creditsKind?(error: string): void
   /** localized message for network connectivity failures (errorCode 'network') */
   networkErrorText?(): string
   /** localized message for capacity/rate-limit failures (errorCode 'overloaded') */
@@ -112,6 +114,7 @@ export function createIpcTransport<S>(options: IpcTransportOptions<S>): AgentTra
           cb.onDone()
         } else {
           settle()
+          if (chunk.errorCode === 'credits') options.creditsKind?.(chunk.error ?? '')
           cb.onError(
             chunk.errorCode === 'timeout'
               ? timeoutText()

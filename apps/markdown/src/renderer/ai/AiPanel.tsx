@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react'
 import { AgentLoop, composeSkills, createPresetSkill } from '@genoffice/agent-core'
 import { createMcpPresetHooks } from '@genoffice/agent-core'
@@ -136,6 +137,8 @@ export function AiPanel({
   const [chat, setChat] = useState<ChatEntry[]>([])
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
+  /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
+  const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   // bumped on selection/doc changes so the scope chip & queue rows stay fresh
@@ -220,7 +223,10 @@ export function AiPanel({
   const loopRef = useRef<AgentLoop<DocSnapshot> | null>(null)
   if (!loopRef.current) {
     loopRef.current = new AgentLoop<DocSnapshot>({
-      transport: createElectronTransport(() => settingsRef.current!),
+      transport: createElectronTransport(
+        () => settingsRef.current!,
+        () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
+      ),
       skill: composeSkills('markdown+search', '', [
         createMarkdownSkill(() => depsRef.current.getEditor(), {
           read: () => depsRef.current.getFrontmatter(),
@@ -837,6 +843,28 @@ export function AiPanel({
           onStop={stop}
         />
       </div>
+      {rechargeUrl && createPortal(
+        <div
+          className="ai-recharge-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setRechargeUrl(null)}
+        >
+          <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
+            <button
+              className="ai-recharge-btn"
+              onClick={() => {
+                setRechargeUrl(null)
+                window.open(rechargeUrl, '_blank', 'noreferrer')
+              }}
+            >
+              {t('aiRechargeAction')}
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </aside>
   )
 }

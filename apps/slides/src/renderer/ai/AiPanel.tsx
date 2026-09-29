@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AgentLoop,
   composeSkills,
@@ -400,6 +401,8 @@ export function AiPanel({
   const isRtl = lang === 'ar' || lang === 'he'
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
+  const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
   const [chat, setChat] = useState<ChatEntry[]>([])
   /** Past conversation restored from JSONL (read-only transcript, not fed to the model) */
   const [historicChat, setHistoricChat] = useState<ChatEntry[]>([])
@@ -1274,7 +1277,10 @@ export function AiPanel({
     }
     accessRef.current = access
     loopRef.current = new AgentLoop({
-      transport: createElectronTransport(() => settingsRef.current),
+      transport: createElectronTransport(
+        () => settingsRef.current,
+        () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
+      ),
       systemSuffix: aiLangDirective,
       skill: composeSkills('slides+files', '', [
         createSlidesSkill(access),
@@ -2331,6 +2337,28 @@ export function AiPanel({
             </div>
           </div>
         </div>
+      )}
+      {rechargeUrl && createPortal(
+        <div
+          className="ai-recharge-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setRechargeUrl(null)}
+        >
+          <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
+            <button
+              className="ai-recharge-btn"
+              onClick={() => {
+                setRechargeUrl(null)
+                window.open(rechargeUrl, '_blank', 'noreferrer')
+              }}
+            >
+              {t('aiRechargeAction')}
+            </button>
+          </div>
+        </div>,
+        document.body,
       )}
     </aside>
   )

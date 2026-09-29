@@ -37,6 +37,7 @@ import {
   fetchRemoteImage,
   getAccountManagedDefaults,
   getAccountManagedToken,
+  loadFangTangAccountConfig,
   loadPresetFiles,
   loadFangTangDefaults,
   readAiFeatures,
@@ -109,11 +110,14 @@ export function registerAiIpc(): void {
   ipcMain.handle('ai:get-settings', (): AiSettings => {
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
-    return mainAiSettings(
+    const settings = mainAiSettings(
       readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {}),
       factory,
       getAccountManagedDefaults(),
     )
+    // deployment's top-up page for the credits-exhausted recharge prompt
+    const rechargeUrl = loadFangTangAccountConfig().rechargeUrl
+    return rechargeUrl ? { ...settings, rechargeUrl } : settings
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
