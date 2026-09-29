@@ -567,9 +567,9 @@ function AccountEntry({ account }: { account: AccountApi }) {
   )
 }
 
-/** below this balance the soft banner nags (≈ ten casual chats at V1 pricing;
- * a constant, not a setting — tune once real consumption data exists) */
-const LOW_BALANCE_CNY = 2
+/** below this balance the soft banner nags (a constant, not a setting —
+ * tune once real consumption data exists) */
+const LOW_BALANCE_CNY = 6
 
 /** soft low-balance reminder above the home content; dismissal lasts for the
  * session (persisting it would hide the banner forever after one dismiss) */
