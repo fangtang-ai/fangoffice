@@ -47,7 +47,7 @@ export function buildAuthorizeUrl(
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', config.clientId)
   url.searchParams.set('redirect_uri', redirectUri)
-  url.searchParams.set('scope', 'openid profile offline_access')
+  url.searchParams.set('scope', 'openid profile phone offline_access')
   url.searchParams.set('state', state)
   url.searchParams.set('code_challenge', pkce.challenge)
   url.searchParams.set('code_challenge_method', 'S256')
@@ -172,6 +172,20 @@ export async function refreshTokens(
   })
 }
 
+/**
+ * Display-name precedence: phone number, then username, then the optional
+ * custom `name` (Logto leaves `name` unset for most username registrations,
+ * which used to surface the raw `sub` — a string of letters — as the account
+ * display name).
+ */
+function pickDisplayName(claims: Record<string, unknown>): string | undefined {
+  for (const key of ['phone_number', 'username', 'name'] as const) {
+    const value = claims[key]
+    if (typeof value === 'string' && value) return value
+  }
+  return undefined
+}
+
 /** GET /oidc/me — the ID-token claims of the freshly minted access token */
 export async function fetchAccountProfile(
   logtoEndpoint: string,
@@ -189,7 +203,7 @@ export async function fetchAccountProfile(
   }
   return {
     userId: claims.sub,
-    displayName: typeof claims.name === 'string' ? claims.name : undefined,
+    displayName: pickDisplayName(claims),
     avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
   }
 }
@@ -199,23 +213,22 @@ export async function fetchAccountProfile(
  * the tenant-default opaque access token — when the token request carries a
  * `resource` (so the backend gets a verifiable JWT), the minted access token
  * is resource-specific and /oidc/me answers 401. The ID token minted with
- * scope `openid profile` already carries sub/name/picture, so no extra
- * round-trip is needed.
+ * scope `openid profile phone` already carries sub/name/username/phone_number,
+ * so no extra round-trip is needed.
  */
 export function profileFromIdToken(idToken?: string): AccountProfile | null {
   if (!idToken) return null
   const parts = idToken.split('.')
   if (parts.length < 2) return null
   try {
-    const claims = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as {
-      sub?: unknown
-      name?: unknown
-      picture?: unknown
-    }
+    const claims = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as Record<
+      string,
+      unknown
+    >
     if (typeof claims.sub !== 'string' || !claims.sub) return null
     return {
       userId: claims.sub,
-      displayName: typeof claims.name === 'string' ? claims.name : undefined,
+      displayName: pickDisplayName(claims),
       avatarUrl: typeof claims.picture === 'string' ? claims.picture : undefined,
     }
   } catch {

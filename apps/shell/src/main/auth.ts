@@ -179,7 +179,9 @@ async function validAccessToken(): Promise<string> {
   if (!current.refreshToken) throw new AccountError('account:expired')
   try {
     const tokens = await refreshTokens(requireAccountConfig(), current.refreshToken)
-    return adoptTokens(tokens).accessToken
+    // re-derive the profile from the fresh ID token so sessions logged in
+    // before the display-name precedence change self-heal on the next refresh
+    return adoptTokens(tokens, profileFromIdToken(tokens.idToken) ?? undefined).accessToken
   } catch (error) {
     if (error instanceof Error && error.message.includes('invalid_grant')) {
       clearSession()

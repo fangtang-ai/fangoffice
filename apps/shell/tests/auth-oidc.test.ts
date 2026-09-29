@@ -145,6 +145,25 @@ describe('fetchAccountProfile', () => {
     vi.mocked(fetchMock).mockResolvedValueOnce(new Response(JSON.stringify({ name: 'x' })))
     await expect(fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).rejects.toThrow('sub')
   })
+  it('prefers phone_number, then username, then name for the display name', async () => {
+    vi.mocked(fetchMock).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sub: 'u-1', phone_number: '+8613800000000', name: '张三' })),
+    )
+    expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe('+8613800000000')
+
+    vi.mocked(fetchMock).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sub: 'u-1', username: 'zhangsan', name: '张三' })),
+    )
+    expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe('zhangsan')
+
+    vi.mocked(fetchMock).mockResolvedValueOnce(new Response(JSON.stringify({ sub: 'u-1', name: '张三' })))
+    expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe('张三')
+
+    // no profile claims: undefined — the renderer shows its own fallback, but
+    // never the raw sub as a fake name
+    vi.mocked(fetchMock).mockResolvedValueOnce(new Response(JSON.stringify({ sub: 'u-1' })))
+    expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBeUndefined()
+  })
   it('rejects non-2xx replies', async () => {
     vi.mocked(fetchMock).mockResolvedValueOnce(new Response('nope', { status: 401 }))
     await expect(fetchAccountProfile(CONFIG.logtoEndpoint, 'bad')).rejects.toThrow('401')
