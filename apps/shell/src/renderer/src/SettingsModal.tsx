@@ -189,6 +189,10 @@ function AiModelPane({ t }: { t: TFunc }) {
   if (!settings) return null
   const provider = settings.provider
   const meta = catalog.find((c) => c.id === provider)
+  /** managed (FangTang billing) build: sign-in configures everything, so the
+   * raw provider internals (model / key / base URL / output cap) stay out of
+   * the settings UI — deployment overrides still work via ai-settings.json */
+  const managed = catalog.length === 1 && catalog[0]?.id === 'fangtang'
   const config = settings.providers[provider] ?? {
     apiKey: '',
     model: meta?.defaultModel ?? '',
@@ -251,7 +255,7 @@ function AiModelPane({ t }: { t: TFunc }) {
         </div>
         <Dropdown
           className="set-dd"
-          value={provider}
+          value={managed ? 'fangtang' : provider}
           ariaLabel={t('setAiProvider')}
           options={catalog.map((c) => ({
             value: c.id,
@@ -266,7 +270,8 @@ function AiModelPane({ t }: { t: TFunc }) {
           onPick={(v) => selectProvider(v as AiSettings['provider'])}
         />
       </div>
-      <div className="set-field-desc set-ai-note">{t('setAiByokNote')}</div>
+
+      {!managed && (
       <div className="set-field">
         <div className="set-field-text">
           <label className="set-field-label">{t('setAiModelId')}</label>
@@ -291,6 +296,8 @@ function AiModelPane({ t }: { t: TFunc }) {
           />
         )}
       </div>
+      )}
+      {!managed && (
       <>
           <div className="set-field">
             <div className="set-field-text">
@@ -334,6 +341,8 @@ function AiModelPane({ t }: { t: TFunc }) {
             />
           </div>
       </>
+      )}
+      {!managed && (
       <div className="set-field">
         <div className="set-field-text">
           <div className="set-field-stack">
@@ -355,6 +364,7 @@ function AiModelPane({ t }: { t: TFunc }) {
           onBlur={commitMaxTokens}
         />
       </div>
+      )}
       <div className="set-pane-footer">
         <AiStatusPill
           status={
@@ -372,9 +382,11 @@ function AiModelPane({ t }: { t: TFunc }) {
         <button className="set-btn" disabled={testing} onClick={test}>
           {t('setAiTest')}
         </button>
-        <button className="set-btn primary" disabled={!dirty} onClick={save}>
-          {t('setAiSave')}
-        </button>
+        {!managed && (
+          <button className="set-btn primary" disabled={!dirty} onClick={save}>
+            {t('setAiSave')}
+          </button>
+        )}
       </div>
     </>
   )
@@ -518,7 +530,7 @@ function SkillsPane({ t }: { t: TFunc }) {
 function ManagedAiNote() {
   const { t } = useI18n()
   const account = useAccount()
-  if (!account.loggedIn) return null
+  if (!account.loggedIn) return <p className="set-ai-note">{t('setAiByokNote')}</p>
   return <p className="set-ai-note">{t('accountManagedNote')}</p>
 }
 
