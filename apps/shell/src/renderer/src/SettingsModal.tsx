@@ -379,9 +379,11 @@ function AiModelPane({ t }: { t: TFunc }) {
                   : null
           }
         />
-        <button className="set-btn" disabled={testing} onClick={test}>
-          {t('setAiTest')}
-        </button>
+        {!managed && (
+          <button className="set-btn" disabled={testing} onClick={test}>
+            {t('setAiTest')}
+          </button>
+        )}
         {!managed && (
           <button className="set-btn primary" disabled={!dirty} onClick={save}>
             {t('setAiSave')}
