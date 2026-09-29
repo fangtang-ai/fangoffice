@@ -239,7 +239,11 @@ const homeApi: HomeApi = {
     await ipcRenderer.invoke('ai:set-settings', settings)
   },
   getAiProviders() {
-    return AI_PROVIDERS.map((meta) => {
+    // consumer mode: only the FangTang billing proxy is selectable. Other
+    // providers stay in the registry (existing BYOK settings keep working,
+    // and hand-edited ai-settings.json can still use them) but stay out of
+    // the settings UI until BYOK gets productized.
+    return AI_PROVIDERS.filter((meta) => meta.id === 'fangtang').map((meta) => {
       let defaultBaseUrl = ''
       // custom has no fixed default endpoint — it stays ''
       if (!meta.needsBaseUrl) {

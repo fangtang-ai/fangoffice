@@ -278,6 +278,14 @@ export function aiDefaultsLayers(
   account?: DefaultsLayer | null,
 ): AiFactoryDefaults {
   const merged: DefaultsLayer = { ...(factory ?? {}), ...(account ?? {}) }
+  // A needsBaseUrl provider without a base URL can never stream: activeProvider
+  // honors it via the fallback bypass (provider === fallback skips every check)
+  // and the adapter throws its raw 'requires a Base URL' error. Drop the
+  // selection so the app degrades to its localized not-configured state instead.
+  if (merged.provider) {
+    const meta = AI_PROVIDERS.find((m) => m.id === merged.provider)
+    if (meta?.needsBaseUrl && !merged.baseUrl) delete merged.provider
+  }
   return {
     // validated by id against AI_PROVIDERS inside defaultAiSettings
     ...(merged.provider !== undefined ? { provider: merged.provider as AiProviderId } : {}),

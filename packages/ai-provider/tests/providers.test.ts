@@ -341,4 +341,19 @@ describe('mainAiSettings', () => {
     // no account layer and no factory: pre-account behavior (fallback provider)
     expect(mainAiSettings({}, undefined, null).provider).toBe(FALLBACK_AI_PROVIDER)
   })
+
+  it('a needsBaseUrl default with an empty baseUrl degrades to the fallback, not the adapter throw', () => {
+    // the shipped template used to carry provider:'fangtang' with an empty
+    // baseUrl; activeProvider's fallback bypass then honored it without any
+    // check and the adapter threw its raw 'requires a Base URL' error
+    const degraded = mainAiSettings({}, { provider: 'fangtang', baseUrl: '' }, null)
+    expect(degraded.provider).toBe(FALLBACK_AI_PROVIDER)
+    // the account layer supplying the URL keeps the selection
+    const managed = mainAiSettings(
+      {},
+      { provider: 'fangtang', baseUrl: '' },
+      { provider: 'fangtang', baseUrl: 'https://account/v1' },
+    )
+    expect(managed.provider).toBe('fangtang')
+  })
 })

@@ -143,7 +143,7 @@ export const strings = {
     setAiKeyHint: '密钥仅保存在本机。',
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '留空使用官方端点。',
-    setAiByokNote: '对话默认使用你自己的 key；登录方塘账号后自动切换为账户托管端点。',
+    setAiByokNote: '登录方塘账号即可使用，对话按用量从余额扣费，无需手动配置。',
     setAiSave: '保存',
     setAiSaved: '已保存',
     setAiTest: '测试连接',
@@ -316,7 +316,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Leave empty for the official endpoint.',
     setAiByokNote:
-      'Chats use your own key by default; after signing in to a Fangtang account the managed endpoint is used automatically.',
+      'Sign in to your Fangtang account to use AI — billed per use from your balance, no setup needed.',
     setAiSave: 'Save',
     setAiSaved: 'Saved',
     setAiTest: 'Test connection',
@@ -500,7 +500,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '空欄で公式エンドポイントを使用します。',
     setAiByokNote:
-      'チャットは既定で自分のキーを使用します。方塘アカウントにサインインすると、アカウント管理のエンドポイントに自動的に切り替わります。',
+      '方塘アカウントでサインインすればすぐ使えます。利用量に応じて残高から課金され、設定は不要です。',
     setAiSave: '保存',
     setAiSaved: '保存しました',
     setAiTest: '接続テスト',
@@ -684,7 +684,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '비워 두면 공식 엔드포인트를 사용합니다.',
     setAiByokNote:
-      '대화는 기본적으로 자신의 키를 사용합니다. Fangtang 계정에 로그인하면 계정 관리 엔드포인트로 자동 전환됩니다.',
+      'Fangtang 계정으로 로그인하면 바로 사용할 수 있습니다. 사용량에 따라 잔액에서 청구되며 별도 설정이 필요 없습니다.',
     setAiSave: '저장',
     setAiSaved: '저장됨',
     setAiTest: '연결 테스트',
@@ -870,7 +870,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Laisser vide pour le point de terminaison officiel.',
     setAiByokNote:
-      'Les conversations utilisent votre propre clé par défaut ; après connexion à un compte Fangtang, le point de terminaison géré est utilisé automatiquement.',
+      "Connectez-vous à votre compte Fangtang pour utiliser l'IA — facturée à l'usage sur votre solde, sans configuration.",
     setAiSave: 'Enregistrer',
     setAiSaved: 'Enregistré',
     setAiTest: 'Tester la connexion',
@@ -1058,7 +1058,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Leer lassen für den offiziellen Endpunkt.',
     setAiByokNote:
-      'Chats verwenden standardmäßig Ihren eigenen Schlüssel; nach der Anmeldung bei einem Fangtang-Konto wird automatisch der verwaltete Endpunkt genutzt.',
+      'Melden Sie sich bei Ihrem Fangtang-Konto an, um KI zu nutzen — Abrechnung nach Nutzung vom Guthaben, keine Einrichtung nötig.',
     setAiSave: 'Speichern',
     setAiSaved: 'Gespeichert',
     setAiTest: 'Verbindung testen',
@@ -1245,7 +1245,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Deja vacío para usar el endpoint oficial.',
     setAiByokNote:
-      'Los chats usan tu propia clave de forma predeterminada; al iniciar sesión en una cuenta Fangtang se usa automáticamente el endpoint gestionado.',
+      'Inicia sesión en tu cuenta Fangtang para usar la IA: se cobra por uso de tu saldo, sin configuración.',
     setAiSave: 'Guardar',
     setAiSaved: 'Guardado',
     setAiTest: 'Probar conexión',
@@ -1429,7 +1429,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'เว้นว่างเพื่อใช้ปลายทางอย่างเป็นทางการ',
     setAiByokNote:
-      'แชทใช้คีย์ของคุณเองเป็นค่าเริ่มต้น เมื่อลงชื่อเข้าใช้บัญชี Fangtang ระบบจะสลับไปใช้ endpoint ที่บัญชีจัดการโดยอัตโนมัติ',
+      'ลงชื่อเข้าใช้บัญชี Fangtang เพื่อใช้ AI — คิดค่าบริการตามการใช้งานจากยอดคงเหลือ ไม่ต้องตั้งค่า',
     setAiSave: 'บันทึก',
     setAiSaved: 'บันทึกแล้ว',
     setAiTest: 'ทดสอบการเชื่อมต่อ',
@@ -1613,7 +1613,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Kosongkan untuk endpoint resmi.',
     setAiByokNote:
-      'Obrolan memakai kunci Anda sendiri secara bawaan; setelah masuk ke akun Fangtang, endpoint terkelola dipakai secara otomatis.',
+      'Masuk ke akun Fangtang untuk memakai AI — ditagih per pemakaian dari saldo, tanpa pengaturan.',
     setAiSave: 'Simpan',
     setAiSaved: 'Tersimpan',
     setAiTest: 'Uji koneksi',
@@ -1799,7 +1799,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Оставьте пустым для официальной конечной точки.',
     setAiByokNote:
-      'Диалоги по умолчанию используют ваш собственный ключ; после входа в аккаунт Fangtang автоматически применяется управляемая конечная точка.',
+      'Войдите в аккаунт Fangtang, чтобы пользоваться ИИ — оплата по использованию с баланса, без настройки.',
     setAiSave: 'Сохранить',
     setAiSaved: 'Сохранено',
     setAiTest: 'Проверить подключение',
@@ -1983,7 +1983,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'اتركه فارغًا لاستخدام نقطة النهاية الرسمية.',
     setAiByokNote:
-      'تستخدم المحادثات مفتاحك الخاص افتراضيًا؛ وبعد تسجيل الدخول إلى حساب Fangtang يتم استخدام نقطة النهاية المُدارة تلقائيًا.',
+      'سجّل الدخول إلى حساب Fangtang لاستخدام الذكاء الاصطناعي — يُحتسب الاستخدام من الرصيد دون إعداد.',
     setAiSave: 'حفظ',
     setAiSaved: 'تم الحفظ',
     setAiTest: 'اختبار الاتصال',
@@ -2161,7 +2161,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Deixe vazio para o endpoint oficial.',
     setAiByokNote:
-      'Os chats usam a sua própria chave por padrão; após iniciar sessão numa conta Fangtang, o endpoint gerido é usado automaticamente.',
+      'Entre na sua conta Fangtang para usar a IA — cobrança por uso do seu saldo, sem configuração.',
     setAiSave: 'Salvar',
     setAiSaved: 'Salvo',
     setAiTest: 'Testar conexão',
@@ -2337,7 +2337,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: "Lascia vuoto per l'endpoint ufficiale.",
     setAiByokNote:
-      "Le chat usano la tua chiave per impostazione predefinita; dopo l'accesso a un account Fangtang viene usato automaticamente l'endpoint gestito.",
+      "Accedi al tuo account Fangtang per usare l'IA — addebito in base all'uso sul saldo, senza configurazione.",
     setAiSave: 'Salva',
     setAiSaved: 'Salvato',
     setAiTest: 'Prova connessione',
@@ -2512,7 +2512,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Pozostaw puste, aby użyć oficjalnego punktu końcowego.',
     setAiByokNote:
-      'Rozmowy domyślnie używają Twojego klucza; po zalogowaniu do konta Fangtang automatycznie używany jest zarządzany punkt końcowy.',
+      'Zaloguj się na konto Fangtang, aby korzystać z AI — rozliczenie według użycia z salda, bez konfiguracji.',
     setAiSave: 'Zapisz',
     setAiSaved: 'Zapisano',
     setAiTest: 'Testuj połączenie',
@@ -2688,7 +2688,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Leeg laten voor het officiële eindpunt.',
     setAiByokNote:
-      'Chats gebruiken standaard je eigen sleutel; na het inloggen op een Fangtang-account wordt automatisch het beheerde endpoint gebruikt.',
+      'Log in op je Fangtang-account om AI te gebruiken — per gebruik afgerekend van je saldo, geen instellingen nodig.',
     setAiSave: 'Opslaan',
     setAiSaved: 'Opgeslagen',
     setAiTest: 'Verbinding testen',
@@ -2863,7 +2863,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'Biarkan kosong untuk endpoint rasmi.',
     setAiByokNote:
-      'Sembang menggunakan kunci anda sendiri secara lalai; selepas log masuk akaun Fangtang, endpoint terurus digunakan secara automatik.',
+      'Log masuk akaun Fangtang untuk guna AI — dibilkan mengikut penggunaan dari baki, tanpa tetapan.',
     setAiSave: 'Simpan',
     setAiSaved: 'Disimpan',
     setAiTest: 'Uji sambungan',
@@ -3036,7 +3036,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'השאר ריק לנקודת הקצה הרשמית.',
     setAiByokNote:
-      'שיחות משתמשות במפתח שלך כברירת מחדל; לאחר התחברות לחשבון Fangtang נעשה שימוש אוטומטי בנקודת הקצה המנוהלת.',
+      'התחברו לחשבון Fangtang כדי להשתמש ב-AI — חיוב לפי שימוש מהיתרה, ללא הגדרה.',
     setAiSave: 'שמירה',
     setAiSaved: 'נשמר',
     setAiTest: 'בדיקת חיבור',
@@ -3211,7 +3211,7 @@ export const strings = {
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: 'आधिकारिक एंडपॉइंट के लिए खाली छोड़ें।',
     setAiByokNote:
-      'चैट डिफ़ॉल्ट रूप से आपकी अपनी कुंजी का उपयोग करती हैं; Fangtang खाते में साइन इन करने के बाद मैनेज्ड एंडपॉइंट स्वतः उपयोग होता है।',
+      'AI उपयोग के लिए Fangtang खाते में साइन इन करें — उपयोग के अनुसार बैलेंस से बिल, कोई सेटअप नहीं।',
     setAiSave: 'सहेजें',
     setAiSaved: 'सहेजा गया',
     setAiTest: 'कनेक्शन परखें',
@@ -3382,7 +3382,7 @@ export const strings = {
     setAiKeyHint: '金鑰僅儲存在本機。',
     setAiBaseUrl: 'Base URL',
     setAiBaseUrlHint: '留空使用官方端點。',
-    setAiByokNote: '對話預設使用你自己的 key；登入方塘帳號後自動切換為帳戶託管端點。',
+    setAiByokNote: '登入方塘帳號即可使用，對話按用量從餘額扣款，無需手動配置。',
     setAiSave: '儲存',
     setAiSaved: '已儲存',
     setAiTest: '測試連線',
