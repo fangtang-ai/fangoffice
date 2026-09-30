@@ -310,6 +310,19 @@ export function mainAiSettings(
 ): AiSettings {
   const defaults = defaultAiSettings(aiDefaultsLayers(factory, account))
   const settings = resolveAiSettings(stored, defaults)
+  // Renderers can submit settings loaded before login. The managed fangtang
+  // slot always follows the current account endpoint; other providers retain
+  // explicit saved configuration so a valid BYOK selection is preserved.
+  const accountProvider = AI_PROVIDERS.find(
+    (meta) => meta.id === account?.provider && meta.id === defaults.provider,
+  )
+  if (accountProvider) {
+    const storedConfig = stored.providers?.[accountProvider.id]
+    const hasStoredEndpoint = Boolean(storedConfig?.apiKey?.trim() || storedConfig?.baseUrl?.trim())
+    if (accountProvider.id === 'fangtang' || !hasStoredEndpoint) {
+      settings.providers[accountProvider.id] = defaults.providers[accountProvider.id]
+    }
+  }
   // a stored BYOK provider is honored when usable; half-filled configs fall back to the factory default
   settings.provider = activeProvider(settings, defaults.provider)
   return settings

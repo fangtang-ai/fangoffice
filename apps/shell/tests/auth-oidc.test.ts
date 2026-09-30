@@ -7,11 +7,13 @@ import { createHash } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   accountDefaultsFromEndpoint,
+  accountEndpointOutcome,
   buildAuthorizeUrl,
   buildEndSessionUrl,
   createPkcePair,
   exchangeCode,
   fetchAccountProfile,
+  hasRestorableSessionAccessToken,
   parseCallbackQuery,
   refreshTokens,
   tokenSetFromResponse,
@@ -86,7 +88,12 @@ describe('tokenSetFromResponse', () => {
       { access_token: 'at', refresh_token: 'rt', id_token: 'it', expires_in: 600 },
       1_000,
     )
-    expect(set).toEqual({ accessToken: 'at', refreshToken: 'rt', idToken: 'it', expiresAt: 601_000 })
+    expect(set).toEqual({
+      accessToken: 'at',
+      refreshToken: 'rt',
+      idToken: 'it',
+      expiresAt: 601_000,
+    })
   })
   it('rejects responses without an access_token', () => {
     expect(() => tokenSetFromResponse({ error: 'x' })).toThrow('access_token')
@@ -103,10 +110,7 @@ describe('token endpoints', () => {
     )
     const set = await exchangeCode(CONFIG, 'code-1', 'http://127.0.0.1:1/callback', 'ver-1')
     expect(set.accessToken).toBe('at')
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [
-      URL,
-      RequestInit,
-    ]
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [URL, RequestInit]
     expect(url.origin + url.pathname).toBe('https://logto.example.com/oidc/token')
     const form = new URLSearchParams(String(init.body))
     expect(form.get('grant_type')).toBe('authorization_code')
@@ -149,14 +153,18 @@ describe('fetchAccountProfile', () => {
     vi.mocked(fetchMock).mockResolvedValueOnce(
       new Response(JSON.stringify({ sub: 'u-1', phone_number: '+8613800000000', name: '张三' })),
     )
-    expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe('+8613800000000')
+    expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe(
+      '+8613800000000',
+    )
 
     vi.mocked(fetchMock).mockResolvedValueOnce(
       new Response(JSON.stringify({ sub: 'u-1', username: 'zhangsan', name: '张三' })),
     )
     expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe('zhangsan')
 
-    vi.mocked(fetchMock).mockResolvedValueOnce(new Response(JSON.stringify({ sub: 'u-1', name: '张三' })))
+    vi.mocked(fetchMock).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sub: 'u-1', name: '张三' })),
+    )
     expect((await fetchAccountProfile(CONFIG.logtoEndpoint, 'at')).displayName).toBe('张三')
 
     // no profile claims: undefined — the renderer shows its own fallback, but
@@ -172,7 +180,9 @@ describe('fetchAccountProfile', () => {
 
 describe('accountDefaultsFromEndpoint', () => {
   it('maps a complete reply to the custom-provider account layer', () => {
-    expect(accountDefaultsFromEndpoint({ baseUrl: 'https://api/v1', apiKey: 'sk', model: 'gpt-x' })).toEqual({
+    expect(
+      accountDefaultsFromEndpoint({ baseUrl: 'https://api/v1', apiKey: 'sk', model: 'gpt-x' }),
+    ).toEqual({
       provider: 'custom',
       baseUrl: 'https://api/v1',
       apiKey: 'sk',
@@ -182,5 +192,40 @@ describe('accountDefaultsFromEndpoint', () => {
   it('keeps an incomplete reply as no account layer', () => {
     expect(accountDefaultsFromEndpoint({ baseUrl: 'https://api/v1' })).toBeNull()
     expect(accountDefaultsFromEndpoint(null)).toBeNull()
+  })
+
+  it('classifies unsuccessful HTTP replies without parsing their bodies', () => {
+    expect(accountEndpointOutcome(401, { baseUrl: 'ignored' })).toEqual({
+      kind: 'http-error',
+      status: 401,
+    })
+  })
+
+  it('classifies successful replies with an unsupported shape', () => {
+    expect(
+      accountEndpointOutcome(200, { data: { endpoint: { baseUrl: 'https://api/v1' } } }),
+    ).toEqual({
+      kind: 'invalid-response',
+    })
+  })
+
+  it('returns parsed account defaults for supported replies', () => {
+    expect(
+      accountEndpointOutcome(200, { data: { provider: 'fangtang', baseUrl: 'https://api/v1' } }),
+    ).toEqual({
+      kind: 'ready',
+      defaults: { provider: 'fangtang', baseUrl: 'https://api/v1', apiKey: '' },
+    })
+  })
+})
+
+describe('hasRestorableSessionAccessToken', () => {
+  it('restores an account session when its access token exists without a refresh token', () => {
+    expect(hasRestorableSessionAccessToken({ accessToken: 'at' })).toBe(true)
+  })
+
+  it('rejects an absent or empty access token', () => {
+    expect(hasRestorableSessionAccessToken(null)).toBe(false)
+    expect(hasRestorableSessionAccessToken({ accessToken: '' })).toBe(false)
   })
 })

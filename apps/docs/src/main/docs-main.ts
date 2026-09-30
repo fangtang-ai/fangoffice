@@ -30,6 +30,7 @@ import {
   fetchRemoteImage,
   getAccountManagedDefaults,
   getAccountManagedToken,
+  waitForAccountManagedDefaults,
   installContextMenu,
   installNavigationGuard,
   loadFangTangDefaults,
@@ -160,6 +161,7 @@ const tMain = createI18n({
     errNoApiKey: '未配置 {provider} 的 API Key',
     errAiBusy: 'AI 服务当前繁忙，请稍后重试',
     errNoModel: '未配置模型名称',
+    errAccountAiUnavailable: '方塘账号 AI 服务配置尚未就绪，请重新登录或联系管理员。',
     menuFile: '文件',
     menuNewDoc: '新建文档',
     menuNewWindow: '新建窗口',
@@ -253,6 +255,8 @@ const tMain = createI18n({
     errNoApiKey: 'No API key configured for {provider}',
     errAiBusy: 'The AI service is busy right now — please try again in a moment',
     errNoModel: 'No model name configured',
+    errAccountAiUnavailable:
+      'The account AI service is not ready. Sign in again or contact support.',
     menuFile: 'File',
     menuNewDoc: 'New Document',
     menuNewWindow: 'New Window',
@@ -346,6 +350,8 @@ const tMain = createI18n({
     errNoApiKey: '{provider} の API キーが設定されていません',
     errAiBusy: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
     errNoModel: 'モデル名が設定されていません',
+    errAccountAiUnavailable:
+      'アカウントの AI サービス設定を利用できません。再ログインするか、管理者にお問い合わせください。',
     menuFile: 'ファイル',
     menuNewDoc: '新規文書',
     menuNewWindow: '新規ウィンドウ',
@@ -440,6 +446,8 @@ const tMain = createI18n({
     errNoApiKey: '{provider}의 API 키가 설정되지 않았습니다',
     errAiBusy: 'AI 서비스가 혼잡합니다. 잠시 후 다시 시도해 주세요',
     errNoModel: '모델 이름이 설정되지 않았습니다',
+    errAccountAiUnavailable:
+      '계정 AI 서비스 설정을 사용할 수 없습니다. 다시 로그인하거나 관리자에게 문의해 주세요.',
     menuFile: '파일',
     menuNewDoc: '새 문서',
     menuNewWindow: '새 창',
@@ -535,6 +543,8 @@ const tMain = createI18n({
     errNoApiKey: 'Aucune clé API configurée pour {provider}',
     errAiBusy: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
     errNoModel: 'Aucun nom de modèle configuré',
+    errAccountAiUnavailable:
+      'Le service IA du compte n’est pas prêt. Reconnectez-vous ou contactez l’assistance.',
     menuFile: 'Fichier',
     menuNewDoc: 'Nouveau document',
     menuNewWindow: 'Nouvelle fenêtre',
@@ -630,6 +640,8 @@ const tMain = createI18n({
     errNoApiKey: 'Kein API-Schlüssel für {provider} konfiguriert',
     errAiBusy: 'Der KI-Dienst ist derzeit überlastet — bitte gleich erneut versuchen',
     errNoModel: 'Kein Modellname konfiguriert',
+    errAccountAiUnavailable:
+      'Der KI-Dienst des Kontos ist nicht bereit. Melden Sie sich erneut an oder wenden Sie sich an den Support.',
     menuFile: 'Datei',
     menuNewDoc: 'Neues Dokument',
     menuNewWindow: 'Neues Fenster',
@@ -725,6 +737,8 @@ const tMain = createI18n({
     errAiBusy:
       'El servicio de IA está saturado en este momento; inténtalo de nuevo en unos instantes',
     errNoModel: 'No se ha configurado el nombre del modelo',
+    errAccountAiUnavailable:
+      'El servicio de IA de la cuenta no está listo. Inicia sesión de nuevo o contacta con soporte.',
     menuFile: 'Archivo',
     menuNewDoc: 'Nuevo documento',
     menuNewWindow: 'Nueva ventana',
@@ -818,6 +832,8 @@ const tMain = createI18n({
     errNoApiKey: 'ยังไม่ได้ตั้งค่า API Key ของ {provider}',
     errAiBusy: 'บริการ AI มีผู้ใช้งานจำนวนมากในขณะนี้ โปรดลองอีกครั้งในอีกสักครู่',
     errNoModel: 'ยังไม่ได้ตั้งค่าชื่อโมเดล',
+    errAccountAiUnavailable:
+      'บริการ AI ของบัญชียังไม่พร้อม โปรดเข้าสู่ระบบอีกครั้งหรือติดต่อผู้ดูแลระบบ',
     menuFile: 'ไฟล์',
     menuNewDoc: 'เอกสารใหม่',
     menuNewWindow: 'หน้าต่างใหม่',
@@ -912,6 +928,8 @@ const tMain = createI18n({
     errNoApiKey: 'API Key untuk {provider} belum dikonfigurasi',
     errAiBusy: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
     errNoModel: 'Nama model belum dikonfigurasi',
+    errAccountAiUnavailable:
+      'Layanan AI akun belum siap. Silakan masuk kembali atau hubungi dukungan.',
     menuFile: 'File',
     menuNewDoc: 'Dokumen Baru',
     menuNewWindow: 'Jendela Baru',
@@ -1006,6 +1024,8 @@ const tMain = createI18n({
     errNoApiKey: 'API-ключ для {provider} не настроен',
     errAiBusy: 'Сервис ИИ сейчас перегружен — повторите попытку чуть позже',
     errNoModel: 'Не указано имя модели',
+    errAccountAiUnavailable:
+      'Сервис ИИ для аккаунта не готов. Войдите снова или обратитесь в службу поддержки.',
     menuFile: 'Файл',
     menuNewDoc: 'Создать документ',
     menuNewWindow: 'Новое окно',
@@ -1100,6 +1120,8 @@ const tMain = createI18n({
     errNoApiKey: 'لم يتم تكوين مفتاح API لـ {provider}',
     errAiBusy: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
     errNoModel: 'لم يتم تكوين اسم النموذج',
+    errAccountAiUnavailable:
+      'خدمة الذكاء الاصطناعي للحساب غير جاهزة. يرجى تسجيل الدخول مرة أخرى أو التواصل مع الدعم.',
     menuFile: 'ملف',
     menuNewDoc: 'مستند جديد',
     menuNewWindow: 'نافذة جديدة',
@@ -1194,6 +1216,8 @@ const tMain = createI18n({
     errNoApiKey: 'Nenhuma chave de API configurada para {provider}',
     errAiBusy: 'O serviço de IA está sobrecarregado no momento — tente novamente em instantes',
     errNoModel: 'Nenhum nome de modelo configurado',
+    errAccountAiUnavailable:
+      'O serviço de IA da conta não está pronto. Entre novamente ou fale com o suporte.',
     menuFile: 'Arquivo',
     menuNewDoc: 'Novo Documento',
     menuNewWindow: 'Nova Janela',
@@ -1288,6 +1312,8 @@ const tMain = createI18n({
     errNoApiKey: 'Nessuna chiave API configurata per {provider}',
     errAiBusy: 'Il servizio IA è momentaneamente sovraccarico — riprova tra poco',
     errNoModel: 'Nessun nome di modello configurato',
+    errAccountAiUnavailable:
+      'Il servizio IA dell’account non è pronto. Accedi di nuovo o contatta l’assistenza.',
     menuFile: 'File',
     menuNewDoc: 'Nuovo documento',
     menuNewWindow: 'Nuova finestra',
@@ -1382,6 +1408,8 @@ const tMain = createI18n({
     errNoApiKey: 'Nie skonfigurowano klucza API dla {provider}',
     errAiBusy: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
     errNoModel: 'Nie skonfigurowano nazwy modelu',
+    errAccountAiUnavailable:
+      'Usługa AI konta nie jest gotowa. Zaloguj się ponownie lub skontaktuj się z pomocą techniczną.',
     menuFile: 'Plik',
     menuNewDoc: 'Nowy dokument',
     menuNewWindow: 'Nowe okno',
@@ -1476,6 +1504,8 @@ const tMain = createI18n({
     errNoApiKey: 'Geen API-sleutel geconfigureerd voor {provider}',
     errAiBusy: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
     errNoModel: 'Geen modelnaam geconfigureerd',
+    errAccountAiUnavailable:
+      'De AI-service voor dit account is niet klaar. Meld u opnieuw aan of neem contact op met ondersteuning.',
     menuFile: 'Bestand',
     menuNewDoc: 'Nieuw document',
     menuNewWindow: 'Nieuw venster',
@@ -1570,6 +1600,8 @@ const tMain = createI18n({
     errNoApiKey: 'Kunci API untuk {provider} belum dikonfigurasikan',
     errAiBusy: 'Perkhidmatan AI sedang sibuk — sila cuba lagi sebentar lagi',
     errNoModel: 'Nama model belum dikonfigurasikan',
+    errAccountAiUnavailable:
+      'Perkhidmatan AI akaun belum tersedia. Log masuk semula atau hubungi sokongan.',
     menuFile: 'Fail',
     menuNewDoc: 'Dokumen Baharu',
     menuNewWindow: 'Tetingkap Baharu',
@@ -1663,6 +1695,7 @@ const tMain = createI18n({
     errNoApiKey: 'לא הוגדר מפתח API עבור {provider}',
     errAiBusy: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
     errNoModel: 'לא הוגדר שם מודל',
+    errAccountAiUnavailable: 'שירות ה-AI של החשבון עדיין אינו זמין. התחברו מחדש או פנו לתמיכה.',
     menuFile: 'קובץ',
     menuNewDoc: 'מסמך חדש',
     menuNewWindow: 'חלון חדש',
@@ -1757,6 +1790,8 @@ const tMain = createI18n({
     errNoApiKey: '{provider} के लिए कोई API कुंजी कॉन्फ़िगर नहीं है',
     errAiBusy: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
     errNoModel: 'कोई मॉडल नाम कॉन्फ़िगर नहीं है',
+    errAccountAiUnavailable:
+      'खाते की AI सेवा तैयार नहीं है। फिर से साइन इन करें या सहायता से संपर्क करें।',
     menuFile: 'फ़ाइल',
     menuNewDoc: 'नया दस्तावेज़',
     menuNewWindow: 'नई विंडो',
@@ -1849,6 +1884,7 @@ const tMain = createI18n({
     errNoApiKey: '未設定 {provider} 的 API Key',
     errAiBusy: 'AI 服務目前繁忙，請稍後重試',
     errNoModel: '未設定模型名稱',
+    errAccountAiUnavailable: '方塘帳號 AI 服務設定尚未就緒，請重新登入或聯絡管理員。',
     menuFile: '檔案',
     menuNewDoc: '新增文件',
     menuNewWindow: '新增視窗',
@@ -2578,13 +2614,31 @@ const SETTINGS_PATH = () => userDataPath('ai-settings.json')
 
 const activeAiStreams = new Map<string, AbortController>()
 
+async function resolveAiRequestSettings(stored: Partial<AiSettings> & LegacyAiSettings) {
+  if (getAccountManagedToken()) await waitForAccountManagedDefaults()
+
+  const accountDefaults = getAccountManagedDefaults()
+  const settings = mainAiSettings(stored, undefined, accountDefaults)
+  const accountToken = getAccountManagedToken()
+  const config = settings.providers[settings.provider]
+  const accountUnavailable = Boolean(
+    accountToken &&
+    !accountDefaults &&
+    (settings.provider === 'custom' || settings.provider === 'fangtang') &&
+    !config?.apiKey &&
+    !config?.baseUrl,
+  )
+  return { settings, accountToken, accountUnavailable }
+}
+
 /**
  * AI settings + chat/stream proxy handlers. Split out so the shell can
  * register them exactly once for all window types (docs, sheets, home) —
  * sheets' standalone AI handlers use the same channel names.
  */
 export function registerAiIpc(): void {
-  ipcMain.handle('ai:get-settings', (): AiSettings => {
+  ipcMain.handle('ai:get-settings', async (): Promise<AiSettings> => {
+    await waitForAccountManagedDefaults()
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
     const settings = mainAiSettings(
@@ -2616,17 +2670,23 @@ export function registerAiIpc(): void {
   })
 
   ipcMain.handle('ai:stream', async (event, request: AiStreamRequest) => {
-    const { requestId, settings, system, messages } = request
+    const { requestId, system, messages } = request
+    const resolved = await resolveAiRequestSettings(request.settings)
+    const { settings } = resolved
     const tools = request.tools ?? []
     const maxTokens = request.maxTokens ?? maxOutputTokensOf(settings)
     const provider = settings.provider
     // account-managed fangtang billing carries no static key — each request
     // rides the shell's latest Logto access token (account-defaults hook)
     const stored = settings.providers?.[provider]
-    const liveToken = provider === 'fangtang' ? getAccountManagedToken() : null
+    const liveToken = provider === 'fangtang' ? resolved.accountToken : null
     const config = stored && { ...stored, ...(liveToken ? { apiKey: liveToken } : {}) }
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
+    }
+    if (resolved.accountUnavailable) {
+      send({ requestId, type: 'error', error: tm('errAccountAiUnavailable') })
+      return
     }
     // anonymous OpenAI-compatible endpoints (Ollama etc.) need only a base URL
     if (!config || (!config.apiKey && !(provider === 'custom' && config.baseUrl))) {
@@ -2731,9 +2791,18 @@ export function registerAiIpc(): void {
   )
 
   ipcMain.handle('ai:chat', async (_event, request: AiChatRequest) => {
-    const { settings, system, user } = request
+    const { system, user } = request
+    const resolved = await resolveAiRequestSettings(request.settings)
+    const { settings } = resolved
     const provider = settings.provider
-    const config = settings.providers?.[provider]
+    const stored = settings.providers?.[provider]
+    const config =
+      stored && provider === 'fangtang' && resolved.accountToken
+        ? { ...stored, apiKey: resolved.accountToken }
+        : stored
+    if (resolved.accountUnavailable) {
+      return { ok: false, error: tm('errAccountAiUnavailable') }
+    }
     if (!config || (!config.apiKey && !(provider === 'custom' && config.baseUrl))) {
       return { ok: false, error: tm('errNoApiKey', { provider }) }
     }

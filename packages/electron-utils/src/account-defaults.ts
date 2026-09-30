@@ -24,6 +24,7 @@ export interface AccountManagedDefaults {
 }
 
 let current: AccountManagedDefaults | null = null
+let pending: Promise<void> | null = null
 
 export function setAccountManagedDefaults(value: AccountManagedDefaults | null): void {
   current = value
@@ -31,6 +32,16 @@ export function setAccountManagedDefaults(value: AccountManagedDefaults | null):
 
 export function getAccountManagedDefaults(): AccountManagedDefaults | null {
   return current
+}
+
+/** Track the one login/session-restore request that provisions the cache. */
+export function setAccountManagedDefaultsPending(value: Promise<void> | null): void {
+  pending = value
+}
+
+/** Wait for the existing provisioning request; this function never starts I/O. */
+export function waitForAccountManagedDefaults(): Promise<void> {
+  return pending ?? Promise.resolve()
 }
 
 /**

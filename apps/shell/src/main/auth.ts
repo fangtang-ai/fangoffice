@@ -8,26 +8,29 @@
  */
 
 import { BrowserWindow, app, ipcMain, safeStorage, shell } from 'electron'
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
+import { appendFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { join } from 'node:path'
 import {
   getAccountManagedDefaults,
   loadFangTangAccountConfig,
   setAccountManagedDefaults,
+  setAccountManagedDefaultsPending,
   setAccountManagedTokenProvider,
   type AccountManagedDefaults,
 } from '@genoffice/electron-utils'
 import type { AccountErrorCode, AccountUsage, AccountView } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
 import {
-  accountDefaultsFromEndpoint,
+  accountEndpointOutcome,
   buildAuthorizeUrl,
   buildEndSessionUrl,
   createAuthState,
   createPkcePair,
   exchangeCode,
   fetchAccountProfile,
+  hasRestorableSessionAccessToken,
   parseCallbackQuery,
   profileFromIdToken,
   refreshTokens,
@@ -164,7 +167,9 @@ function adoptTokens(tokens: TokenSet, profile?: Partial<AccountSession>): Accou
 function clearSession(): void {
   session = null
   saveSession(null)
-  if (getAccountManagedDefaults()) setAccountManagedDefaults(null)
+  accountAiEndpointLoad = null
+  setAccountManagedDefaults(null)
+  setAccountManagedDefaultsPending(null)
 }
 
 /**
@@ -219,7 +224,9 @@ function awaitAuthorizationCode(
       if (result.error) {
         res.end(LOGIN_FAILURE_PAGE)
         settle(
-          new AccountError(result.error === 'access_denied' ? 'account:canceled' : 'account:failed'),
+          new AccountError(
+            result.error === 'access_denied' ? 'account:canceled' : 'account:failed',
+          ),
         )
         return
       }
@@ -270,7 +277,8 @@ async function performLogin(): Promise<AccountSession> {
   const tokens = await exchangeCode(config, code, redirectUri, pkce.verifier)
   // /oidc/me rejects resource-JWTs (401), so prefer the ID token's own claims;
   // only fall back to /oidc/me when no ID token was minted
-  const profile = profileFromIdToken(tokens.idToken) ??
+  const profile =
+    profileFromIdToken(tokens.idToken) ??
     (await fetchAccountProfile(config.logtoEndpoint, tokens.accessToken))
   return adoptTokens(tokens, profile)
 }
@@ -278,31 +286,83 @@ async function performLogin(): Promise<AccountSession> {
 /**
  * After login/startup-refresh: pull the managed AI endpoint from the site and
  * register it as the account defaults layer. A missing site module (V1
- * pre-S3) or a transient failure leaves the account layer unset instead of
- * failing the login.
+ * pre-S3) or a transient failure leaves login usable and preserves any
+ * previously loaded endpoint.
  */
-async function applyAccountAiEndpoint(): Promise<void> {
-  const current = currentSession()
-  const config = loadFangTangAccountConfig()
-  let next: AccountManagedDefaults | null = null
-  if (current && config.accountApiBase) {
-    try {
-      const response = await fetch(new URL('/api/office/ai-endpoint', config.accountApiBase), {
-        headers: { Authorization: `Bearer ${current.accessToken}` },
-      })
-      if (response.ok) {
-        const body: unknown = await response.json().catch(() => null)
-        next = accountDefaultsFromEndpoint(body as { baseUrl?: unknown } | null)
-      }
-    } catch {
-      // offline / module not deployed yet: keep whatever layer is registered
-    }
+let accountAiEndpointLoad: Promise<void> | null = null
+
+function applyAccountAiEndpoint(): Promise<void> {
+  if (accountAiEndpointLoad) return accountAiEndpointLoad
+  const load = fetchAccountAiEndpoint().catch(() => undefined)
+  accountAiEndpointLoad = load
+  setAccountManagedDefaultsPending(load)
+  const clearPending = () => {
+    if (accountAiEndpointLoad !== load) return
+    accountAiEndpointLoad = null
+    setAccountManagedDefaultsPending(null)
   }
+  void load.then(clearPending, clearPending)
+  return load
+}
+
+async function fetchAccountAiEndpoint(): Promise<void> {
+  const current = currentSession()
+  if (!current) return
+
+  let next: AccountManagedDefaults | null
+  try {
+    const accountApiBase = loadFangTangAccountConfig().accountApiBase
+    if (!accountApiBase) {
+      await recordAccountAiEndpointOutcome('missing-api-base')
+      return
+    }
+    const response = await fetch(new URL('/api/office/ai-endpoint', accountApiBase), {
+      headers: { Authorization: `Bearer ${current.accessToken}` },
+      signal: AbortSignal.timeout(15_000),
+    })
+    const body: unknown = await response.json().catch(() => null)
+    const outcome = accountEndpointOutcome(response.status, body)
+    if (outcome.kind === 'http-error') {
+      await recordAccountAiEndpointOutcome(`http-${outcome.status}`)
+      return
+    }
+    if (outcome.kind === 'invalid-response') {
+      next = null
+      await recordAccountAiEndpointOutcome('invalid-response')
+    } else {
+      next = outcome.defaults
+      await recordAccountAiEndpointOutcome(`ready-${next.provider}`)
+    }
+  } catch (error) {
+    // A transport failure leaves the last known good account configuration in place.
+    await recordAccountAiEndpointOutcome(
+      error instanceof Error && error.name === 'TimeoutError'
+        ? 'request-timeout'
+        : 'request-failed',
+    )
+    return
+  }
+  // Logout or account replacement while the request was in flight must not
+  // install a stale user's endpoint into the process-wide cache.
+  if (currentSession()?.userId !== current.userId) return
+
   const previous = getAccountManagedDefaults()
-  if (!previous && !next) return
   const changed = JSON.stringify(previous ?? null) !== JSON.stringify(next ?? null)
   setAccountManagedDefaults(next)
   if (changed) broadcastSession()
+}
+
+/** Write only a category/status code to the local user-data directory. */
+async function recordAccountAiEndpointOutcome(outcome: string): Promise<void> {
+  try {
+    await appendFile(
+      join(app.getPath('userData'), 'account-ai-endpoint.log'),
+      `${new Date().toISOString()} ${outcome}\n`,
+      'utf8',
+    )
+  } catch {
+    // Diagnostics must never interrupt login or endpoint provisioning.
+  }
 }
 
 export function registerAccountIpc(): void {
@@ -317,7 +377,8 @@ export function registerAccountIpc(): void {
     loginInFlight = (async () => {
       try {
         const next = await performLogin()
-        void applyAccountAiEndpoint().then(broadcastSession)
+        broadcastSession()
+        void applyAccountAiEndpoint()
         return sessionView(next)
       } catch (error) {
         throw error instanceof AccountError ? error : new AccountError('account:failed')
@@ -345,7 +406,10 @@ export function registerAccountIpc(): void {
     if (!current || !apiBase) {
       // misconfigured packaging (missing fangtang-defaults.local.json) must not be fully silent:
       // balance/AI-endpoint all early-return here and the UI shows "—"
-      if (!apiBase) console.error('[account:usage] accountApiBase missing — fangtang-defaults.local.json not packaged?')
+      if (!apiBase)
+        console.error(
+          '[account:usage] accountApiBase missing — fangtang-defaults.local.json not packaged?',
+        )
       return null
     }
     try {
@@ -357,8 +421,7 @@ export function registerAccountIpc(): void {
       if (!response.ok) return null
       const body: unknown = await response.json()
       // 站点响应包在 { success, code, data } 里,取 data
-      const payload =
-        body && typeof body === 'object' ? (body as { data?: unknown }).data : null
+      const payload = body && typeof body === 'object' ? (body as { data?: unknown }).data : null
       const account =
         payload && typeof payload === 'object' && !Array.isArray(payload)
           ? (payload as Record<string, unknown>)
@@ -375,13 +438,27 @@ export function registerAccountIpc(): void {
     shell.openExternal(rechargeUrl || 'https://fang-tang.cn').catch(() => undefined)
   })
 
-  // restore a persisted session; silently refresh + re-provision the AI
-  // endpoint when a refresh token is at hand. Failures stay silent — the
-  // renderer just sees last-known state and retry happens on next use.
-  if (existsSync(authStatePath()) && currentSession()?.refreshToken) {
-    void validAccessToken()
-      .then(() => applyAccountAiEndpoint())
-      .then(broadcastSession)
-      .catch(() => undefined)
-  }
+  // IPC is registered before app.ready. safeStorage cannot decrypt then, so
+  // defer the entire restore (including reading the session) until ready.
+  // Publish the promise immediately so early AI requests wait for this one
+  // initialization instead of observing a logged-in account with no endpoint.
+  const restore = app
+    .whenReady()
+    .then(async () => {
+      if (!hasRestorableSessionAccessToken(currentSession())) return
+      await validAccessToken()
+      await applyAccountAiEndpoint()
+      broadcastSession()
+    })
+    .catch((error) =>
+      recordAccountAiEndpointOutcome(
+        error instanceof AccountError && error.code === 'account:expired'
+          ? 'restore-session-expired'
+          : 'restore-failed',
+      ),
+    )
+  setAccountManagedDefaultsPending(restore)
+  void restore.then(() => {
+    if (!accountAiEndpointLoad) setAccountManagedDefaultsPending(null)
+  })
 }

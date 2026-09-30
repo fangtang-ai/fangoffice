@@ -342,6 +342,43 @@ describe('mainAiSettings', () => {
     expect(mainAiSettings({}, undefined, null).provider).toBe(FALLBACK_AI_PROVIDER)
   })
 
+  it('applies account defaults to renderer settings loaded before sign-in', () => {
+    const beforeLogin = mainAiSettings({}, undefined, null)
+    const endpoint = 'https://account/api/office/ai/chat'
+
+    const afterLogin = mainAiSettings(beforeLogin, undefined, {
+      provider: 'fangtang',
+      baseUrl: endpoint,
+      model: 'account-model',
+    })
+
+    expect(afterLogin.provider).toBe('fangtang')
+    expect(afterLogin.providers.fangtang.baseUrl).toBe(endpoint)
+    expect(afterLogin.providers.fangtang.model).toBe('account-model')
+  })
+
+  it('replaces a stale factory fangtang endpoint with the current account endpoint', () => {
+    const beforeLogin = mainAiSettings(
+      {},
+      {
+        provider: 'fangtang',
+        baseUrl: 'https://old-account.example/chat',
+        model: 'old-model',
+      },
+      null,
+    )
+
+    const afterLogin = mainAiSettings(beforeLogin, undefined, {
+      provider: 'fangtang',
+      baseUrl: 'https://current-account.example/chat',
+      model: 'current-model',
+    })
+
+    expect(afterLogin.provider).toBe('fangtang')
+    expect(afterLogin.providers.fangtang.baseUrl).toBe('https://current-account.example/chat')
+    expect(afterLogin.providers.fangtang.model).toBe('current-model')
+  })
+
   it('a needsBaseUrl default with an empty baseUrl degrades to the fallback, not the adapter throw', () => {
     // the shipped template used to carry provider:'fangtang' with an empty
     // baseUrl; activeProvider's fallback bypass then honored it without any

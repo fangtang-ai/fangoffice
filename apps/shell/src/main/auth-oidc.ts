@@ -244,6 +244,28 @@ export interface OfficeEndpointReply {
   model?: unknown
 }
 
+export type AccountEndpointOutcome =
+  | { kind: 'http-error'; status: number }
+  | { kind: 'invalid-response' }
+  | {
+      kind: 'ready'
+      defaults: Exclude<ReturnType<typeof accountDefaultsFromEndpoint>, null>
+    }
+
+/** Classify the HTTP result and payload without retaining any raw response data. */
+export function accountEndpointOutcome(status: number, body: unknown): AccountEndpointOutcome {
+  if (status < 200 || status >= 300) return { kind: 'http-error', status }
+  const defaults = accountDefaultsFromEndpoint(body)
+  return defaults ? { kind: 'ready', defaults } : { kind: 'invalid-response' }
+}
+
+/** A saved session can provision the endpoint with an unexpired access token alone. */
+export function hasRestorableSessionAccessToken(
+  session: { accessToken?: unknown } | null,
+): session is { accessToken: string } {
+  return typeof session?.accessToken === 'string' && session.accessToken.length > 0
+}
+
 /**
  * Map the site's GET /api/office/ai-endpoint reply to the account-managed
  * defaults layer. `provider: 'fangtang'` selects the site's billing proxy —
@@ -254,14 +276,18 @@ export interface OfficeEndpointReply {
  * running on factory defaults / BYOK.
  */
 export function accountDefaultsFromEndpoint(
-  reply: OfficeEndpointReply | null | undefined,
+  reply: unknown,
 ): { provider: 'custom' | 'fangtang'; baseUrl: string; apiKey: string; model?: string } | null {
   // ApiResDto.success wraps the payload as {data: …}; tolerate the bare shape too
+  const replyObject =
+    reply && typeof reply === 'object' && !Array.isArray(reply)
+      ? (reply as OfficeEndpointReply)
+      : null
   const payload =
-    reply && typeof reply === 'object' && reply.data && typeof reply.data === 'object'
-      ? (reply.data as OfficeEndpointReply)
-      : reply
-  if (!payload || typeof payload !== 'object') return null
+    replyObject?.data && typeof replyObject.data === 'object' && !Array.isArray(replyObject.data)
+      ? (replyObject.data as OfficeEndpointReply)
+      : replyObject
+  if (!payload) return null
   const { provider, baseUrl, apiKey, model } = payload
   if (typeof baseUrl !== 'string' || !baseUrl) return null
   if (provider === 'fangtang') {
