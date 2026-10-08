@@ -104,7 +104,9 @@ jobs:
     name: publish (GitHub Release + OSS)
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # ~1.1GB of installers from a US runner to OSS cn-hangzhou: v0.9.4's publish
+    # died twice at exactly 30:19 on the old 30-min cap, half-uploaded.
+    timeout-minutes: 90
     env:
       CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
       GH_TOKEN: ${{ github.token }}
