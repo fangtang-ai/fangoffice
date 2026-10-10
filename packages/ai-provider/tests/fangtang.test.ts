@@ -206,4 +206,42 @@ describe('fangtang billing proxy', () => {
       ),
     ).rejects.toThrow(AiCreditsError)
   })
+
+  it('keeps login-class errors out of the credits/recharge path', async () => {
+    const sseLogin = vi.fn().mockResolvedValue(
+      okResponse(
+        sseStream([
+          'data: {"type":"error","code":"invalid_access_token","message":"登录已失效"}',
+        ]),
+      ),
+    )
+    vi.stubGlobal('fetch', sseLogin)
+    const sseError = await streamForProvider(
+      'fangtang',
+      { apiKey: 't', model: 'm', baseUrl: SITE_URL },
+      'sys',
+      [],
+      [],
+      100,
+      collector().cb,
+    ).catch((error: unknown) => error)
+    expect(sseError).toBeInstanceOf(Error)
+    expect(sseError).not.toBeInstanceOf(AiCreditsError)
+
+    const http401 = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: '登录已失效', statusCode: 401 }, 401))
+    vi.stubGlobal('fetch', http401)
+    const httpError = await streamForProvider(
+      'fangtang',
+      { apiKey: 't', model: 'm', baseUrl: SITE_URL },
+      'sys',
+      [],
+      [],
+      100,
+      collector().cb,
+    ).catch((error: unknown) => error)
+    expect(httpError).toBeInstanceOf(Error)
+    expect(httpError).not.toBeInstanceOf(AiCreditsError)
+  })
 })
