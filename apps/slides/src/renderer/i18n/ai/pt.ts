@@ -233,5 +233,7 @@ export const pt = {
   aiSumListTemplates: '{count} modelos de estilo listados',
   aiPaidCallLimitPrompt: 'Esta tarefa fez {used} chamadas MCP pagas (limite: {max}). Continuar?',
   aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallDisclosurePrompt:
+    'Esta tarefa vai chamar ferramentas MCP pagas (¥0,5 por chamada). Continuar?',
   aiPaidCallLimitStop: 'Parar',
 } satisfies Record<keyof typeof zh, string>

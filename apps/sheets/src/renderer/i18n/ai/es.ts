@@ -114,5 +114,7 @@ export const es = {
   aiPaidCallLimitPrompt:
     'Esta tarea ha realizado {used} llamadas MCP de pago (límite: {max}). ¿Continuar?',
   aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallDisclosurePrompt:
+    'Esta tarea va a llamar a herramientas MCP de pago (0,5 ¥ por llamada). ¿Continuar?',
   aiPaidCallLimitStop: 'Detener',
 } satisfies Record<keyof typeof zh, string>

@@ -142,6 +142,7 @@ export function AiPanel({
   const [paidCallGate, setPaidCallGate] = useState<{
     used: number
     max: number
+    kind: 'disclosure' | 'limit'
     resolve: (ok: boolean) => void
   } | null>(null)
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
@@ -249,8 +250,14 @@ export function AiPanel({
             listTools: (server) => window.markdownApi.mcpListTools(server),
             callTool: (server, tool, args, context) =>
               window.markdownApi.mcpCallTool(server, tool, args, context),
+            onPaidCallDisclosure: () =>
+              new Promise<boolean>((resolve) =>
+                setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
+              ),
             onPaidCallLimit: ({ used, max }) =>
-              new Promise<boolean>((resolve) => setPaidCallGate({ used, max, resolve })),
+              new Promise<boolean>((resolve) =>
+                setPaidCallGate({ used, max, kind: 'limit', resolve }),
+              ),
           }),
         ),
       ]),
@@ -897,7 +904,9 @@ export function AiPanel({
           <div className="ai-recharge-overlay" role="dialog" aria-modal="true">
             <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
               <div className="ai-recharge-body">
-                {t('aiPaidCallLimitPrompt', { used: paidCallGate.used, max: paidCallGate.max })}
+                {paidCallGate.kind === 'disclosure'
+                  ? t('aiPaidCallDisclosurePrompt')
+                  : t('aiPaidCallLimitPrompt', { used: paidCallGate.used, max: paidCallGate.max })}
               </div>
               <div className="ai-recharge-actions">
                 <button

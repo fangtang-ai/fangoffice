@@ -267,6 +267,7 @@ export const strings = {
     aiRechargeAction: '立即充值',
     aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
     aiPaidCallLimitContinue: '继续调用',
+    aiPaidCallDisclosurePrompt: '本任务将开始调用付费 MCP 工具：每次收费 0.5 元。是否继续？',
     aiPaidCallLimitStop: '停止',
     aiToolReadPages: '读取第 {start}-{end} 页',
     aiToolSearch: '搜索"{query}"（{count} 处）',
@@ -589,6 +590,8 @@ export const strings = {
     aiRechargeAction: 'Top up',
     aiPaidCallLimitPrompt: 'This task has made {used} paid MCP calls (limit {max}). Continue?',
     aiPaidCallLimitContinue: 'Continue',
+    aiPaidCallDisclosurePrompt:
+      'This task is about to call paid MCP tools: each call costs ¥0.5. Continue?',
     aiPaidCallLimitStop: 'Stop',
     aiToolReadPages: 'Read pages {start}-{end}',
     aiToolSearch: 'Search "{query}" ({count} hits)',
@@ -916,6 +919,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'このタスクは有料MCP呼び出しを{used}回実行しました（上限{max}回）。続けますか？',
     aiPaidCallLimitContinue: '続ける',
+    aiPaidCallDisclosurePrompt:
+      'このタスクは有料MCPツールを呼び出します（1回あたり0.5元）。続けますか？',
     aiPaidCallLimitStop: '停止',
     aiToolReadPages: 'ページ {start}-{end} を読む',
     aiToolSearch: '「{query}」を検索（{count} 件）',
@@ -1244,6 +1249,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       '이 작업은 유료 MCP 호출을 {used}회 사용했습니다(한도 {max}회). 계속하시겠습니까?',
     aiPaidCallLimitContinue: '계속',
+    aiPaidCallDisclosurePrompt:
+      '이 작업은 유료 MCP 도구를 호출합니다(호출당 0.5위안). 계속하시겠습니까?',
     aiPaidCallLimitStop: '중지',
     aiToolReadPages: '{start}-{end}쪽 읽기',
     aiToolSearch: '"{query}" 검색 ({count}건)',
@@ -1575,6 +1582,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Cette tâche a effectué {used} appels MCP payants (limite : {max}). Continuer ?',
     aiPaidCallLimitContinue: 'Continuer',
+    aiPaidCallDisclosurePrompt:
+      'Cette tâche va appeler des outils MCP payants (0,5 ¥ par appel). Continuer ?',
     aiPaidCallLimitStop: 'Arrêter',
     aiToolReadPages: 'Lire les pages {start}-{end}',
     aiToolSearch: 'Rechercher « {query} » ({count} occurrences)',
@@ -1908,6 +1917,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Diese Aufgabe hat {used} kostenpflichtige MCP-Aufrufe ausgeführt (Limit: {max}). Fortfahren?',
     aiPaidCallLimitContinue: 'Fortfahren',
+    aiPaidCallDisclosurePrompt:
+      'Diese Aufgabe ruft kostenpflichtige MCP-Tools auf (0,5 ¥ pro Aufruf). Fortfahren?',
     aiPaidCallLimitStop: 'Stoppen',
     aiToolReadPages: 'Seiten {start}-{end} lesen',
     aiToolSearch: '„{query}" suchen ({count} Treffer)',
@@ -2240,6 +2251,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Esta tarea ha realizado {used} llamadas MCP de pago (límite: {max}). ¿Continuar?',
     aiPaidCallLimitContinue: 'Continuar',
+    aiPaidCallDisclosurePrompt:
+      'Esta tarea va a llamar a herramientas MCP de pago (0,5 ¥ por llamada). ¿Continuar?',
     aiPaidCallLimitStop: 'Detener',
     aiToolReadPages: 'Leer páginas {start}-{end}',
     aiToolSearch: 'Buscar «{query}» ({count} resultados)',
@@ -2570,6 +2583,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'งานนี้ได้เรียก MCP แบบชำระเงินไปแล้ว {used} ครั้ง (จำกัด {max} ครั้ง) ต้องการดำเนินการต่อหรือไม่',
     aiPaidCallLimitContinue: 'ดำเนินการต่อ',
+    aiPaidCallDisclosurePrompt:
+      'งานนี้กำลังจะเรียกเครื่องมือ MCP แบบชำระเงิน (ครั้งละ 0.5 หยวน) ต้องการดำเนินการต่อหรือไม่',
     aiPaidCallLimitStop: 'หยุด',
     aiToolReadPages: 'อ่านหน้า {start}-{end}',
     aiToolSearch: 'ค้นหา "{query}" ({count} แห่ง)',
@@ -2898,6 +2913,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Tugas ini telah melakukan {used} panggilan MCP berbayar (batas {max}). Lanjutkan?',
     aiPaidCallLimitContinue: 'Lanjutkan',
+    aiPaidCallDisclosurePrompt:
+      'Tugas ini akan memanggil alat MCP berbayar (¥0,5 per panggilan). Lanjutkan?',
     aiPaidCallLimitStop: 'Hentikan',
     aiToolReadPages: 'Baca halaman {start}-{end}',
     aiToolSearch: 'Cari "{query}" ({count} temuan)',
@@ -3228,6 +3245,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Эта задача выполнила {used} платных вызовов MCP (лимит: {max}). Продолжить?',
     aiPaidCallLimitContinue: 'Продолжить',
+    aiPaidCallDisclosurePrompt:
+      'Эта задача будет вызывать платные инструменты MCP (0,5 ¥ за вызов). Продолжить?',
     aiPaidCallLimitStop: 'Остановить',
     aiToolReadPages: 'Чтение страниц {start}-{end}',
     aiToolSearch: 'Поиск «{query}» ({count} совпадений)',
@@ -3557,6 +3576,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'نفّذت هذه المهمة {used} استدعاءات MCP مدفوعة (الحد {max}). هل تريد المتابعة؟',
     aiPaidCallLimitContinue: 'متابعة',
+    aiPaidCallDisclosurePrompt:
+      'ستستدعي هذه المهمة أدوات MCP مدفوعة (0.5 يوان لكل استدعاء). هل تريد المتابعة؟',
     aiPaidCallLimitStop: 'إيقاف',
     aiToolReadPages: 'قراءة الصفحات {start}-{end}',
     aiToolSearch: 'بحث عن "{query}" ({count} نتيجة)',
@@ -3885,6 +3906,8 @@ export const strings = {
     aiRechargeAction: 'Recarregar',
     aiPaidCallLimitPrompt: 'Esta tarefa fez {used} chamadas MCP pagas (limite: {max}). Continuar?',
     aiPaidCallLimitContinue: 'Continuar',
+    aiPaidCallDisclosurePrompt:
+      'Esta tarefa vai chamar ferramentas MCP pagas (¥0,5 por chamada). Continuar?',
     aiPaidCallLimitStop: 'Parar',
     aiToolReadPages: 'Ler páginas {start}-{end}',
     aiToolSearch: 'Pesquisar "{query}" ({count} ocorrências)',
@@ -4217,6 +4240,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Questa attività ha effettuato {used} chiamate MCP a pagamento (limite: {max}). Continuare?',
     aiPaidCallLimitContinue: 'Continua',
+    aiPaidCallDisclosurePrompt:
+      'Questa attività chiamerà strumenti MCP a pagamento (0,5 ¥ per chiamata). Continuare?',
     aiPaidCallLimitStop: 'Ferma',
     aiToolReadPages: 'Leggi le pagine {start}-{end}',
     aiToolSearch: 'Cerca "{query}" ({count} risultati)',
@@ -4549,6 +4574,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'To zadanie wykonało {used} płatnych wywołań MCP (limit: {max}). Kontynuować?',
     aiPaidCallLimitContinue: 'Kontynuuj',
+    aiPaidCallDisclosurePrompt:
+      'To zadanie będzie wywoływać płatne narzędzia MCP (0,5 ¥ za wywołanie). Kontynuować?',
     aiPaidCallLimitStop: 'Zatrzymaj',
     aiToolReadPages: 'Czytaj strony {start}-{end}',
     aiToolSearch: 'Szukaj „{query}" ({count} wyników)',
@@ -4881,6 +4908,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Deze taak heeft {used} betaalde MCP-aanroepen gedaan (limiet: {max}). Doorgaan?',
     aiPaidCallLimitContinue: 'Doorgaan',
+    aiPaidCallDisclosurePrompt:
+      'Deze taak gaat betaalde MCP-tools aanroepen (¥0,5 per aanroep). Doorgaan?',
     aiPaidCallLimitStop: 'Stoppen',
     aiToolReadPages: "Pagina's {start}-{end} lezen",
     aiToolSearch: 'Zoeken naar "{query}" ({count} resultaten)',
@@ -5211,6 +5240,8 @@ export const strings = {
     aiPaidCallLimitPrompt:
       'Tugas ini telah membuat {used} panggilan MCP berbayar (had {max}). Teruskan?',
     aiPaidCallLimitContinue: 'Teruskan',
+    aiPaidCallDisclosurePrompt:
+      'Tugas ini akan memanggil alat MCP berbayar (¥0.5 setiap panggilan). Teruskan?',
     aiPaidCallLimitStop: 'Berhenti',
     aiToolReadPages: 'Baca halaman {start}-{end}',
     aiToolSearch: 'Cari "{query}" ({count} padanan)',
@@ -5536,6 +5567,7 @@ export const strings = {
     aiRechargeAction: 'טעינה',
     aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
     aiPaidCallLimitContinue: 'המשך',
+    aiPaidCallDisclosurePrompt: 'משימה זו תקרא לכלי MCP בתשלום (0.5 ¥ לכל קריאה). להמשיך?',
     aiPaidCallLimitStop: 'עצור',
     aiToolReadPages: 'קריאת עמודים {start}-{end}',
     aiToolSearch: 'חיפוש "{query}" ({count} תוצאות)',
@@ -5861,6 +5893,7 @@ export const strings = {
     aiRechargeAction: 'रिचार्ज करें',
     aiPaidCallLimitPrompt: 'इस कार्य ने {used} सशुल्क MCP कॉल किए हैं (सीमा {max})। जारी रखें?',
     aiPaidCallLimitContinue: 'जारी रखें',
+    aiPaidCallDisclosurePrompt: 'यह कार्य सशुल्क MCP टूल कॉल करेगा (प्रति कॉल ¥0.5)। जारी रखें?',
     aiPaidCallLimitStop: 'रोकें',
     aiToolReadPages: 'पृष्ठ {start}-{end} पढ़ें',
     aiToolSearch: '"{query}" खोजें ({count} परिणाम)',
@@ -6185,6 +6218,7 @@ export const strings = {
     aiRechargeAction: 'रिचार्ज करें',
     aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
     aiPaidCallLimitContinue: '繼續呼叫',
+    aiPaidCallDisclosurePrompt: '此任務將開始呼叫付費 MCP 工具（每次收費 0.5 元）。是否繼續？',
     aiPaidCallLimitStop: '停止',
     aiToolReadPages: '讀取第 {start}-{end} 頁',
     aiToolSearch: '搜尋「{query}」（{count} 處）',

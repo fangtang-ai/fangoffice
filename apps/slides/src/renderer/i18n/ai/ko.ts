@@ -233,5 +233,7 @@ export const ko = {
   aiPaidCallLimitPrompt:
     '이 작업은 유료 MCP 호출을 {used}회 사용했습니다(한도 {max}회). 계속하시겠습니까?',
   aiPaidCallLimitContinue: '계속',
+  aiPaidCallDisclosurePrompt:
+    '이 작업은 유료 MCP 도구를 호출합니다(호출당 0.5위안). 계속하시겠습니까?',
   aiPaidCallLimitStop: '중지',
 } satisfies Record<keyof typeof zh, string>

@@ -111,5 +111,7 @@ export const ja = {
   aiPaidCallLimitPrompt:
     'このタスクは有料MCP呼び出しを{used}回実行しました（上限{max}回）。続けますか？',
   aiPaidCallLimitContinue: '続ける',
+  aiPaidCallDisclosurePrompt:
+    'このタスクは有料MCPツールを呼び出します（1回あたり0.5元）。続けますか？',
   aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

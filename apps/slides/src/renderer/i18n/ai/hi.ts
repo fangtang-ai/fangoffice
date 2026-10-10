@@ -232,5 +232,6 @@ export const hi = {
   aiSumListTemplates: '{count} स्टाइल टेम्पलेट सूचीबद्ध किए गए',
   aiPaidCallLimitPrompt: 'इस कार्य ने {used} सशुल्क MCP कॉल किए हैं (सीमा {max})। जारी रखें?',
   aiPaidCallLimitContinue: 'जारी रखें',
+  aiPaidCallDisclosurePrompt: 'यह कार्य सशुल्क MCP टूल कॉल करेगा (प्रति कॉल ¥0.5)। जारी रखें?',
   aiPaidCallLimitStop: 'रोकें',
 } satisfies Record<keyof typeof zh, string>

@@ -155,5 +155,6 @@ export const he = {
   aiCmdSkipped: ' (דולגו {count} בלוקים מוגנים)',
   aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
   aiPaidCallLimitContinue: 'המשך',
+  aiPaidCallDisclosurePrompt: 'משימה זו תקרא לכלי MCP בתשלום (0.5 ¥ לכל קריאה). להמשיך?',
   aiPaidCallLimitStop: 'עצור',
 } satisfies Record<keyof typeof zh, string>

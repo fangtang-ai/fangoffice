@@ -39,6 +39,10 @@ export interface McpPaidCallGateInfo {
   max: number
 }
 
+export interface McpPaidCallDisclosureInfo {
+  aiRunId: string
+}
+
 export interface McpRendererApi {
   status(): Promise<McpServerInfo[]>
   listTools(server: string): Promise<McpToolInfo[]>
@@ -48,6 +52,8 @@ export interface McpRendererApi {
     args: Record<string, unknown>,
     context?: McpCallContext,
   ): Promise<McpCallResult>
+  /** first-use price disclosure before a run's first paid call; resolve false (or omit) to decline */
+  onPaidCallDisclosure?(info: McpPaidCallDisclosureInfo): Promise<boolean>
   /** pause-and-confirm gate when a run's paid-call budget is exhausted; resolve false (or omit) to decline */
   onPaidCallLimit?(info: McpPaidCallGateInfo): Promise<boolean>
 }
@@ -92,7 +98,10 @@ export function createMcpPresetHooks(
   let statusFetchedAt = 0
   // per-run paid-call budget: failed calls count too; retries stay inside one callTool await so
   // they cannot double-count. Insertion-ordered map doubles as an LRU cap for finished runs.
-  const runBudget = new Map<string, { used: number; allowance: number }>()
+  const runBudget = new Map<
+    string,
+    { used: number; allowance: number; disclosed: boolean; declined: boolean }
+  >()
   const maxPaidCalls = Math.max(0, options?.maxPaidMcpCallsPerRun ?? DEFAULT_MAX_PAID_CALLS_PER_RUN)
   let snapshot: { key: string; tools: AgentToolDef[] } = { key: '', tools: [] }
   let inFlight: Promise<void> | null = null
@@ -174,12 +183,41 @@ export function createMcpPresetHooks(
         // so this only fires for direct executeTool use before any model request
         if (alwaysServers === null) await loadAlwaysServers()
         if (paidServers.has(parsed.server)) {
-          const budget = runBudget.get(context.aiRunId) ?? { used: 0, allowance: maxPaidCalls }
+          const budget = runBudget.get(context.aiRunId) ?? {
+            used: 0,
+            allowance: maxPaidCalls,
+            disclosed: false,
+            declined: false,
+          }
           if (runBudget.size >= MAX_TRACKED_RUNS && !runBudget.has(context.aiRunId)) {
             const oldest = runBudget.keys().next().value
             if (oldest !== undefined) runBudget.delete(oldest)
           }
           runBudget.set(context.aiRunId, budget)
+          if (budget.declined) {
+            return {
+              output:
+                'The user declined the paid-call price disclosure; no further paid MCP calls are allowed in this run.',
+              isError: true,
+              summary: parsed.tool,
+            }
+          }
+          if (!budget.disclosed) {
+            // set before the await so concurrent first calls prompt at most once
+            budget.disclosed = true
+            const allowed = api.onPaidCallDisclosure
+              ? await api.onPaidCallDisclosure({ aiRunId: context.aiRunId })
+              : false
+            if (!allowed) {
+              budget.declined = true
+              return {
+                output:
+                  'The user declined the paid-call price disclosure; no further paid MCP calls are allowed in this run.',
+                isError: true,
+                summary: parsed.tool,
+              }
+            }
+          }
           if (budget.used >= budget.allowance) {
             const allowed = api.onPaidCallLimit
               ? await api.onPaidCallLimit({

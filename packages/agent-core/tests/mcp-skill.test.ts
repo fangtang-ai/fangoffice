@@ -170,6 +170,8 @@ function paidApi(
       },
     ],
     listTools: async () => [{ name: 'search', inputSchema: { type: 'object' } }],
+    // guardrail tests below focus on the 10-call limit; disclosure consent is the default
+    onPaidCallDisclosure: async () => true,
     callTool: async (server, tool) => {
       calls.push({ server, tool })
       return { text: `ok:${tool}`, isError: false, ...result }
@@ -197,6 +199,69 @@ describe('paid-call guardrail', () => {
     expect(blocked.isError).toBe(true)
     expect(blocked.output).toMatch(/budget/i)
     expect(calls).toHaveLength(2)
+    expect(blocked.billing).toBeUndefined()
+  })
+
+  it('discloses the price once before the first paid call of a run', async () => {
+    const calls: Array<{ server: string; tool: string }> = []
+    const onPaidCallDisclosure = vi.fn().mockResolvedValue(true)
+    const api = paidApi(calls)
+    api.onPaidCallDisclosure = onPaidCallDisclosure
+    const hooks = createMcpPresetHooks(api)
+    for (let i = 0; i < 2; i++) {
+      const ok = await hooks.executeTool!(
+        { id: `c${i}`, name: 'mcp__policy__search', input: {} },
+        undefined,
+        ctxOf(RUN_A, i),
+      )
+      expect(ok.isError).toBe(false)
+    }
+    expect(onPaidCallDisclosure).toHaveBeenCalledTimes(1)
+    expect(onPaidCallDisclosure).toHaveBeenCalledWith({ aiRunId: RUN_A })
+    expect(calls).toHaveLength(2)
+  })
+
+  it('declining the disclosure blocks the run without spending a paid call', async () => {
+    const calls: Array<{ server: string; tool: string }> = []
+    const onPaidCallDisclosure = vi.fn().mockResolvedValue(false)
+    const onPaidCallLimit = vi.fn().mockResolvedValue(true)
+    const api = paidApi(calls)
+    api.onPaidCallDisclosure = onPaidCallDisclosure
+    api.onPaidCallLimit = onPaidCallLimit
+    const hooks = createMcpPresetHooks(api)
+    const first = await hooks.executeTool!(
+      { id: 'c0', name: 'mcp__policy__search', input: {} },
+      undefined,
+      ctxOf(RUN_A, 0),
+    )
+    expect(first.isError).toBe(true)
+    expect(first.output).toMatch(/declined/i)
+    expect(calls).toHaveLength(0)
+    // refusing must not consume the budget, and the run stays declined
+    const second = await hooks.executeTool!(
+      { id: 'c1', name: 'mcp__policy__search', input: {} },
+      undefined,
+      ctxOf(RUN_A, 1),
+    )
+    expect(second.isError).toBe(true)
+    expect(onPaidCallDisclosure).toHaveBeenCalledTimes(1)
+    expect(onPaidCallLimit).not.toHaveBeenCalled()
+    expect(calls).toHaveLength(0)
+  })
+
+  it('blocks paid calls when no disclosure callback is available', async () => {
+    const calls: Array<{ server: string; tool: string }> = []
+    const api = paidApi(calls)
+    delete (api as Partial<McpRendererApi>).onPaidCallDisclosure
+    const hooks = createMcpPresetHooks(api)
+    const blocked = await hooks.executeTool!(
+      { id: 'c0', name: 'mcp__policy__search', input: {} },
+      undefined,
+      ctxOf(RUN_A, 0),
+    )
+    expect(blocked.isError).toBe(true)
+    expect(blocked.output).toMatch(/disclosure|declined/i)
+    expect(calls).toHaveLength(0)
     expect(blocked.billing).toBeUndefined()
   })
 

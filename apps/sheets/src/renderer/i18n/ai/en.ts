@@ -111,5 +111,7 @@ export const en = {
   aiScopeClearTitle: 'Drop the range scope and target the whole sheet',
   aiPaidCallLimitPrompt: 'This task has made {used} paid MCP calls (limit {max}). Continue?',
   aiPaidCallLimitContinue: 'Continue',
+  aiPaidCallDisclosurePrompt:
+    'This task is about to call paid MCP tools: each call costs ¥0.5. Continue?',
   aiPaidCallLimitStop: 'Stop',
 } satisfies Record<keyof typeof zh, string>

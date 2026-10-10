@@ -162,5 +162,7 @@ export const ru = {
   aiPaidCallLimitPrompt:
     'Эта задача выполнила {used} платных вызовов MCP (лимит: {max}). Продолжить?',
   aiPaidCallLimitContinue: 'Продолжить',
+  aiPaidCallDisclosurePrompt:
+    'Эта задача будет вызывать платные инструменты MCP (0,5 ¥ за вызов). Продолжить?',
   aiPaidCallLimitStop: 'Остановить',
 } satisfies Record<keyof typeof zh, string>

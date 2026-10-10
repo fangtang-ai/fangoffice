@@ -165,5 +165,7 @@ export const it = {
   aiPaidCallLimitPrompt:
     'Questa attività ha effettuato {used} chiamate MCP a pagamento (limite: {max}). Continuare?',
   aiPaidCallLimitContinue: 'Continua',
+  aiPaidCallDisclosurePrompt:
+    'Questa attività chiamerà strumenti MCP a pagamento (0,5 ¥ per chiamata). Continuare?',
   aiPaidCallLimitStop: 'Ferma',
 } satisfies Record<keyof typeof zh, string>

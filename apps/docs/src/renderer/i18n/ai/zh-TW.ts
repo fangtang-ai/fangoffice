@@ -153,5 +153,6 @@ export const zhTW = {
   aiCmdSkipped: '(略過 {count} 個受保護區塊)',
   aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
   aiPaidCallLimitContinue: '繼續呼叫',
+  aiPaidCallDisclosurePrompt: '此任務將開始呼叫付費 MCP 工具（每次收費 0.5 元）。是否繼續？',
   aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

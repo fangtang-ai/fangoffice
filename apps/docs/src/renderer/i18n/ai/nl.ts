@@ -163,5 +163,7 @@ export const nl = {
   aiPaidCallLimitPrompt:
     'Deze taak heeft {used} betaalde MCP-aanroepen gedaan (limiet: {max}). Doorgaan?',
   aiPaidCallLimitContinue: 'Doorgaan',
+  aiPaidCallDisclosurePrompt:
+    'Deze taak gaat betaalde MCP-tools aanroepen (¥0,5 per aanroep). Doorgaan?',
   aiPaidCallLimitStop: 'Stoppen',
 } satisfies Record<keyof typeof zh, string>

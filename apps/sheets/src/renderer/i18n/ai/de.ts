@@ -113,5 +113,7 @@ export const de = {
   aiPaidCallLimitPrompt:
     'Diese Aufgabe hat {used} kostenpflichtige MCP-Aufrufe ausgeführt (Limit: {max}). Fortfahren?',
   aiPaidCallLimitContinue: 'Fortfahren',
+  aiPaidCallDisclosurePrompt:
+    'Diese Aufgabe ruft kostenpflichtige MCP-Tools auf (0,5 ¥ pro Aufruf). Fortfahren?',
   aiPaidCallLimitStop: 'Stoppen',
 } satisfies Record<keyof typeof zh, string>

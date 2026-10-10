@@ -159,5 +159,7 @@ export const th = {
   aiPaidCallLimitPrompt:
     'งานนี้ได้เรียก MCP แบบชำระเงินไปแล้ว {used} ครั้ง (จำกัด {max} ครั้ง) ต้องการดำเนินการต่อหรือไม่',
   aiPaidCallLimitContinue: 'ดำเนินการต่อ',
+  aiPaidCallDisclosurePrompt:
+    'งานนี้กำลังจะเรียกเครื่องมือ MCP แบบชำระเงิน (ครั้งละ 0.5 หยวน) ต้องการดำเนินการต่อหรือไม่',
   aiPaidCallLimitStop: 'หยุด',
 } satisfies Record<keyof typeof zh, string>

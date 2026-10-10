@@ -106,5 +106,6 @@ export const he = {
   aiScopeClearTitle: 'ביטול טווח הבחירה ומיקוד בגיליון כולו',
   aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
   aiPaidCallLimitContinue: 'המשך',
+  aiPaidCallDisclosurePrompt: 'משימה זו תקרא לכלי MCP בתשלום (0.5 ¥ לכל קריאה). להמשיך?',
   aiPaidCallLimitStop: 'עצור',
 } satisfies Record<keyof typeof zh, string>

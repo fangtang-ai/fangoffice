@@ -163,5 +163,7 @@ export const pt = {
   aiCmdSkipped: ' ({count} bloco(s) protegido(s) ignorado(s))',
   aiPaidCallLimitPrompt: 'Esta tarefa fez {used} chamadas MCP pagas (limite: {max}). Continuar?',
   aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallDisclosurePrompt:
+    'Esta tarefa vai chamar ferramentas MCP pagas (¥0,5 por chamada). Continuar?',
   aiPaidCallLimitStop: 'Parar',
 } satisfies Record<keyof typeof zh, string>

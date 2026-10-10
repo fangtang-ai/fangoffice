@@ -235,5 +235,7 @@ export const fr = {
   aiPaidCallLimitPrompt:
     'Cette tâche a effectué {used} appels MCP payants (limite : {max}). Continuer ?',
   aiPaidCallLimitContinue: 'Continuer',
+  aiPaidCallDisclosurePrompt:
+    'Cette tâche va appeler des outils MCP payants (0,5 ¥ par appel). Continuer ?',
   aiPaidCallLimitStop: 'Arrêter',
 } satisfies Record<keyof typeof zh, string>

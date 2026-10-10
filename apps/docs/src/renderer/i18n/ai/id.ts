@@ -161,5 +161,7 @@ export const id = {
   aiPaidCallLimitPrompt:
     'Tugas ini telah melakukan {used} panggilan MCP berbayar (batas {max}). Lanjutkan?',
   aiPaidCallLimitContinue: 'Lanjutkan',
+  aiPaidCallDisclosurePrompt:
+    'Tugas ini akan memanggil alat MCP berbayar (¥0,5 per panggilan). Lanjutkan?',
   aiPaidCallLimitStop: 'Hentikan',
 } satisfies Record<keyof typeof zh, string>

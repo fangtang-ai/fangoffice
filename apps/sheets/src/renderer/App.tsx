@@ -846,6 +846,7 @@ export function App(): React.JSX.Element {
   const [paidCallGate, setPaidCallGate] = useState<{
     used: number
     max: number
+    kind: 'disclosure' | 'limit'
     resolve: (ok: boolean) => void
   } | null>(null)
   // Display history survives restarts via localStorage; the AgentLoop's model
@@ -1122,8 +1123,14 @@ export function App(): React.JSX.Element {
             listTools: (server) => window.desktopApi.mcpListTools(server),
             callTool: (server, tool, args, context) =>
               window.desktopApi.mcpCallTool(server, tool, args, context),
+            onPaidCallDisclosure: () =>
+              new Promise<boolean>((resolve) =>
+                setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
+              ),
             onPaidCallLimit: ({ used, max }) =>
-              new Promise<boolean>((resolve) => setPaidCallGate({ used, max, resolve })),
+              new Promise<boolean>((resolve) =>
+                setPaidCallGate({ used, max, kind: 'limit', resolve }),
+              ),
           }),
         ),
       ]),
@@ -5372,7 +5379,9 @@ export function App(): React.JSX.Element {
           <div className="ai-recharge-overlay" role="dialog" aria-modal="true">
             <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
               <div className="ai-recharge-body">
-                {t('aiPaidCallLimitPrompt', { used: paidCallGate.used, max: paidCallGate.max })}
+                {paidCallGate.kind === 'disclosure'
+                  ? t('aiPaidCallDisclosurePrompt')
+                  : t('aiPaidCallLimitPrompt', { used: paidCallGate.used, max: paidCallGate.max })}
               </div>
               <div className="ai-recharge-actions">
                 <button

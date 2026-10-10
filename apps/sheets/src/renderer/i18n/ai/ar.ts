@@ -111,5 +111,7 @@ export const ar = {
   aiPaidCallLimitPrompt:
     'نفّذت هذه المهمة {used} استدعاءات MCP مدفوعة (الحد {max}). هل تريد المتابعة؟',
   aiPaidCallLimitContinue: 'متابعة',
+  aiPaidCallDisclosurePrompt:
+    'ستستدعي هذه المهمة أدوات MCP مدفوعة (0.5 يوان لكل استدعاء). هل تريد المتابعة؟',
   aiPaidCallLimitStop: 'إيقاف',
 } satisfies Record<keyof typeof zh, string>

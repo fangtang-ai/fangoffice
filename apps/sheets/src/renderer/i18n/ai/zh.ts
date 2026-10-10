@@ -104,5 +104,6 @@ export const zh = {
   aiScopeClearTitle: '取消该区域范围，本次针对整张表',
   aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
   aiPaidCallLimitContinue: '继续调用',
+  aiPaidCallDisclosurePrompt: '本任务将开始调用付费 MCP 工具：每次收费 0.5 元。是否继续？',
   aiPaidCallLimitStop: '停止',
 }
