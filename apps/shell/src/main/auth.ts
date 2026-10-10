@@ -22,6 +22,7 @@ import {
 } from '@genoffice/electron-utils'
 import type { AccountErrorCode, AccountUsage, AccountView } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
+import { rechargeMismatchView } from './account-recharge'
 import {
   AccountMcpError,
   type AccountMcpAccess,
@@ -133,6 +134,17 @@ function sessionView(value: AccountSession | null): AccountView {
   }
 }
 
+/** user id the recharge page was opened under; null when none is open */
+let rechargeUserIdAtOpen: string | null = null
+
+/** session view plus the one-shot recharge account-mismatch flag (see
+ * account-recharge.ts); used everywhere a session view is published */
+function sessionViewWithRechargeCheck(value: AccountSession | null): AccountView {
+  const checked = rechargeMismatchView(sessionView(value), rechargeUserIdAtOpen)
+  rechargeUserIdAtOpen = checked.openedUserId
+  return checked.view
+}
+
 function currentSession(): AccountSession | null {
   if (!sessionLoaded) {
     session = loadSession()
@@ -202,7 +214,7 @@ export function getAccountMcpAccess() {
 }
 
 function broadcastSession(): void {
-  const view = sessionView(currentSession())
+  const view = sessionViewWithRechargeCheck(currentSession())
   for (const window of BrowserWindow.getAllWindows()) {
     if (!window.isDestroyed()) window.webContents.send('account:session-changed', view)
   }
@@ -483,7 +495,9 @@ export function registerAccountIpc(): void {
   // token; the ai:stream handlers (docs bundle, same process) read it per request
   setAccountManagedTokenProvider(() => currentSession()?.accessToken ?? null)
 
-  ipcMain.handle(HOME_CHANNELS.getAccountSession, (): AccountView => sessionView(currentSession()))
+  ipcMain.handle(HOME_CHANNELS.getAccountSession, (): AccountView =>
+    sessionViewWithRechargeCheck(currentSession()),
+  )
 
   ipcMain.handle(HOME_CHANNELS.loginAccount, async (): Promise<AccountView> => {
     if (loginInFlight) return loginInFlight
@@ -552,6 +566,9 @@ export function registerAccountIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.openRecharge, (): void => {
+    // remember whose wallet the user went to top up; a different user on the
+    // next published session view gets flagged once (rechargeMismatchView)
+    rechargeUserIdAtOpen = currentSession()?.userId ?? null
     const rechargeUrl = loadFangTangAccountConfig().rechargeUrl
     shell.openExternal(rechargeUrl || 'https://fang-tang.cn').catch(() => undefined)
   })

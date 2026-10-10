@@ -574,6 +574,9 @@ function AccountPane() {
   return (
     <>
       <h3 className="set-pane-title">{t('accountSection')}</h3>
+      {account.session?.rechargeAccountChanged && (
+        <p className="set-ai-note">{t('accountRechargeChanged')}</p>
+      )}
       <Field
         label={t('accountSection')}
         value={account.name}

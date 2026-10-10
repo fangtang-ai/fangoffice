@@ -56,6 +56,8 @@ export interface AccountView {
   userId?: string
   displayName?: string
   avatarUrl?: string
+  /** one-shot: the session switched to another user while a recharge was open */
+  rechargeAccountChanged?: boolean
 }
 
 /**

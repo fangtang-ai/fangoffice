@@ -530,6 +530,9 @@ function AccountEntry({ account }: { account: AccountApi }) {
                     : `${t('accountMcpBalance')} · ${mcpBalance}`}
                 </div>
               )}
+              {account.session?.rechargeAccountChanged && (
+                <div className="account-menu-sub">{t('accountRechargeChanged')}</div>
+              )}
               <button
                 role="menuitem"
                 onClick={() => {

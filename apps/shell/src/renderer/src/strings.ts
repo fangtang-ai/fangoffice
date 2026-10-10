@@ -19,6 +19,7 @@ export const strings = {
     accountMcpUsed: 'MCP 本月已用',
     accountMcpPending: 'MCP 待结算',
     accountMcpNotOpened: 'MCP 钱包未开启',
+    accountRechargeChanged: '充值期间登录账号已切换，余额为当前账号的实际数据。',
     accountLowBalance: '余额不足，充值后可继续使用 AI 功能',
     accountManagedNote: '已登录方塘账号，对话将按用量从余额扣费。',
     // Sidebar navigation
@@ -202,6 +203,8 @@ export const strings = {
     accountMcpUsed: 'MCP used this month',
     accountMcpPending: 'MCP pending',
     accountMcpNotOpened: 'MCP wallet not opened',
+    accountRechargeChanged:
+      'The signed-in account changed during recharge; balances reflect the current account.',
     accountLowBalance: 'Balance is low — top up to keep using AI features',
     accountManagedNote:
       'Signed in to your Fangtang account — chats are billed from your balance by usage.',
@@ -381,6 +384,8 @@ export const strings = {
     accountMcpUsed: 'MCP今月の使用額',
     accountMcpPending: 'MCP請求予定',
     accountMcpNotOpened: 'MCPウォレット未開設',
+    accountRechargeChanged:
+      'チャージ中にログインアカウントが切り替わりました。残高は現在のアカウントの実データです。',
     accountLowBalance: '残高が不足しています。チャージすると AI 機能を引き続きご利用いただけます',
     accountManagedNote:
       '方塘アカウントでサインイン中です。チャットは使用量に応じて残高から課金されます。',
@@ -573,6 +578,8 @@ export const strings = {
     accountMcpUsed: 'MCP 이번 달 사용액',
     accountMcpPending: 'MCP 청구 예정',
     accountMcpNotOpened: 'MCP 지갑 미개설',
+    accountRechargeChanged:
+      '충전 중 로그인 계정이 변경되었습니다. 잔액은 현재 계정의 실제 데이터입니다.',
     accountLowBalance: '잔액이 부족합니다. 충전하면 AI 기능을 계속 사용할 수 있습니다',
     accountManagedNote: 'Fangtang 계정으로 로그인됨 — 대화는 사용량에 따라 잔액에서 청구됩니다.',
     // Sidebar navigation
@@ -762,6 +769,8 @@ export const strings = {
     accountMcpUsed: 'MCP utilisé ce mois',
     accountMcpPending: 'MCP en attente',
     accountMcpNotOpened: 'Portefeuille MCP non activé',
+    accountRechargeChanged:
+      'Le compte connecté a changé pendant la recharge ; les soldes reflètent le compte actuel.',
     accountLowBalance: 'Solde faible — rechargez pour continuer à utiliser les fonctions IA',
     accountManagedNote:
       "Compte Fangtang connecté — les conversations sont facturées à l'usage sur votre solde.",
@@ -956,6 +965,8 @@ export const strings = {
     accountMcpUsed: 'MCP diesen Monat verbraucht',
     accountMcpPending: 'MCP ausstehend',
     accountMcpNotOpened: 'MCP-Wallet nicht aktiviert',
+    accountRechargeChanged:
+      'Das angemeldete Konto hat sich während der Aufladung geändert; Guthaben zeigen das aktuelle Konto.',
     accountLowBalance: 'Geringes Guthaben — laden Sie auf, um KI-Funktionen weiter zu nutzen',
     accountManagedNote:
       'Bei Fangtang angemeldet — Chats werden verbrauchsabhängig vom Guthaben abgerechnet.',
@@ -1152,6 +1163,8 @@ export const strings = {
     accountMcpUsed: 'MCP usado este mes',
     accountMcpPending: 'MCP por cobrar',
     accountMcpNotOpened: 'Billetera MCP no activada',
+    accountRechargeChanged:
+      'La cuenta iniciada cambió durante la recarga; los saldos reflejan la cuenta actual.',
     accountLowBalance: 'Saldo bajo: recargue para seguir usando las funciones de IA',
     accountManagedNote:
       'Sesión iniciada en Fangtang: los chats se cobran según el uso de tu saldo.',
@@ -1345,6 +1358,8 @@ export const strings = {
     accountMcpUsed: 'MCP ใช้ไปเดือนนี้',
     accountMcpPending: 'MCP รอเก็บ',
     accountMcpNotOpened: 'ยังไม่เปิดใช้กระเป๋า MCP',
+    accountRechargeChanged:
+      'บัญชีที่ล็อกอินเปลี่ยนระหว่างการเติมเงิน ยอดเงินแสดงข้อมูลจริงของบัญชีปัจจุบัน',
     accountLowBalance: 'ยอดคงเหลือต่ำ เติมเงินเพื่อใช้ฟีเจอร์ AI ต่อได้',
     accountManagedNote:
       'ลงชื่อเข้าใช้บัญชี Fangtang แล้ว — แชทจะถูกเรียกเก็บเงินตามการใช้งานจากยอดคงเหลือ',
@@ -1534,6 +1549,8 @@ export const strings = {
     accountMcpUsed: 'MCP terpakai bulan ini',
     accountMcpPending: 'MCP ditagihkan',
     accountMcpNotOpened: 'Dompet MCP belum dibuka',
+    accountRechargeChanged:
+      'Akun yang masuk berubah selama pengisian; saldo mencerminkan akun saat ini.',
     accountLowBalance: 'Saldo menipis — isi ulang untuk terus memakai fitur AI',
     accountManagedNote: 'Masuk akun Fangtang — obrolan ditagih dari saldo sesuai pemakaian.',
     // Sidebar navigation
@@ -1726,6 +1743,8 @@ export const strings = {
     accountMcpUsed: 'MCP израсходовано за месяц',
     accountMcpPending: 'MCP к оплате',
     accountMcpNotOpened: 'Кошелёк MCP не активирован',
+    accountRechargeChanged:
+      'Во время пополнения аккаунт сменился; баланс отражает текущий аккаунт.',
     accountLowBalance: 'Мало средств — пополните баланс, чтобы продолжить пользоваться ИИ',
     accountManagedNote:
       'Вход выполнен в аккаунт Fangtang — диалоги тарифицируются по использованию с баланса.',
@@ -1920,6 +1939,7 @@ export const strings = {
     accountMcpUsed: 'MCP المستخدم هذا الشهر',
     accountMcpPending: 'MCP مستحق',
     accountMcpNotOpened: 'محفظة MCP غير مفعّلة',
+    accountRechargeChanged: 'تغيّر الحساب المسجَّل أثناء إعادة الشحن؛ الأرصدة تعكس الحساب الحالي.',
     accountLowBalance: 'الرصيد منخفض — أعد التعبئة لمتابعة استخدام ميزات الذكاء الاصطناعي',
     accountManagedNote:
       'تم تسجيل الدخول إلى حساب Fangtang — تُحتسب المحادثات من الرصيد حسب الاستخدام.',
@@ -2111,6 +2131,8 @@ export const strings = {
     accountMcpUsed: 'MCP usado este mês',
     accountMcpPending: 'MCP a cobrar',
     accountMcpNotOpened: 'Carteira MCP não ativada',
+    accountRechargeChanged:
+      'A conta com sessão iniciada mudou durante a recarga; os saldos refletem a conta atual.',
     accountLowBalance: 'Saldo baixo — recarregue para continuar usando os recursos de IA',
     accountManagedNote:
       'Sessão iniciada na conta Fangtang — os chats são cobrados do saldo conforme o uso.',
@@ -2294,6 +2316,8 @@ export const strings = {
     accountMcpUsed: 'MCP usato questo mese',
     accountMcpPending: 'MCP da saldare',
     accountMcpNotOpened: 'Wallet MCP non attivato',
+    accountRechargeChanged:
+      "L'account connesso è cambiato durante la ricarica; i saldi riflettono l'account attuale.",
     accountLowBalance: 'Saldo basso — ricarica per continuare a usare le funzioni IA',
     accountManagedNote:
       "Accesso effettuato all'account Fangtang — le chat vengono addebitate sul saldo in base all'uso.",
@@ -2478,6 +2502,8 @@ export const strings = {
     accountMcpUsed: 'MCP wykorzystane w tym miesiącu',
     accountMcpPending: 'MCP do rozliczenia',
     accountMcpNotOpened: 'Portfel MCP nieaktywny',
+    accountRechargeChanged:
+      'Konto zalogowane zmieniło się podczas doładowania; salda odzwierciedlają bieżące konto.',
     accountLowBalance: 'Niskie saldo — doładuj konto, aby korzystać dalej z funkcji AI',
     accountManagedNote:
       'Zalogowano do konta Fangtang — rozmowy są rozliczane z salda według użycia.',
@@ -2661,6 +2687,8 @@ export const strings = {
     accountMcpUsed: 'MCP deze maand gebruikt',
     accountMcpPending: 'MCP te vorderen',
     accountMcpNotOpened: 'MCP-portemonnee niet geactiveerd',
+    accountRechargeChanged:
+      'Het ingelogde account is gewijzigd tijdens het opladen; saldi weerspiegelen het huidige account.',
     accountLowBalance: 'Laag saldo — laad op om AI-functies te blijven gebruiken',
     accountManagedNote:
       'Ingelogd bij Fangtang — chats worden naar verbruik van je saldo afgerekend.',
@@ -2845,6 +2873,8 @@ export const strings = {
     accountMcpUsed: 'MCP digunakan bulan ini',
     accountMcpPending: 'MCP perlu dibayar',
     accountMcpNotOpened: 'Dompet MCP belum dibuka',
+    accountRechargeChanged:
+      'Akaun yang log masuk berubah semasa pengisian; baki mencerminkan akaun semasa.',
     accountLowBalance: 'Baki rendah — isi semula untuk terus guna ciri AI',
     accountManagedNote:
       'Log masuk akaun Fangtang — sembang dibilkan daripada baki mengikut penggunaan.',
@@ -3028,6 +3058,7 @@ export const strings = {
     accountMcpUsed: 'MCP שימוש החודש',
     accountMcpPending: 'MCP לתשלום',
     accountMcpNotOpened: 'ארנק MCP לא הופעל',
+    accountRechargeChanged: 'החשבון המחובר השתנה במהלך הטעינה; היתרות משקפים את החשבון הנוכחי.',
     accountLowBalance: 'היתרה נמוכה — מלאו כדי להמשיך להשתמש בתכונות ה-AI',
     accountManagedNote: 'מחובר לחשבון Fangtang — הצ׳אטים מחויבים מהיתרה לפי שימוש.',
     navRecent: 'אחרונים',
@@ -3204,6 +3235,8 @@ export const strings = {
     accountMcpUsed: 'MCP इस माह उपयोग',
     accountMcpPending: 'MCP देय',
     accountMcpNotOpened: 'MCP वॉलेट सक्रिय नहीं',
+    accountRechargeChanged:
+      'रिचार्ज के दौरान लॉग-इन खाता बदल गया; शेष राशि वर्तमान खाते का वास्तविक डेटा दिखाती है।',
     accountLowBalance: 'बैलेंस कम है — AI सुविधाएँ जारी रखने के लिए रिचार्ज करें',
     accountManagedNote:
       'Fangtang खाते में साइन इन हैं — चैट का बिल उपयोग के अनुसार बैलेंस से लगेगा।',
@@ -3387,6 +3420,7 @@ export const strings = {
     accountMcpUsed: 'MCP 本月已用',
     accountMcpPending: 'MCP 待結算',
     accountMcpNotOpened: 'MCP 錢包未開啟',
+    accountRechargeChanged: '儲值期間登入帳號已切換，餘額為目前帳號的實際資料。',
     accountLowBalance: '餘額不足，儲值後可繼續使用 AI 功能',
     accountManagedNote: '已登入方塘帳號，對話將依用量從餘額扣款。',
     navRecent: '最近',
