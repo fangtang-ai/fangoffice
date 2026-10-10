@@ -23,6 +23,11 @@ import {
 import type { AccountErrorCode, AccountUsage, AccountView } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
 import {
+  AccountMcpError,
+  type AccountMcpAccess,
+  type AccountMcpBinding,
+} from '@genoffice/mcp-bridge'
+import {
   accountEndpointOutcome,
   buildAuthorizeUrl,
   buildEndSessionUrl,
@@ -62,7 +67,12 @@ const LOGIN_TIMEOUT_MS = 5 * 60 * 1000
 const TOKEN_RENEW_MARGIN_MS = 60 * 1000
 
 let session: AccountSession | null = null
+let sessionLoaded = false
 let loginInFlight: Promise<AccountView> | null = null
+let tokenRefresh: { sessionId: number; promise: Promise<string> } | null = null
+let accountSessionId = 0
+let accountSessionController = new AbortController()
+const accountInvalidationListeners = new Set<() => void>()
 
 /** a user-facing login failure with a stable code the renderer localizes */
 class AccountError extends Error {
@@ -124,8 +134,71 @@ function sessionView(value: AccountSession | null): AccountView {
 }
 
 function currentSession(): AccountSession | null {
-  if (session === null) session = loadSession()
+  if (!sessionLoaded) {
+    session = loadSession()
+    sessionLoaded = true
+  }
   return session
+}
+
+function bindAccountSession(): AccountMcpBinding {
+  const current = currentSession()
+  if (!current) throw new AccountError('account:expired')
+  return {
+    userId: current.userId,
+    sessionId: accountSessionId,
+    signal: accountSessionController.signal,
+  }
+}
+
+function isCurrentAccount(binding: AccountMcpBinding) {
+  return (
+    !binding.signal.aborted &&
+    binding.sessionId === accountSessionId &&
+    currentSession()?.userId === binding.userId
+  )
+}
+
+function requireCurrentAccount(binding: AccountMcpBinding) {
+  if (!isCurrentAccount(binding)) throw new AccountError('account:expired')
+}
+
+function invalidateAccountSession() {
+  accountSessionController.abort()
+  accountSessionController = new AbortController()
+  accountSessionId++
+  tokenRefresh = null
+  for (const listener of accountInvalidationListeners) listener()
+}
+
+export function getAccountMcpAccess() {
+  return {
+    apiBase: () => loadFangTangAccountConfig().accountApiBase ?? null,
+    bind: () => {
+      try {
+        return bindAccountSession()
+      } catch {
+        throw new AccountMcpError('account:required')
+      }
+    },
+    isCurrent: isCurrentAccount,
+    token: async (binding: AccountMcpBinding, rejectedToken?: string) => {
+      if (!isCurrentAccount(binding)) throw new AccountMcpError('account:changed')
+      try {
+        return await validAccessToken(binding, rejectedToken)
+      } catch {
+        if (!isCurrentAccount(binding)) throw new AccountMcpError('account:changed')
+        throw new AccountMcpError('account:required')
+      }
+    },
+    subscribe: (listener: () => void) => {
+      accountInvalidationListeners.add(listener)
+      return () => {
+        accountInvalidationListeners.delete(listener)
+      }
+    },
+    allowLoopback: !app.isPackaged && process.env.FANGTANG_ALLOW_LOOPBACK_ACCOUNT_API === '1',
+  } satisfies AccountMcpAccess
 }
 
 function broadcastSession(): void {
@@ -148,7 +221,16 @@ function requireAccountConfig(): AccountOidcConfig {
 }
 
 /** persist + adopt a new token set, keeping the existing profile fields */
-function adoptTokens(tokens: TokenSet, profile?: Partial<AccountSession>): AccountSession {
+function adoptTokens(
+  tokens: TokenSet,
+  profile?: Partial<AccountSession>,
+  binding?: AccountMcpBinding,
+): AccountSession {
+  if (binding) {
+    requireCurrentAccount(binding)
+    if (profile?.userId && profile.userId !== binding.userId)
+      throw new AccountError('account:expired')
+  } else invalidateAccountSession()
   const existing = currentSession()
   const next: AccountSession = {
     userId: profile?.userId ?? existing?.userId ?? '',
@@ -160,12 +242,15 @@ function adoptTokens(tokens: TokenSet, profile?: Partial<AccountSession>): Accou
     expiresAt: tokens.expiresAt,
   }
   session = next
+  sessionLoaded = true
   saveSession(next)
   return next
 }
 
 function clearSession(): void {
+  invalidateAccountSession()
   session = null
+  sessionLoaded = true
   saveSession(null)
   accountAiEndpointLoad = null
   setAccountManagedDefaults(null)
@@ -177,17 +262,40 @@ function clearSession(): void {
  * (revoked session / expired refresh token) signs the user out; network
  * failures keep the session so an offline start doesn't log anyone out.
  */
-async function validAccessToken(): Promise<string> {
+async function validAccessToken(
+  binding = bindAccountSession(),
+  rejectedToken?: string,
+): Promise<string> {
+  requireCurrentAccount(binding)
   const current = currentSession()
   if (!current) throw new AccountError('account:not-configured')
-  if (current.expiresAt - Date.now() > TOKEN_RENEW_MARGIN_MS) return current.accessToken
+  if (
+    current.expiresAt - Date.now() > TOKEN_RENEW_MARGIN_MS &&
+    current.accessToken !== rejectedToken
+  )
+    return current.accessToken
   if (!current.refreshToken) throw new AccountError('account:expired')
+  if (tokenRefresh?.sessionId === binding.sessionId) return tokenRefresh.promise
+  const promise = refreshCurrentTokens(current, binding)
+  tokenRefresh = { sessionId: binding.sessionId, promise }
   try {
-    const tokens = await refreshTokens(requireAccountConfig(), current.refreshToken)
+    return await promise
+  } finally {
+    if (tokenRefresh?.promise === promise) tokenRefresh = null
+  }
+}
+
+async function refreshCurrentTokens(
+  current: AccountSession,
+  binding: AccountMcpBinding,
+): Promise<string> {
+  try {
+    const tokens = await refreshTokens(requireAccountConfig(), current.refreshToken!)
     // re-derive the profile from the fresh ID token so sessions logged in
     // before the display-name precedence change self-heal on the next refresh
-    return adoptTokens(tokens, profileFromIdToken(tokens.idToken) ?? undefined).accessToken
+    return adoptTokens(tokens, profileFromIdToken(tokens.idToken) ?? undefined, binding).accessToken
   } catch (error) {
+    requireCurrentAccount(binding)
     if (error instanceof Error && error.message.includes('invalid_grant')) {
       clearSession()
       broadcastSession()
@@ -308,6 +416,7 @@ function applyAccountAiEndpoint(): Promise<void> {
 async function fetchAccountAiEndpoint(): Promise<void> {
   const current = currentSession()
   if (!current) return
+  const binding = bindAccountSession()
 
   let next: AccountManagedDefaults | null
   try {
@@ -316,11 +425,15 @@ async function fetchAccountAiEndpoint(): Promise<void> {
       await recordAccountAiEndpointOutcome('missing-api-base')
       return
     }
+    const accessToken = await validAccessToken(binding)
+    requireCurrentAccount(binding)
     const response = await fetch(new URL('/api/office/ai-endpoint', accountApiBase), {
-      headers: { Authorization: `Bearer ${current.accessToken}` },
-      signal: AbortSignal.timeout(15_000),
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.any([binding.signal, AbortSignal.timeout(15_000)]),
+      redirect: 'error',
     })
     const body: unknown = await response.json().catch(() => null)
+    requireCurrentAccount(binding)
     const outcome = accountEndpointOutcome(response.status, body)
     if (outcome.kind === 'http-error') {
       await recordAccountAiEndpointOutcome(`http-${outcome.status}`)
@@ -344,7 +457,7 @@ async function fetchAccountAiEndpoint(): Promise<void> {
   }
   // Logout or account replacement while the request was in flight must not
   // install a stale user's endpoint into the process-wide cache.
-  if (currentSession()?.userId !== current.userId) return
+  if (!isCurrentAccount(binding)) return
 
   const previous = getAccountManagedDefaults()
   const changed = JSON.stringify(previous ?? null) !== JSON.stringify(next ?? null)
@@ -413,13 +526,18 @@ export function registerAccountIpc(): void {
       return null
     }
     try {
-      const accessToken = await validAccessToken()
+      const binding = bindAccountSession()
+      const accessToken = await validAccessToken(binding)
+      requireCurrentAccount(binding)
       // 站点 /api/office/account 返回 balanceCny/monthChargedCny 等；renderer 读 balanceCny + monthUsedCny
       const response = await fetch(new URL('/api/office/account', apiBase), {
         headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.any([binding.signal, AbortSignal.timeout(15_000)]),
+        redirect: 'error',
       })
       if (!response.ok) return null
       const body: unknown = await response.json()
+      requireCurrentAccount(binding)
       // 站点响应包在 { success, code, data } 里,取 data
       const payload = body && typeof body === 'object' ? (body as { data?: unknown }).data : null
       const account =

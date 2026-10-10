@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadMcpConfig } from '../src/config'
+import { expandEnvRefs, loadMcpConfig } from '../src/config'
 import { writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -11,12 +11,41 @@ function writeConfig(dir: string, name: string, body: unknown): string {
 }
 
 describe('loadMcpConfig', () => {
+  it('preserves account auth and the managed URL without expanding account secrets', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'mcp-'))
+    const path = writeConfig(dir, 'account.json', {
+      mcpServers: {
+        policy: {
+          transport: 'http',
+          url: '${ACCOUNT_API_BASE}/api/office/mcp',
+          auth: 'fangtang-account',
+        },
+      },
+    })
+    expect(loadMcpConfig(path).servers.policy).toMatchObject({
+      transport: 'http',
+      auth: 'fangtang-account',
+      url: '${ACCOUNT_API_BASE}/api/office/mcp',
+    })
+  })
+
   it('parses a valid config with both transports and defaults', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mcp-'))
     const path = writeConfig(dir, 'm.json', {
       mcpServers: {
-        erp: { transport: 'stdio', command: '/usr/local/bin/erp', args: ['--mode', 'cli'], env: { ERP_KEY: 'k' } },
-        wiki: { transport: 'http', url: 'https://wiki.internal/mcp', headers: { Authorization: 'Bearer t' }, alwaysAvailable: true, timeoutMs: 5000 },
+        erp: {
+          transport: 'stdio',
+          command: '/usr/local/bin/erp',
+          args: ['--mode', 'cli'],
+          env: { ERP_KEY: 'k' },
+        },
+        wiki: {
+          transport: 'http',
+          url: 'https://wiki.internal/mcp',
+          headers: { Authorization: 'Bearer t' },
+          alwaysAvailable: true,
+          timeoutMs: 5000,
+        },
         off: { transport: 'stdio', command: 'x', enabled: false },
       },
     })
@@ -76,6 +105,31 @@ describe('loadMcpConfig', () => {
 })
 
 describe('expandEnvRefs via loadMcpConfig', () => {
+  it('rejects account placeholders outside the managed URL and unsupported auth transports', () => {
+    process.env.ACCOUNT_TOKEN = 'must-not-leak'
+    const dir = mkdtempSync(join(tmpdir(), 'mcp-'))
+    const path = writeConfig(dir, 'account-secrets.json', {
+      mcpServers: {
+        thirdParty: {
+          transport: 'http',
+          url: 'https://third.invalid',
+          headers: { Authorization: '${ACCOUNT_TOKEN}' },
+        },
+        child: { transport: 'stdio', command: 'node', args: ['${ACCOUNT_TOKEN}'] },
+        environment: { transport: 'stdio', command: 'node', env: { TOKEN: '${ACCOUNT_TOKEN}' } },
+        base: { transport: 'http', url: '${ACCOUNT_API_BASE}/other' },
+        stdioAccount: { transport: 'stdio', command: 'node', auth: 'fangtang-account' },
+        unknownAuth: { transport: 'http', url: 'https://third.invalid', auth: 'typo' },
+      },
+    })
+    try {
+      expect(loadMcpConfig(path).servers).toEqual({})
+      expect(expandEnvRefs('${ACCOUNT_TOKEN}')).toBe('')
+    } finally {
+      delete process.env.ACCOUNT_TOKEN
+    }
+  })
+
   it('expands ${VAR} in url, headers, command, args and child env', () => {
     process.env.MCP_TEST_TOKEN = 'tok-123'
     process.env.MCP_TEST_HOST = 'internal.example'

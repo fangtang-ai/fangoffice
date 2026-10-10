@@ -153,4 +153,7 @@ export const he = {
   aiCmdImages: 'עודכנו {count} תמונות',
   aiCmdToc: 'הוסף תוכן עניינים ({count} ערכים)',
   aiCmdSkipped: ' (דולגו {count} בלוקים מוגנים)',
+  aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
+  aiPaidCallLimitContinue: 'המשך',
+  aiPaidCallLimitStop: 'עצור',
 } satisfies Record<keyof typeof zh, string>

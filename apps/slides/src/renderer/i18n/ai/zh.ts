@@ -222,4 +222,7 @@ export const zh = {
   aiSumSaveTemplate: '保存风格模板"{name}"',
   aiSumTemplatesEmpty: '风格模板列表（空）',
   aiSumListTemplates: '列出 {count} 个风格模板',
+  aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
+  aiPaidCallLimitContinue: '继续调用',
+  aiPaidCallLimitStop: '停止',
 }

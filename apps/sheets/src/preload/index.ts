@@ -1,11 +1,7 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
-import type {
-  AiChatResponse,
-  AiSettings,
-  AiStreamChunk,
-} from '@genoffice/ai-provider'
+import type { AiChatResponse, AiSettings, AiStreamChunk } from '@genoffice/ai-provider'
 import type { ProjectApi } from '@genoffice/project-store'
 import type {
   AttachmentAddResult,
@@ -473,8 +469,13 @@ const desktopApi: DesktopApi = {
       ReturnType<DesktopApi['mcpListTools']>
     >
   },
-  async mcpCallTool(server: string, tool: string, args: Record<string, unknown>) {
-    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as Awaited<
+  async mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ) {
+    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args, context)) as Awaited<
       ReturnType<DesktopApi['mcpCallTool']>
     >
   },

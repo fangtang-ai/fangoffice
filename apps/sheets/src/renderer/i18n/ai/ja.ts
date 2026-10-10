@@ -64,7 +64,8 @@ export const ja = {
   aiOverloadedError: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
   aiNetworkError:
     'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
-  aiCreditsExhausted: 'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
+  aiCreditsExhausted:
+    'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
   aiRechargePrompt: 'AIの利用枠を使い切りました。チャージすると続きを利用できます',
   aiRechargeAction: 'チャージする',
   aiToolWorkbookContext: 'ブック情報を読み取り',
@@ -107,4 +108,8 @@ export const ja = {
   aiScopeRangeTip:
     'AI は「この列 / これらの行 / 選択部分」をこの範囲として解釈します。送信すると今回の実行中は固定されます',
   aiScopeClearTitle: '範囲指定を解除してシート全体を対象にする',
+  aiPaidCallLimitPrompt:
+    'このタスクは有料MCP呼び出しを{used}回実行しました（上限{max}回）。続けますか？',
+  aiPaidCallLimitContinue: '続ける',
+  aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

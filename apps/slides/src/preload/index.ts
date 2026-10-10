@@ -1,4 +1,4 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { RenderSlide } from '@genoffice/pptx-render'
@@ -349,8 +349,12 @@ const api: SlidesApi = {
   },
   mcpStatus: () => ipcRenderer.invoke('mcp:status'),
   mcpListTools: (server: string) => ipcRenderer.invoke('mcp:list-tools', server),
-  mcpCallTool: (server: string, tool: string, args: Record<string, unknown>) =>
-    ipcRenderer.invoke('mcp:call-tool', server, tool, args),
+  mcpCallTool: (
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ) => ipcRenderer.invoke('mcp:call-tool', server, tool, args, context),
   setAiFeatures: (features: { disabledPresets?: string[] }) =>
     ipcRenderer.invoke('ai:set-features', features),
   webSearch: (query: string, maxResults?: number) =>

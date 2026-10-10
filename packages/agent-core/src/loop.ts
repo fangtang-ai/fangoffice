@@ -30,6 +30,7 @@ export interface AgentRunResult {
 }
 
 export interface AgentLoopEvents<TSnapshot> {
+  onRunStart?(aiRunId: string): void
   /** cumulative assistant text of the current turn (call per delta) */
   onText?(text: string): void
   /** a tool is about to execute (UI shows a live "running" indicator; onToolExecuted always follows) */
@@ -196,6 +197,7 @@ export class AgentLoop<TSnapshot = unknown> {
   private history: AgentMessage[] = []
   private handle: AgentStreamHandle | null = null
   private running = false
+  private aiRunId: string | null = null
   private cancelled = false
   private turns = 0
   /** Finalizing turn after hitting the turn limit: no tools, let the model answer from what it has read */
@@ -229,6 +231,10 @@ export class AgentLoop<TSnapshot = unknown> {
 
   get busy(): boolean {
     return this.running
+  }
+
+  get currentRunId() {
+    return this.aiRunId
   }
 
   get messages(): readonly AgentMessage[] {
@@ -280,6 +286,8 @@ export class AgentLoop<TSnapshot = unknown> {
   /** images: inline attachments for this user turn (vision input; see AgentImage) */
   run(instruction: string, images?: AgentImage[]): void {
     if (this.running || !instruction) return
+    this.aiRunId = crypto.randomUUID()
+    this.options.events?.onRunStart?.(this.aiRunId)
     this.running = true
     this.cancelled = false
     this.turns = 0
@@ -435,6 +443,7 @@ export class AgentLoop<TSnapshot = unknown> {
         this.handle = this.options.transport.stream(
           {
             system: SUMMARIZE_SYSTEM,
+            ...(this.aiRunId ? { aiRunId: this.aiRunId } : {}),
             messages: [
               ...slim,
               { role: 'user', text: 'Compress the conversation above as instructed.' },
@@ -529,6 +538,7 @@ export class AgentLoop<TSnapshot = unknown> {
     let settled = false
     this.handle = this.options.transport.stream(
       {
+        ...(this.aiRunId ? { aiRunId: this.aiRunId } : {}),
         system:
           runtimePreamble() +
           this.options.skill.systemPrompt +
@@ -718,7 +728,10 @@ export class AgentLoop<TSnapshot = unknown> {
       const snapshot = !this.mutationSeen ? captureSnapshot?.() : undefined
       let execution: ToolExecution
       try {
-        execution = await skill.executeTool(call, this.abortController?.signal)
+        execution = await skill.executeTool(call, this.abortController?.signal, {
+          aiRunId: this.aiRunId!,
+          logicalCallId: crypto.randomUUID(),
+        })
       } catch (e) {
         execution = {
           output: e instanceof Error ? e.message : String(e),

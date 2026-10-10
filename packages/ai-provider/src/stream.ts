@@ -24,13 +24,15 @@ export async function streamForProvider(
   tools: AgentToolDef[],
   maxTokens: number,
   cb: StreamCallbacks,
+  /** managed-run UUID; only the fangtang billing proxy consumes it */
+  aiRunId?: string,
 ): Promise<void> {
   const endpoint = getProviderAdapter(provider).resolveEndpoint(config)
   const { baseUrl } = endpoint
   const protocol = endpoint.protocol
   if (protocol === 'fangtang') {
     // the billing proxy owns the model and token budget; no output-cap retry applies
-    return streamFangtang(baseUrl, config, system, messages, tools, cb)
+    return streamFangtang(baseUrl, config, system, messages, tools, cb, aiRunId)
   }
   return withOutputCapFallback(baseUrl, config.model, maxTokens, (cap) => {
     switch (protocol) {

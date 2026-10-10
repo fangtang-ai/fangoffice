@@ -8929,3 +8929,23 @@ body.show-curtain::after {
 .ai-recharge-btn:hover {
   filter: brightness(1.15);
 }
+
+.ai-recharge-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ai-recharge-actions .ai-recharge-btn {
+  margin-top: 0;
+}
+
+.ai-recharge-btn-ghost {
+  background: transparent;
+  border: 1px solid #d0d0d2;
+  color: #232425;
+}
+.ai-recharge-btn-ghost:hover {
+  filter: none;
+  opacity: 0.85;
+}

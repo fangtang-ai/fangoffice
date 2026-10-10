@@ -112,7 +112,8 @@ export const it = {
   aiOverloadedError: 'Il servizio IA è momentaneamente sovraccarico — riprova tra poco',
   aiNetworkError:
     'Problema di rete: impossibile raggiungere il servizio IA. Controlla la connessione e riprova',
-  aiCreditsExhausted: 'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
+  aiCreditsExhausted:
+    'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
   aiRechargePrompt: 'I crediti IA sono esauriti. Ricarica per continuare',
   aiRechargeAction: 'Ricarica',
   aiSumReadAttachment: 'Lettura allegato',
@@ -161,4 +162,8 @@ export const it = {
   aiCmdImages: '{count} immagine/i aggiornata/e',
   aiCmdToc: 'Sommario inserito ({count} voci)',
   aiCmdSkipped: ' ({count} blocco/i protetto/i ignorato/i)',
+  aiPaidCallLimitPrompt:
+    'Questa attività ha effettuato {used} chiamate MCP a pagamento (limite: {max}). Continuare?',
+  aiPaidCallLimitContinue: 'Continua',
+  aiPaidCallLimitStop: 'Ferma',
 } satisfies Record<keyof typeof zh, string>

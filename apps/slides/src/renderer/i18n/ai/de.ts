@@ -121,7 +121,8 @@ export const de = {
   aiErrOverloaded: 'Der KI-Dienst ist derzeit überlastet — bitte gleich erneut versuchen',
   aiErrNetwork:
     'Netzwerkproblem: Der KI-Dienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut',
-  aiCreditsExhausted: 'Das Kontingent des Modell-Dienstes ist erschöpft. Wenden Sie sich an Ihren Administrator oder wählen Sie in den Einstellungen ein anderes Modell und versuchen Sie es erneut',
+  aiCreditsExhausted:
+    'Das Kontingent des Modell-Dienstes ist erschöpft. Wenden Sie sich an Ihren Administrator oder wählen Sie in den Einstellungen ein anderes Modell und versuchen Sie es erneut',
   aiRechargePrompt: 'Ihr KI-Kontingent ist aufgebraucht. Laden Sie auf, um fortzufahren',
   aiRechargeAction: 'Aufladen',
   aiErrRequestFailed: 'Senden der Anfrage fehlgeschlagen: {msg}',
@@ -233,4 +234,8 @@ export const de = {
   aiSumSaveTemplate: 'Stilvorlage „{name}“ gespeichert',
   aiSumTemplatesEmpty: 'Stilvorlagen (leer)',
   aiSumListTemplates: '{count} Stilvorlagen aufgelistet',
+  aiPaidCallLimitPrompt:
+    'Diese Aufgabe hat {used} kostenpflichtige MCP-Aufrufe ausgeführt (Limit: {max}). Fortfahren?',
+  aiPaidCallLimitContinue: 'Fortfahren',
+  aiPaidCallLimitStop: 'Stoppen',
 } satisfies Record<keyof typeof zh, string>

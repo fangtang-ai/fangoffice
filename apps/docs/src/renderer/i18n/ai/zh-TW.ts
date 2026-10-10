@@ -151,4 +151,7 @@ export const zhTW = {
   aiCmdImages: '已更新 {count} 張圖片',
   aiCmdToc: '已插入目錄({count} 個項目)',
   aiCmdSkipped: '(略過 {count} 個受保護區塊)',
+  aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
+  aiPaidCallLimitContinue: '繼續呼叫',
+  aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

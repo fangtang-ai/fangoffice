@@ -33,23 +33,25 @@ describe('fangtang billing proxy', () => {
         baseUrl: SITE_URL,
       }),
     ).toEqual({ protocol: 'fangtang', baseUrl: SITE_URL })
-    expect(() =>
-      AI_PROVIDER_ADAPTERS.fangtang.resolveEndpoint({ apiKey: '', model: 'm' }),
-    ).toThrow('The FangTang provider requires a Base URL')
+    expect(() => AI_PROVIDER_ADAPTERS.fangtang.resolveEndpoint({ apiKey: '', model: 'm' })).toThrow(
+      'The FangTang provider requires a Base URL',
+    )
   })
 
   it('posts the site contract: bearer token, idempotency-key, system folded first, tool turns paired', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      okResponse(
-        sseStream([
-          'data: {"type":"meta","requestId":"r1","model":"qwen3.5-plus"}',
-          'data: {"type":"delta","content":"你好"}',
-          'data: {"type":"usage","inputTokens":10,"outputTokens":2,"totalTokens":12}',
-          'data: {"type":"charge","requestId":"r1","amountFen":3,"inputTokens":10,"outputTokens":2}',
-          'data: {"type":"done","requestId":"r1"}',
-        ]),
-      ),
-    )
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        okResponse(
+          sseStream([
+            'data: {"type":"meta","requestId":"r1","model":"qwen3.5-plus"}',
+            'data: {"type":"delta","content":"你好"}',
+            'data: {"type":"usage","inputTokens":10,"outputTokens":2,"totalTokens":12}',
+            'data: {"type":"charge","requestId":"r1","amountFen":3,"inputTokens":10,"outputTokens":2}',
+            'data: {"type":"done","requestId":"r1"}',
+          ]),
+        ),
+      )
     vi.stubGlobal('fetch', fetchMock)
     const { deltas, toolCalls, cb } = collector()
     await streamForProvider(
@@ -58,7 +60,11 @@ describe('fangtang billing proxy', () => {
       '系统提示',
       [
         { role: 'user', text: 'hi' },
-        { role: 'assistant', text: '', toolCalls: [{ id: 'call_1', name: 'search', input: { q: 'x' } }] },
+        {
+          role: 'assistant',
+          text: '',
+          toolCalls: [{ id: 'call_1', name: 'search', input: { q: 'x' } }],
+        },
         { role: 'tool', results: [{ id: 'call_1', name: 'search', output: '{"hits":1}' }] },
       ],
       [{ name: 'search', description: 'Search docs', inputSchema: { type: 'object' } }],
@@ -81,28 +87,68 @@ describe('fangtang billing proxy', () => {
         {
           role: 'assistant',
           content: '',
-          tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'search', arguments: '{"q":"x"}' } }],
+          tool_calls: [
+            {
+              id: 'call_1',
+              type: 'function',
+              function: { name: 'search', arguments: '{"q":"x"}' },
+            },
+          ],
         },
         { role: 'tool', tool_call_id: 'call_1', content: '{"hits":1}' },
       ],
       tools: [
-        { type: 'function', function: { name: 'search', description: 'Search docs', parameters: { type: 'object' } } },
+        {
+          type: 'function',
+          function: { name: 'search', description: 'Search docs', parameters: { type: 'object' } },
+        },
       ],
     })
   })
 
-  it('maps site tool_call frames to onToolCall', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      okResponse(
-        sseStream([
-          'data: {"type":"meta","requestId":"r1","model":"qwen3.5-plus"}',
-          'data: {"type":"tool_call","id":"call_9","name":"edit_doc","arguments":"{\\"title\\":\\"A\\"}"}',
-          'data: {"type":"usage","inputTokens":10,"outputTokens":2,"totalTokens":12}',
-          'data: {"type":"charge","requestId":"r1","amountFen":3,"inputTokens":10,"outputTokens":2}',
-          'data: {"type":"done","requestId":"r1"}',
-        ]),
-      ),
+  // 受管任务标识必须到达站点计费代理：同一 aiRunId 关联 MCP 与 AI 消费
+  it('forwards the managed aiRunId in the site request body', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        okResponse(
+          sseStream([
+            'data: {"type":"meta","requestId":"r1","model":"m"}',
+            'data: {"type":"done","requestId":"r1"}',
+          ]),
+        ),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    const { cb } = collector()
+    const aiRunId = 'f4245812-731b-43e0-a1b4-ef2810140b05'
+    await streamForProvider(
+      'fangtang',
+      { apiKey: 'logto-token', model: 'm', baseUrl: SITE_URL },
+      '系统提示',
+      [{ role: 'user', text: 'hi' }],
+      [],
+      100,
+      cb,
+      aiRunId,
     )
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(JSON.parse(init.body as string)).toMatchObject({ aiRunId })
+  })
+
+  it('maps site tool_call frames to onToolCall', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        okResponse(
+          sseStream([
+            'data: {"type":"meta","requestId":"r1","model":"qwen3.5-plus"}',
+            'data: {"type":"tool_call","id":"call_9","name":"edit_doc","arguments":"{\\"title\\":\\"A\\"}"}',
+            'data: {"type":"usage","inputTokens":10,"outputTokens":2,"totalTokens":12}',
+            'data: {"type":"charge","requestId":"r1","amountFen":3,"inputTokens":10,"outputTokens":2}',
+            'data: {"type":"done","requestId":"r1"}',
+          ]),
+        ),
+      )
     vi.stubGlobal('fetch', fetchMock)
     const { cb, toolCalls } = collector()
     await streamForProvider(
@@ -114,15 +160,19 @@ describe('fangtang billing proxy', () => {
       100,
       cb,
     )
-    expect(toolCalls).toEqual([{ id: 'call_9', name: 'edit_doc', input: { title: 'A' }, inputError: undefined }])
+    expect(toolCalls).toEqual([
+      { id: 'call_9', name: 'edit_doc', input: { title: 'A' }, inputError: undefined },
+    ])
   })
 
   it('maps an in-band error event to AiCreditsError for money codes', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      okResponse(
-        sseStream(['data: {"type":"error","code":"insufficient_balance","message":"余额不足"}']),
-      ),
-    )
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        okResponse(
+          sseStream(['data: {"type":"error","code":"insufficient_balance","message":"余额不足"}']),
+        ),
+      )
     vi.stubGlobal('fetch', fetchMock)
     await expect(
       streamForProvider(
@@ -140,7 +190,9 @@ describe('fangtang billing proxy', () => {
   it('maps an HTTP 400 余额不足 rejection (before any SSE) to AiCreditsError', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValue(jsonResponse({ message: '余额不足', error: 'Bad Request', statusCode: 400 }, 400))
+      .mockResolvedValue(
+        jsonResponse({ message: '余额不足', error: 'Bad Request', statusCode: 400 }, 400),
+      )
     vi.stubGlobal('fetch', fetchMock)
     await expect(
       streamForProvider(

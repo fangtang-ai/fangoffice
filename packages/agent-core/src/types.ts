@@ -1,9 +1,13 @@
+import type { McpBillingInfo, OfficeBillingProduct } from './billing'
+
 /** JSON-Schema described tool exposed to the model */
 export interface AgentToolDef {
   name: string
   description: string
   /** JSON Schema (object) describing the tool input */
   inputSchema: Record<string, unknown>
+  /** Trusted application metadata; not part of the model's tool schema. */
+  billingProduct?: OfficeBillingProduct
 }
 
 export interface AgentToolCall {
@@ -78,6 +82,8 @@ export interface ToolExecution {
    * Ignored when tool results are assembled into an AgentMessage.
    */
   display?: ToolDisplay
+  /** Trusted main-process billing side channel; never added to tool output. */
+  billing?: McpBillingInfo
 }
 
 // ---- run phase (drives the in-progress status line in chat UIs) ----
@@ -99,6 +105,8 @@ export interface AgentPhase {
 // ---- LLM transport (how one model turn is streamed; app supplies the impl) ----
 
 export interface AgentStreamRequest {
+  /** Application-owned task UUID; optional only for independent non-Agent requests. */
+  aiRunId?: string
   system: string
   messages: AgentMessage[]
   tools: AgentToolDef[]

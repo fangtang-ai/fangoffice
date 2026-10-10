@@ -108,7 +108,8 @@ export const id = {
   aiOverloadedError: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
   aiNetworkError:
     'Masalah jaringan: tidak dapat terhubung ke layanan AI. Periksa koneksi Anda lalu coba lagi',
-  aiCreditsExhausted: 'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
+  aiCreditsExhausted:
+    'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
   aiRechargePrompt: 'Kredit AI Anda telah habis. Isi ulang untuk melanjutkan',
   aiRechargeAction: 'Isi ulang',
   aiSumReadAttachment: 'Baca lampiran',
@@ -157,4 +158,8 @@ export const id = {
   aiCmdImages: '{count} gambar diperbarui',
   aiCmdToc: 'Daftar isi disisipkan ({count} entri)',
   aiCmdSkipped: ' ({count} blok terlindungi dilewati)',
+  aiPaidCallLimitPrompt:
+    'Tugas ini telah melakukan {used} panggilan MCP berbayar (batas {max}). Lanjutkan?',
+  aiPaidCallLimitContinue: 'Lanjutkan',
+  aiPaidCallLimitStop: 'Hentikan',
 } satisfies Record<keyof typeof zh, string>

@@ -66,7 +66,8 @@ export const pt = {
     'O serviço de IA está sobrecarregado no momento — tente novamente em instantes',
   aiNetworkError:
     'Problema de rede: não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente',
-  aiCreditsExhausted: 'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
+  aiCreditsExhausted:
+    'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
   aiRechargePrompt: 'Seus créditos de IA acabaram. Recarregue para continuar',
   aiRechargeAction: 'Recarregar',
   aiToolWorkbookContext: 'Ler informações da pasta de trabalho',
@@ -109,4 +110,7 @@ export const pt = {
   aiScopeRangeTip:
     'A IA interpreta "esta coluna / estas linhas / a parte selecionada" como este intervalo, que fica fixo durante toda a execução ao enviar',
   aiScopeClearTitle: 'Remover o escopo do intervalo e usar a planilha inteira',
+  aiPaidCallLimitPrompt: 'Esta tarefa fez {used} chamadas MCP pagas (limite: {max}). Continuar?',
+  aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallLimitStop: 'Parar',
 } satisfies Record<keyof typeof zh, string>

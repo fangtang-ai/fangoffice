@@ -117,7 +117,8 @@ export const ko = {
   aiErrOverloaded: 'AI 서비스가 혼잡합니다. 잠시 후 다시 시도해 주세요',
   aiErrNetwork:
     '네트워크에 문제가 있어 AI 서비스에 연결할 수 없습니다. 연결을 확인한 후 다시 시도해 주세요',
-  aiCreditsExhausted: '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
+  aiCreditsExhausted:
+    '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
   aiRechargePrompt: 'AI 사용량을 모두 사용했습니다. 충전 후 계속 이용할 수 있습니다',
   aiRechargeAction: '충전하기',
   aiErrRequestFailed: '요청 전송 실패: {msg}',
@@ -229,4 +230,8 @@ export const ko = {
   aiSumSaveTemplate: '스타일 템플릿 "{name}" 저장',
   aiSumTemplatesEmpty: '스타일 템플릿 목록(비어 있음)',
   aiSumListTemplates: '스타일 템플릿 {count}개 나열',
+  aiPaidCallLimitPrompt:
+    '이 작업은 유료 MCP 호출을 {used}회 사용했습니다(한도 {max}회). 계속하시겠습니까?',
+  aiPaidCallLimitContinue: '계속',
+  aiPaidCallLimitStop: '중지',
 } satisfies Record<keyof typeof zh, string>

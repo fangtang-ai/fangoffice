@@ -1,4 +1,10 @@
-import type { McpCallResult, McpServerInfo, McpToolInfo, PresetSkillDef } from '@genoffice/agent-core'
+import type {
+  McpCallContext,
+  McpCallResult,
+  McpServerInfo,
+  McpToolInfo,
+  PresetSkillDef,
+} from '@genoffice/agent-core'
 import { z } from 'zod'
 
 import {
@@ -2466,6 +2472,8 @@ export const aiChatRequestSchema = z
 export const aiStreamRequestSchema = z
   .object({
     requestId: z.string().min(1),
+    /** managed-run UUID shared with the MCP turn; forwarded to the billing proxy */
+    aiRunId: z.string().uuid().optional(),
     settings: aiSettingsInputSchema,
     system: z.string(),
     messages: z.array(agentMessageSchema).max(MAX_AI_MESSAGES),
@@ -2757,7 +2765,12 @@ export interface DesktopApi {
   /// built-in MCP servers (fangtang-mcp.json): status, tools, tool calls
   mcpStatus(): Promise<McpServerInfo[]>
   mcpListTools(server: string): Promise<McpToolInfo[]>
-  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+  mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ): Promise<McpCallResult>
   setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   /// start a streaming AI call; deltas arrive via onAiStream with the same requestId
   aiStream(request: AiStreamRequest): Promise<void>
@@ -2807,4 +2820,3 @@ export interface ImageSearchResponse {
   /** failure reason when method === 'error' */
   error?: string
 }
-

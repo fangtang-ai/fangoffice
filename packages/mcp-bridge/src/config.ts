@@ -19,11 +19,15 @@ export type McpTransport = 'stdio' | 'http'
  * own connection with a clear error rather than leaking a placeholder.
  */
 export function expandEnvRefs(value: string): string {
-  return value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, name) => process.env[name] ?? '')
+  return value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, name: string) =>
+    name === 'ACCOUNT_TOKEN' || name === 'ACCOUNT_API_BASE' ? '' : (process.env[name] ?? ''),
+  )
 }
 
 export interface McpServerConfig {
   transport: McpTransport
+  /** Main-process account capability; never a static token placeholder. */
+  auth?: 'fangtang-account'
   /** stdio: executable to spawn */
   command?: string
   /** stdio: argument list */
@@ -53,49 +57,48 @@ function parseConfig(raw: unknown, source: string): McpConfig {
   if (!record || typeof record !== 'object' || Array.isArray(record)) return { servers }
   for (const [name, value] of Object.entries(record as Record<string, unknown>)) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) continue
-    const cfg = value as Record<string, unknown>
-    const transport = cfg.transport === 'http' ? 'http' : 'stdio'
-    if (transport === 'stdio' && typeof cfg.command !== 'string') {
-      console.warn(`[mcp] ${source}: server "${name}" is stdio but has no command — skipped`)
-      continue
-    }
-    if (transport === 'http' && typeof cfg.url !== 'string') {
-      console.warn(`[mcp] ${source}: server "${name}" is http but has no url — skipped`)
-      continue
-    }
-    servers[name] = {
-      transport,
-      enabled: cfg.enabled !== false,
-      alwaysAvailable: cfg.alwaysAvailable === true,
-      ...(typeof cfg.command === 'string' ? { command: expandEnvRefs(cfg.command) } : {}),
-      ...(Array.isArray(cfg.args)
-        ? { args: cfg.args.map((a) => expandEnvRefs(String(a))) }
-        : {}),
-      ...(cfg.env && typeof cfg.env === 'object' && !Array.isArray(cfg.env)
-        ? {
-            env: Object.fromEntries(
-              Object.entries(cfg.env as Record<string, unknown>)
-                .filter(([, v]) => typeof v === 'string')
-                .map(([k, v]) => [k, expandEnvRefs(v as string)]),
-            ),
-          }
-        : {}),
-      ...(typeof cfg.url === 'string' ? { url: expandEnvRefs(cfg.url) } : {}),
-      ...(cfg.headers && typeof cfg.headers === 'object' && !Array.isArray(cfg.headers)
-        ? {
-            headers: Object.fromEntries(
-              Object.entries(cfg.headers as Record<string, unknown>)
-                .filter(([, v]) => typeof v === 'string')
-                .map(([k, v]) => [k, expandEnvRefs(v as string)]),
-            ),
-          }
-        : {}),
-      ...(typeof cfg.timeoutMs === 'number' && cfg.timeoutMs > 0
-        ? { timeoutMs: cfg.timeoutMs }
-        : {}),
-    }
+    const server = parseServer(value as Record<string, unknown>)
+    if (server) servers[name] = server
+    else console.warn(`[mcp] ${source}: invalid server "${name}" — skipped`)
   }
   return { servers }
+}
+
+function expandStringRecord(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+      .map(([key, text]) => [key, expandEnvRefs(text)]),
+  )
+}
+
+function parseServer(cfg: Record<string, unknown>): McpServerConfig | undefined {
+  const transport = cfg.transport === 'http' ? 'http' : 'stdio'
+  const managed = cfg.auth === 'fangtang-account'
+  if (cfg.auth !== undefined && !managed) return undefined
+  if (managed && transport !== 'http') return undefined
+  if (transport === 'stdio' && typeof cfg.command !== 'string') return undefined
+  if (transport === 'http' && typeof cfg.url !== 'string') return undefined
+  // 账号占位符不属于通用环境变量，只有受管 URL 可以保留基址占位符。
+  const outsideUrl = JSON.stringify({ ...cfg, ...(managed ? { url: undefined } : {}) })
+  if (/\$\{ACCOUNT_(TOKEN|API_BASE)\}/.test(outsideUrl)) return undefined
+  if (managed && typeof cfg.url === 'string' && cfg.url.includes('${ACCOUNT_TOKEN}'))
+    return undefined
+  const env = expandStringRecord(cfg.env)
+  const headers = expandStringRecord(cfg.headers)
+  return {
+    transport,
+    ...(managed ? { auth: 'fangtang-account' } : {}),
+    enabled: cfg.enabled !== false,
+    alwaysAvailable: cfg.alwaysAvailable === true,
+    ...(typeof cfg.command === 'string' ? { command: expandEnvRefs(cfg.command) } : {}),
+    ...(Array.isArray(cfg.args) ? { args: cfg.args.map((arg) => expandEnvRefs(String(arg))) } : {}),
+    ...(env ? { env } : {}),
+    ...(typeof cfg.url === 'string' ? { url: managed ? cfg.url : expandEnvRefs(cfg.url) } : {}),
+    ...(headers ? { headers } : {}),
+    ...(typeof cfg.timeoutMs === 'number' && cfg.timeoutMs > 0 ? { timeoutMs: cfg.timeoutMs } : {}),
+  }
 }
 
 function readJsonFile(path: string): unknown {

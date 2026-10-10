@@ -111,7 +111,8 @@ export const es = {
     'El servicio de IA está saturado en este momento; inténtalo de nuevo en unos instantes',
   aiNetworkError:
     'Problema de red: no se pudo conectar con el servicio de IA. Comprueba tu conexión e inténtalo de nuevo',
-  aiCreditsExhausted: 'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
+  aiCreditsExhausted:
+    'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
   aiRechargePrompt: 'Sus créditos de IA se han agotado. Recargue para continuar',
   aiRechargeAction: 'Recargar',
   aiSumReadAttachment: 'Leer dato adjunto',
@@ -160,4 +161,8 @@ export const es = {
   aiCmdImages: '{count} imagen(es) actualizada(s)',
   aiCmdToc: 'Tabla de contenido insertada ({count} entradas)',
   aiCmdSkipped: ' ({count} bloque(s) protegido(s) omitido(s))',
+  aiPaidCallLimitPrompt:
+    'Esta tarea ha realizado {used} llamadas MCP de pago (límite: {max}). ¿Continuar?',
+  aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallLimitStop: 'Detener',
 } satisfies Record<keyof typeof zh, string>

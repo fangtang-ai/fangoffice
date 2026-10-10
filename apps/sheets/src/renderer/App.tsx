@@ -828,7 +828,11 @@ export function App(): React.JSX.Element {
   aiSettingsRef.current = aiSettings
 
   // built-in generation skill (技能) selected in the composer; live-read per turn
-  const { presets: skillOptions, active: activeSkill, pick: pickSkill } = useAiSkills(
+  const {
+    presets: skillOptions,
+    active: activeSkill,
+    pick: pickSkill,
+  } = useAiSkills(
     'sheets',
     () => window.desktopApi?.getAiFeatures?.(),
     () => window.desktopApi?.getPresetCatalog?.(),
@@ -839,6 +843,11 @@ export function App(): React.JSX.Element {
   const [aiBusy, setAiBusy] = useState(false)
   /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
   const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
+  const [paidCallGate, setPaidCallGate] = useState<{
+    used: number
+    max: number
+    resolve: (ok: boolean) => void
+  } | null>(null)
   // Display history survives restarts via localStorage; the AgentLoop's model
   // context does not, so restored turns are read-only transcript.
   const [chat, setChat] = useState<readonly AiChatMessage[]>([])
@@ -1111,7 +1120,10 @@ export function App(): React.JSX.Element {
           createMcpPresetHooks({
             status: () => window.desktopApi.mcpStatus(),
             listTools: (server) => window.desktopApi.mcpListTools(server),
-            callTool: (server, tool, args) => window.desktopApi.mcpCallTool(server, tool, args),
+            callTool: (server, tool, args, context) =>
+              window.desktopApi.mcpCallTool(server, tool, args, context),
+            onPaidCallLimit: ({ used, max }) =>
+              new Promise<boolean>((resolve) => setPaidCallGate({ used, max, resolve })),
           }),
         ),
       ]),
@@ -1348,7 +1360,19 @@ export function App(): React.JSX.Element {
     setAttachments((prev) => prev.filter((a) => a.path !== path))
   }
 
+  // Pending paid-call gate: settle it when unmounting so the waiting executor
+  // never hangs; also stop a detached run from spending.
+  useEffect(() => {
+    if (!paidCallGate) return
+    return () => paidCallGate.resolve(false)
+  }, [paidCallGate])
+  useEffect(() => () => agentLoopRef.current?.cancel(), [])
+
   function handleStopAgent(): void {
+    if (paidCallGate) {
+      paidCallGate.resolve(false)
+      setPaidCallGate(null)
+    }
     agentLoopRef.current?.cancel()
   }
 
@@ -1362,6 +1386,10 @@ export function App(): React.JSX.Element {
   }
 
   function handleNewChat(): void {
+    if (paidCallGate) {
+      paidCallGate.resolve(false)
+      setPaidCallGate(null)
+    }
     agentLoopRef.current?.reset()
     setAiRunScope(undefined)
     setAiBusy(false)
@@ -5316,28 +5344,63 @@ export function App(): React.JSX.Element {
           onClose={() => setChartDialog(null)}
         />
       )}
-      {rechargeUrl && createPortal(
-        <div
-          className="ai-recharge-overlay"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setRechargeUrl(null)}
-        >
-          <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
-            <button
-              className="ai-recharge-btn"
-              onClick={() => {
-                setRechargeUrl(null)
-                void window.desktopApi.openExternal(rechargeUrl)
-              }}
-            >
-              {t('aiRechargeAction')}
-            </button>
-          </div>
-        </div>,
-        document.body,
-      )}
+      {rechargeUrl &&
+        createPortal(
+          <div
+            className="ai-recharge-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setRechargeUrl(null)}
+          >
+            <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
+              <button
+                className="ai-recharge-btn"
+                onClick={() => {
+                  setRechargeUrl(null)
+                  void window.desktopApi.openExternal(rechargeUrl)
+                }}
+              >
+                {t('aiRechargeAction')}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+      {paidCallGate &&
+        createPortal(
+          <div className="ai-recharge-overlay" role="dialog" aria-modal="true">
+            <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ai-recharge-body">
+                {t('aiPaidCallLimitPrompt', { used: paidCallGate.used, max: paidCallGate.max })}
+              </div>
+              <div className="ai-recharge-actions">
+                <button
+                  className="ai-recharge-btn"
+                  onClick={() => {
+                    const resolve = paidCallGate.resolve
+                    setPaidCallGate(null)
+                    resolve(true)
+                  }}
+                >
+                  {t('aiPaidCallLimitContinue')}
+                </button>
+                <button
+                  className="ai-recharge-btn ai-recharge-btn-ghost"
+                  onClick={() => {
+                    const resolve = paidCallGate.resolve
+                    setPaidCallGate(null)
+                    resolve(false)
+                    agentLoopRef.current?.cancel()
+                  }}
+                >
+                  {t('aiPaidCallLimitStop')}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
       <ExcelShell
         prompt={prompt}
         preview={preview}

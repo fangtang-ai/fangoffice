@@ -117,7 +117,8 @@ export const pl = {
   aiErrOverloaded: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
   aiErrNetwork:
     'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
-  aiCreditsExhausted: 'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+  aiCreditsExhausted:
+    'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
   aiRechargePrompt: 'Kredyty AI zostały wyczerpane. Doładuj konto, aby kontynuować',
   aiRechargeAction: 'Doładuj konto',
   aiErrRequestFailed: 'Wysłanie żądania nie powiodło się: {msg}',
@@ -229,4 +230,8 @@ export const pl = {
   aiSumSaveTemplate: 'Zapisano szablon stylu „{name}”',
   aiSumTemplatesEmpty: 'Szablony stylu (pusto)',
   aiSumListTemplates: 'Wyświetlono szablony stylu: {count}',
+  aiPaidCallLimitPrompt:
+    'To zadanie wykonało {used} płatnych wywołań MCP (limit: {max}). Kontynuować?',
+  aiPaidCallLimitContinue: 'Kontynuuj',
+  aiPaidCallLimitStop: 'Zatrzymaj',
 } satisfies Record<keyof typeof zh, string>

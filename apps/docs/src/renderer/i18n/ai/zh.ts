@@ -149,4 +149,7 @@ export const zh = {
   aiCmdImages: '已更新 {count} 张图片',
   aiCmdToc: '已插入目录({count} 个条目)',
   aiCmdSkipped: '(跳过 {count} 个受保护块)',
+  aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
+  aiPaidCallLimitContinue: '继续调用',
+  aiPaidCallLimitStop: '停止',
 }

@@ -110,7 +110,8 @@ export const fr = {
   aiOverloadedError: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
   aiNetworkError:
     'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
-  aiCreditsExhausted: 'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+  aiCreditsExhausted:
+    'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
   aiRechargePrompt: 'Vos crédits IA sont épuisés. Rechargez pour continuer',
   aiRechargeAction: 'Recharger',
   aiSumReadAttachment: 'Lire la pièce jointe',
@@ -159,4 +160,8 @@ export const fr = {
   aiCmdImages: '{count} image(s) mise(s) à jour',
   aiCmdToc: 'Table des matières insérée ({count} entrées)',
   aiCmdSkipped: ' ({count} bloc(s) protégé(s) ignoré(s))',
+  aiPaidCallLimitPrompt:
+    'Cette tâche a effectué {used} appels MCP payants (limite : {max}). Continuer ?',
+  aiPaidCallLimitContinue: 'Continuer',
+  aiPaidCallLimitStop: 'Arrêter',
 } satisfies Record<keyof typeof zh, string>

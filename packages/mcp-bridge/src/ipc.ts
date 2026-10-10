@@ -10,6 +10,7 @@
 
 import { ipcMain } from 'electron'
 import { McpHub, type McpCallResult, type McpServerStatus, type McpToolInfo } from './hub'
+import { isMcpCallContext } from '@genoffice/agent-core'
 
 export const MCP_CHANNELS = {
   status: 'mcp:status',
@@ -24,7 +25,13 @@ export function registerMcpIpc(hub: McpHub): void {
   })
   ipcMain.handle(
     MCP_CHANNELS.callTool,
-    async (_event, server: unknown, tool: unknown, args: unknown): Promise<McpCallResult> => {
+    async (
+      _event,
+      server: unknown,
+      tool: unknown,
+      args: unknown,
+      context: unknown,
+    ): Promise<McpCallResult> => {
       if (typeof tool !== 'string' || !tool) {
         return { text: 'mcp:call-tool requires a tool name', isError: true }
       }
@@ -35,7 +42,12 @@ export function registerMcpIpc(hub: McpHub): void {
         args && typeof args === 'object' && !Array.isArray(args)
           ? (args as Record<string, unknown>)
           : {}
-      return hub.callTool(String(server), tool, input)
+      if (context !== undefined && !isMcpCallContext(context))
+        return { text: 'invalid_call_metadata', isError: true }
+      const billingContext = isMcpCallContext(context)
+        ? { aiRunId: context.aiRunId, logicalCallId: context.logicalCallId }
+        : undefined
+      return hub.callTool(String(server), tool, input, billingContext)
     },
   )
 }

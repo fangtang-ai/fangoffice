@@ -1,3 +1,10 @@
+export { isMcpCallContext } from './billing'
+export type {
+  McpCallContext,
+  McpBillingInfo,
+  OfficeBillingProduct,
+  OfficeBillingProblem,
+} from './billing'
 export type {
   AgentImage,
   AgentMessage,
@@ -15,18 +22,8 @@ export { composeSkills } from './skill'
 export type { AgentSkill, ExecutedToolCall } from './skill'
 export { createPresetSkill } from './preset'
 export type { ActivePreset, PresetSkillDef, PresetSkillHooks } from './preset'
-export {
-  createMcpPresetHooks,
-  mcpToolName,
-  parseMcpToolName,
-  MCP_TOOL_PREFIX,
-} from './mcp-skill'
-export type {
-  McpCallResult,
-  McpRendererApi,
-  McpServerInfo,
-  McpToolInfo,
-} from './mcp-skill'
+export { createMcpPresetHooks, mcpToolName, parseMcpToolName, MCP_TOOL_PREFIX } from './mcp-skill'
+export type { McpCallResult, McpRendererApi, McpServerInfo, McpToolInfo } from './mcp-skill'
 export { BUILTIN_PRESETS, composePresetCatalog, presetsForApp } from './presets'
 export type { AiFeatures, PresetFileInput } from './presets'
 export {

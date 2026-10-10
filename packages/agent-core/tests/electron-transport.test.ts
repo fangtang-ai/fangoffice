@@ -54,6 +54,30 @@ function setup(
 }
 
 describe('createIpcTransport', () => {
+  it('preserves the application run id over IPC instead of deriving it from the request or model', () => {
+    let receive: ((chunk: IpcStreamChunk) => void) | undefined
+    const start = vi.fn<(request: IpcStreamStart<FakeSettings>) => void>()
+    const transport = createIpcTransport({
+      onStream: (listener) => {
+        receive = listener
+        return () => {}
+      },
+      start,
+      cancel: () => {},
+      getSettings: () => ({ provider: 'fangtang' }),
+      unknownErrorText: () => 'error',
+    })
+    const aiRunId = 'f4245812-731b-43e0-a1b4-ef2810140b05'
+    transport.stream(
+      { system: '', messages: [], tools: [], aiRunId },
+      { onDelta: () => {}, onToolCall: () => {}, onDone: () => {}, onError: () => {} },
+    )
+    const request = start.mock.calls[0]![0]
+    receive?.({ requestId: request.requestId, type: 'done' })
+    expect(request.aiRunId).toBe(aiRunId)
+    expect(request.requestId).not.toBe(aiRunId)
+  })
+
   it('starts one request with settings and forwards deltas and tool calls', () => {
     const { started, cb, emit } = setup()
     expect(started).toHaveLength(1)

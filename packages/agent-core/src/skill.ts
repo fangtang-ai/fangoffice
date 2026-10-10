@@ -1,4 +1,5 @@
 import type { AgentToolCall, AgentToolDef, ToolExecution } from './types'
+import type { McpCallContext } from './billing'
 
 /** One tool call actually executed during a run, as seen by verifyResponse. */
 export interface ExecutedToolCall {
@@ -27,7 +28,11 @@ export interface AgentSkill {
    * generate_deck with internal LLM calls) should check signal.aborted in
    * their loops and stop promptly.
    */
-  executeTool(call: AgentToolCall, signal?: AbortSignal): ToolExecution | Promise<ToolExecution>
+  executeTool(
+    call: AgentToolCall,
+    signal?: AbortSignal,
+    context?: McpCallContext,
+  ): ToolExecution | Promise<ToolExecution>
   /**
    * Claimed-action guard: inspect the run's final assistant text against the
    * tools that actually executed during the run. Return a corrective
@@ -69,12 +74,12 @@ export function composeSkills(id: string, intro: string, skills: AgentSkill[]): 
         .map((s) => s.buildContext?.() ?? '')
         .filter(Boolean)
         .join('\n\n'),
-    executeTool: (call, signal) => {
+    executeTool: (call, signal, context) => {
       const skill = ownerOf(call.name)
       if (!skill) {
         return { output: `Unknown tool: ${call.name}`, isError: true, summary: call.name }
       }
-      return skill.executeTool(call, signal)
+      return skill.executeTool(call, signal, context)
     },
     verifyResponse: (finalText, executed) => {
       for (const skill of skills) {

@@ -225,4 +225,7 @@ export const he = {
   aiSumSaveTemplate: 'תבנית הסגנון "{name}" נשמרה',
   aiSumTemplatesEmpty: 'תבניות סגנון (ריק)',
   aiSumListTemplates: 'הוצגו {count} תבניות סגנון',
+  aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
+  aiPaidCallLimitContinue: 'המשך',
+  aiPaidCallLimitStop: 'עצור',
 } satisfies Record<keyof typeof zh, string>

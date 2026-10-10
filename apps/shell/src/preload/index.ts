@@ -1,4 +1,4 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { AI_PROVIDERS, getProviderAdapter } from '@genoffice/ai-provider'
@@ -224,8 +224,13 @@ const homeApi: HomeApi = {
       ReturnType<HomeApi['mcpListTools']>
     >
   },
-  async mcpCallTool(server: string, tool: string, args: Record<string, unknown>) {
-    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as Awaited<
+  async mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ) {
+    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args, context)) as Awaited<
       ReturnType<HomeApi['mcpCallTool']>
     >
   },

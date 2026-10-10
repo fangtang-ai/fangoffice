@@ -314,6 +314,11 @@ export function AiPanel({
   const [busy, setBusy] = useState(false)
   /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
   const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
+  const [paidCallGate, setPaidCallGate] = useState<{
+    used: number
+    max: number
+    resolve: (ok: boolean) => void
+  } | null>(null)
   /** Wall-clock start of the current run, drives the elapsed badge */
   const runStartedAtRef = useRef(0)
   /** a send waiting on a phased open's tail; Stop / New chat abort it before it runs */
@@ -327,7 +332,11 @@ export function AiPanel({
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
   // built-in generation skill (技能) selected in the composer; the live ref is
   // read by the preset skill before every model turn
-  const { presets: skillOptions, active: activeSkill, pick: pickSkill } = useAiSkills(
+  const {
+    presets: skillOptions,
+    active: activeSkill,
+    pick: pickSkill,
+  } = useAiSkills(
     'docs',
     () => window.desktop.getAiFeatures?.(),
     () => window.desktop.getPresetCatalog?.(),
@@ -621,7 +630,10 @@ export function AiPanel({
           createMcpPresetHooks({
             status: () => window.desktop.mcpStatus(),
             listTools: (server) => window.desktop.mcpListTools(server),
-            callTool: (server, tool, args) => window.desktop.mcpCallTool(server, tool, args),
+            callTool: (server, tool, args, context) =>
+              window.desktop.mcpCallTool(server, tool, args, context),
+            onPaidCallLimit: ({ used, max }) =>
+              new Promise<boolean>((resolve) => setPaidCallGate({ used, max, resolve })),
           }),
         ),
       ]),
@@ -878,7 +890,19 @@ export function AiPanel({
       })
   }
 
+  // Pending paid-call gate: settle it when the panel unmounts (aiPanelKey remount)
+  // so the waiting executor never hangs; also stop a detached run from spending.
+  useEffect(() => {
+    if (!paidCallGate) return
+    return () => paidCallGate.resolve(false)
+  }, [paidCallGate])
+  useEffect(() => () => loopRef.current?.cancel(), [])
+
   const cancel = () => {
+    if (paidCallGate) {
+      paidCallGate.resolve(false)
+      setPaidCallGate(null)
+    }
     if (pendingSendRef.current) pendingSendRef.current.aborted = true
     loopRef.current?.cancel()
   }
@@ -906,6 +930,10 @@ export function AiPanel({
   const continueRun = () => runWith(DOCS_CONTINUE_INSTRUCTION, t('aiContinue'))
 
   const newChat = () => {
+    if (paidCallGate) {
+      paidCallGate.resolve(false)
+      setPaidCallGate(null)
+    }
     if (pendingSendRef.current) {
       pendingSendRef.current.aborted = true
       pendingSendRef.current = null
@@ -1439,28 +1467,63 @@ export function AiPanel({
           }
         />
       </div>
-      {rechargeUrl && createPortal(
-        <div
-          className="ai-recharge-overlay"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setRechargeUrl(null)}
-        >
-          <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
-            <button
-              className="ai-recharge-btn"
-              onClick={() => {
-                setRechargeUrl(null)
-                window.open(rechargeUrl, '_blank', 'noreferrer')
-              }}
-            >
-              {t('aiRechargeAction')}
-            </button>
-          </div>
-        </div>,
-        document.body,
-      )}
+      {rechargeUrl &&
+        createPortal(
+          <div
+            className="ai-recharge-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setRechargeUrl(null)}
+          >
+            <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ai-recharge-body">{t('aiRechargePrompt')}</div>
+              <button
+                className="ai-recharge-btn"
+                onClick={() => {
+                  setRechargeUrl(null)
+                  window.open(rechargeUrl, '_blank', 'noreferrer')
+                }}
+              >
+                {t('aiRechargeAction')}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+      {paidCallGate &&
+        createPortal(
+          <div className="ai-recharge-overlay" role="dialog" aria-modal="true">
+            <div className="ai-recharge-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ai-recharge-body">
+                {t('aiPaidCallLimitPrompt', { used: paidCallGate.used, max: paidCallGate.max })}
+              </div>
+              <div className="ai-recharge-actions">
+                <button
+                  className="ai-recharge-btn"
+                  onClick={() => {
+                    const resolve = paidCallGate.resolve
+                    setPaidCallGate(null)
+                    resolve(true)
+                  }}
+                >
+                  {t('aiPaidCallLimitContinue')}
+                </button>
+                <button
+                  className="ai-recharge-btn ai-recharge-btn-ghost"
+                  onClick={() => {
+                    const resolve = paidCallGate.resolve
+                    setPaidCallGate(null)
+                    resolve(false)
+                    loopRef.current?.cancel()
+                  }}
+                >
+                  {t('aiPaidCallLimitStop')}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </aside>
   )
 }

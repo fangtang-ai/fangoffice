@@ -66,7 +66,8 @@ export const nl = {
   aiOverloadedError: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
   aiNetworkError:
     'Netwerkprobleem: kan de AI-service niet bereiken. Controleer je verbinding en probeer het opnieuw',
-  aiCreditsExhausted: 'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
+  aiCreditsExhausted:
+    'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
   aiRechargePrompt: 'Uw AI-credits zijn opgebruikt. Laad op om door te gaan',
   aiRechargeAction: 'Opladen',
   aiToolWorkbookContext: 'Werkmapgegevens lezen',
@@ -109,4 +110,8 @@ export const nl = {
   aiScopeRangeTip:
     'AI leest "deze kolom / deze rijen / het geselecteerde deel" als dit bereik; bij verzenden wordt het voor de hele run vastgezet',
   aiScopeClearTitle: 'Bereikbereik wissen en het hele blad gebruiken',
+  aiPaidCallLimitPrompt:
+    'Deze taak heeft {used} betaalde MCP-aanroepen gedaan (limiet: {max}). Doorgaan?',
+  aiPaidCallLimitContinue: 'Doorgaan',
+  aiPaidCallLimitStop: 'Stoppen',
 } satisfies Record<keyof typeof zh, string>

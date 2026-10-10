@@ -108,7 +108,8 @@ export const hi = {
   aiOverloadedError: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
   aiNetworkError:
     'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
-  aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
+  aiCreditsExhausted:
+    'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
   aiRechargePrompt: 'आपके AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए रिचार्ज करें',
   aiRechargeAction: 'रिचार्ज करें',
   aiSumReadAttachment: 'अनुलग्नक पढ़ें',
@@ -157,4 +158,7 @@ export const hi = {
   aiCmdImages: '{count} चित्र अपडेट किए गए',
   aiCmdToc: 'विषय-सूची सम्मिलित की गई ({count} प्रविष्टियाँ)',
   aiCmdSkipped: ' ({count} सुरक्षित ब्लॉक छोड़े गए)',
+  aiPaidCallLimitPrompt: 'इस कार्य ने {used} सशुल्क MCP कॉल किए हैं (सीमा {max})। जारी रखें?',
+  aiPaidCallLimitContinue: 'जारी रखें',
+  aiPaidCallLimitStop: 'रोकें',
 } satisfies Record<keyof typeof zh, string>

@@ -14,6 +14,16 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
 import type { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol.js'
 import type { McpServerConfig } from './config'
+import { isMcpCallContext, type McpBillingInfo, type McpCallContext } from '@genoffice/agent-core'
+import { MCP_BILLING_META_KEY, formatMcpResult, mcpProblemText } from './billing-result'
+import {
+  AccountMcpError,
+  assertAccountMcpBinding,
+  createAccountMcpFetch,
+  resolveAccountMcpUrl,
+  type AccountMcpAccess,
+  type AccountMcpBinding,
+} from './account-http'
 
 export interface McpServerStatus {
   name: string
@@ -24,6 +34,7 @@ export interface McpServerStatus {
   toolCount: number
   /** last connection/call failure (cleared on a successful operation) */
   error?: string
+  billingProduct?: 'policy_mcp'
 }
 
 export interface McpToolInfo {
@@ -37,6 +48,7 @@ export interface McpCallResult {
   /** concatenated text content (non-text blocks JSON-stringified) */
   text: string
   isError: boolean
+  billing?: McpBillingInfo
 }
 
 const CONNECT_TIMEOUT_MS = 15_000
@@ -47,20 +59,31 @@ const APP_VERSION = '0.1.0'
 interface Connection {
   client: Client
   tools: McpToolInfo[]
+  binding?: AccountMcpBinding
 }
 
 export class McpHub {
   private readonly servers = new Map<string, McpServerConfig>()
   private readonly connections = new Map<string, Connection>()
+  private readonly pendingConnections = new Map<string, Promise<Connection>>()
+  private accountGeneration = 0
+  private stopped = false
+  private readonly unsubscribe: (() => void) | undefined
   /** per-server call timeout override */
   private readonly timeouts = new Map<string, number>()
 
-  constructor(config: Record<string, McpServerConfig>) {
+  constructor(
+    config: Record<string, McpServerConfig>,
+    private readonly options: { account?: AccountMcpAccess } = {},
+  ) {
     for (const [name, cfg] of Object.entries(config)) {
       if (!cfg.enabled) continue
       this.servers.set(name, cfg)
       this.timeouts.set(name, cfg.timeoutMs ?? 30_000)
     }
+    this.unsubscribe = options.account?.subscribe?.(() => {
+      void this.closeAccountConnections()
+    })
   }
 
   /** Servers whose tools join every chat (in config order). */
@@ -75,31 +98,73 @@ export class McpHub {
   }
 
   private async connect(name: string): Promise<Connection> {
+    if (this.stopped) throw new Error('MCP hub stopped')
     const cfg = this.servers.get(name)
     if (!cfg) throw new Error(`Unknown MCP server: ${name}`)
     const existing = this.connections.get(name)
-    if (existing) return existing
-    const client = new Client({ name: APP_NAME, version: APP_VERSION })
-    if (cfg.transport === 'http') {
-      const url = new URL(cfg.url!)
-      // the SDK's own types are not exactOptionalPropertyTypes-clean
-      const transport = new StreamableHTTPClientTransport(url, {
-        requestInit: {
-          ...(cfg.headers ? { headers: cfg.headers } : {}),
-        },
-      }) as unknown as Transport
-      await withTimeout(client.connect(transport), CONNECT_TIMEOUT_MS, `connect ${name}`)
-    } else {
-      const transport = new StdioClientTransport({
-        command: cfg.command!,
-        args: cfg.args ?? [],
-        env: { ...(cfg.env ?? {}) },
-      })
-      await withTimeout(client.connect(transport), CONNECT_TIMEOUT_MS, `connect ${name}`)
+    if (existing) {
+      if (existing.binding) assertAccountMcpBinding(this.options.account!, existing.binding)
+      return existing
     }
-    const connection: Connection = { client, tools: [] }
-    this.connections.set(name, connection)
-    return connection
+    const pending = this.pendingConnections.get(name)
+    if (pending) return pending
+    const loading = this.openConnection(name, cfg)
+    this.pendingConnections.set(name, loading)
+    try {
+      return await loading
+    } finally {
+      if (this.pendingConnections.get(name) === loading) this.pendingConnections.delete(name)
+    }
+  }
+
+  private async openConnection(name: string, cfg: McpServerConfig): Promise<Connection> {
+    const generation = this.accountGeneration
+    if (cfg.auth === 'fangtang-account' && !this.options.account)
+      throw new AccountMcpError('account:required')
+    const binding = cfg.auth === 'fangtang-account' ? this.options.account!.bind() : undefined
+    const client = new Client({ name: APP_NAME, version: APP_VERSION })
+    try {
+      if (cfg.transport === 'http') {
+        const url =
+          cfg.auth === 'fangtang-account'
+            ? resolveAccountMcpUrl(cfg.url!, this.options.account!)
+            : new URL(cfg.url!)
+        // the SDK's own types are not exactOptionalPropertyTypes-clean
+        const transport = new StreamableHTTPClientTransport(url, {
+          ...(binding
+            ? {
+                fetch: createAccountMcpFetch(url, this.options.account!, binding),
+                reconnectionOptions: {
+                  maxRetries: 0,
+                  maxReconnectionDelay: 0,
+                  initialReconnectionDelay: 0,
+                  reconnectionDelayGrowFactor: 1,
+                },
+              }
+            : {}),
+          requestInit: {
+            ...(cfg.headers ? { headers: cfg.headers } : {}),
+          },
+        }) as unknown as Transport
+        await withTimeout(client.connect(transport), CONNECT_TIMEOUT_MS, `connect ${name}`)
+      } else {
+        const transport = new StdioClientTransport({
+          command: cfg.command!,
+          args: cfg.args ?? [],
+          env: { ...(cfg.env ?? {}) },
+        })
+        await withTimeout(client.connect(transport), CONNECT_TIMEOUT_MS, `connect ${name}`)
+      }
+      if (this.stopped || (binding && generation !== this.accountGeneration))
+        throw new AccountMcpError('account:changed')
+      if (binding) assertAccountMcpBinding(this.options.account!, binding)
+      const connection: Connection = { client, tools: [], ...(binding ? { binding } : {}) }
+      this.connections.set(name, connection)
+      return connection
+    } catch (error) {
+      await client.close().catch(() => undefined)
+      throw error
+    }
   }
 
   /** Cached tool definitions for one server (fetches on first use). */
@@ -114,6 +179,7 @@ export class McpHub {
       LIST_TIMEOUT_MS,
       `list tools of ${name}`,
     )
+    if (connection.binding) assertAccountMcpBinding(this.options.account!, connection.binding)
     connection.tools = (response.tools ?? []).map((tool) => ({
       name: tool.name,
       ...(tool.description ? { description: tool.description } : {}),
@@ -126,28 +192,67 @@ export class McpHub {
     server: string,
     tool: string,
     args: Record<string, unknown>,
+    context?: McpCallContext,
   ): Promise<McpCallResult> {
+    if (this.servers.get(server)?.auth === 'fangtang-account' && !isMcpCallContext(context))
+      return { text: 'invalid_call_metadata', isError: true }
+    let connection: Connection | undefined
     try {
-      const connection = await this.connect(server)
+      connection = await this.connect(server)
       // the SDK's RequestOptions is not exactOptionalPropertyTypes-clean
       const options: RequestOptions = {}
       const timeout = this.timeouts.get(server)
       if (timeout !== undefined) options.timeout = timeout
+      if (connection.binding) options.signal = connection.binding.signal
       const result = await connection.client.callTool(
-        { name: tool, arguments: args },
+        {
+          name: tool,
+          arguments: args,
+          ...(connection.binding && context ? { _meta: { [MCP_BILLING_META_KEY]: context } } : {}),
+        },
         undefined,
         options,
       )
-      const isError = result.isError === true
-      return { text: extractText(result.content), isError }
+      if (connection.binding) assertAccountMcpBinding(this.options.account!, connection.binding)
+      return formatMcpResult(result, connection.binding ? context : undefined)
     } catch (error) {
-      // a crashed/lamed server must not wedge the session: drop the connection
-      // so the next call reconnects fresh
+      return this.failedCall(server, connection, error, context)
+    }
+  }
+
+  private async failedCall(
+    server: string,
+    connection: Connection | undefined,
+    error: unknown,
+    context?: McpCallContext,
+  ): Promise<McpCallResult> {
+    // a crashed/lamed server must not wedge the session: drop the connection
+    // so the next call reconnects fresh
+    if (connection && this.connections.get(server) === connection) {
       this.connections.delete(server)
-      return {
-        text: error instanceof Error ? error.message : String(error),
-        isError: true,
-      }
+      await connection.client.close().catch(() => undefined)
+    }
+    const managed = this.servers.get(server)?.auth === 'fangtang-account'
+    const problem =
+      error instanceof AccountMcpError && error.problem
+        ? error.problem
+        : {
+            code: error instanceof AccountMcpError ? error.code : 'account:request-failed',
+            retryAllowed:
+              error instanceof AccountMcpError && error.code === 'account:request-failed',
+          }
+    return {
+      text: managed
+        ? error instanceof AccountMcpError && !error.problem
+          ? error.code
+          : mcpProblemText(problem)
+        : error instanceof Error
+          ? error.message
+          : String(error),
+      isError: true,
+      ...(managed && context
+        ? { billing: { ...context, product: 'policy_mcp' as const, error: problem } }
+        : {}),
     }
   }
 
@@ -161,15 +266,31 @@ export class McpHub {
         alwaysAvailable: cfg.alwaysAvailable === true,
         connected: connection !== undefined,
         toolCount: connection?.tools.length ?? 0,
+        ...(cfg.auth === 'fangtang-account' ? { billingProduct: 'policy_mcp' as const } : {}),
       }
     })
   }
 
   async shutdown(): Promise<void> {
+    this.stopped = true
+    this.unsubscribe?.()
     const closing = [...this.connections.values()].map((connection) =>
       connection.client.close().catch(() => {}),
     )
     this.connections.clear()
+    await Promise.all(closing)
+  }
+
+  private async closeAccountConnections() {
+    this.accountGeneration++
+    const closing: Promise<void>[] = []
+    for (const [name, cfg] of this.servers) {
+      if (cfg.auth !== 'fangtang-account') continue
+      this.pendingConnections.delete(name)
+      const connection = this.connections.get(name)
+      this.connections.delete(name)
+      if (connection) closing.push(connection.client.close().catch(() => undefined))
+    }
     await Promise.all(closing)
   }
 }
@@ -177,27 +298,14 @@ export class McpHub {
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, what: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`MCP ${what} timed out after ${timeoutMs}ms`)), timeoutMs)
+    timer = setTimeout(
+      () => reject(new Error(`MCP ${what} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    )
   })
   try {
     return await Promise.race([promise, timeout])
   } finally {
     if (timer) clearTimeout(timer)
   }
-}
-
-interface McpContentBlock {
-  type?: string
-  text?: string
-}
-
-function extractText(content: unknown): string {
-  if (!Array.isArray(content)) return ''
-  const parts = content.map((block) => {
-    const b = block as McpContentBlock
-    if (typeof b?.text === 'string') return b.text
-    if (b && typeof b === 'object') return JSON.stringify(b)
-    return String(b ?? '')
-  })
-  return parts.filter(Boolean).join('\n')
 }

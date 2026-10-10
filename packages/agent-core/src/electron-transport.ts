@@ -28,6 +28,7 @@ export interface IpcStreamChunk {
 /** The request forwarded to the main process to start one streaming turn. */
 export interface IpcStreamStart<S> {
   requestId: string
+  aiRunId?: string
   settings: S
   system: string
   messages: AgentMessage[]
@@ -134,6 +135,7 @@ export function createIpcTransport<S>(options: IpcTransportOptions<S>): AgentTra
         Promise.resolve(
           options.start({
             requestId,
+            ...(request.aiRunId ? { aiRunId: request.aiRunId } : {}),
             settings: options.getSettings(),
             system: request.system,
             messages: request.messages,

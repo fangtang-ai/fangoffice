@@ -223,4 +223,7 @@ export const zhTW = {
   aiSumSaveTemplate: '儲存風格範本"{name}"',
   aiSumTemplatesEmpty: '風格範本清單（空）',
   aiSumListTemplates: '列出 {count} 個風格範本',
+  aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
+  aiPaidCallLimitContinue: '繼續呼叫',
+  aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

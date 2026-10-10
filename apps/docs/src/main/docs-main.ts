@@ -2709,17 +2709,27 @@ export function registerAiIpc(): void {
     }
     try {
       let stopReason: string | undefined
-      await streamForProvider(provider, config, system, messages, tools, maxTokens, {
-        signal: controller.signal,
-        onDelta: (text) => send({ requestId, type: 'delta', text }),
-        onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
-        onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
-        onThoughtSignature: (signature) => send({ requestId, type: 'signature', text: signature }),
-        onActivity: ping,
-        onStopReason: (reason) => {
-          stopReason = reason
+      await streamForProvider(
+        provider,
+        config,
+        system,
+        messages,
+        tools,
+        maxTokens,
+        {
+          signal: controller.signal,
+          onDelta: (text) => send({ requestId, type: 'delta', text }),
+          onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
+          onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
+          onThoughtSignature: (signature) =>
+            send({ requestId, type: 'signature', text: signature }),
+          onActivity: ping,
+          onStopReason: (reason) => {
+            stopReason = reason
+          },
         },
-      })
+        request.aiRunId,
+      )
       send({ requestId, type: 'done', stopReason })
     } catch (err) {
       if (controller.signal.aborted) {

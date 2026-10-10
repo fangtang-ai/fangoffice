@@ -3,7 +3,13 @@ import { aiFetch } from '../fetch'
 import { httpBodyDetail } from '../http-error'
 import type { AiChatResponse, AiProviderConfig } from '../types'
 import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
-import { creditsNoticeText, parseToolInput, sseErrorText, sseLines, type StreamCallbacks } from './shared'
+import {
+  creditsNoticeText,
+  parseToolInput,
+  sseErrorText,
+  sseLines,
+  type StreamCallbacks,
+} from './shared'
 import { AiCreditsError } from './shared'
 
 /**
@@ -42,7 +48,9 @@ function siteMessages(system: string, messages: AgentMessage[]): Array<Record<st
             }
           : {}),
       })
-    } else for (const r of m.results) out.push({ role: 'tool', tool_call_id: r.id, content: stringifyContent(r.output) })
+    } else
+      for (const r of m.results)
+        out.push({ role: 'tool', tool_call_id: r.id, content: stringifyContent(r.output) })
   }
   return out
 }
@@ -70,9 +78,11 @@ export async function streamFangtang(
   messages: AgentMessage[],
   tools: AgentToolDef[],
   cb: StreamCallbacks,
+  /** managed-run UUID shared with the MCP turn; echoed to the billing proxy */
+  aiRunId?: string,
 ): Promise<void> {
   const wd = createStreamWatchdog(cb.signal)
-  return wd.guard(() => fangtangTurn(baseUrl, config, system, messages, tools, cb, wd))
+  return wd.guard(() => fangtangTurn(baseUrl, config, system, messages, tools, cb, wd, aiRunId))
 }
 
 async function fangtangTurn(
@@ -83,6 +93,7 @@ async function fangtangTurn(
   tools: AgentToolDef[],
   cb: StreamCallbacks,
   wd: StreamWatchdog,
+  aiRunId?: string,
 ): Promise<void> {
   const onBytes = () => {
     wd.touch()
@@ -102,6 +113,7 @@ async function fangtangTurn(
     },
     body: JSON.stringify({
       capability: 'chat',
+      ...(aiRunId ? { aiRunId } : {}),
       messages: siteMessages(system, messages),
       ...(tools.length > 0
         ? {
@@ -146,7 +158,15 @@ async function fangtangTurn(
     if (!line.startsWith('data:')) continue
     const payload = line.slice(5).trim()
     if (!payload) continue
-    let event: { type?: unknown; content?: unknown; id?: unknown; name?: unknown; arguments?: unknown; code?: unknown; message?: unknown }
+    let event: {
+      type?: unknown
+      content?: unknown
+      id?: unknown
+      name?: unknown
+      arguments?: unknown
+      code?: unknown
+      message?: unknown
+    }
     try {
       event = JSON.parse(payload)
     } catch {
@@ -161,7 +181,9 @@ async function fangtangTurn(
         break
       case 'tool_call': {
         if (typeof event.id !== 'string' || typeof event.name !== 'string' || !event.name) break
-        const { input, error } = parseToolInput(typeof event.arguments === 'string' ? event.arguments : '')
+        const { input, error } = parseToolInput(
+          typeof event.arguments === 'string' ? event.arguments : '',
+        )
         emitted = true
         cb.onToolCall({ id: event.id, name: event.name, input, inputError: error })
         break

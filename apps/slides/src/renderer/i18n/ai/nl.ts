@@ -119,7 +119,8 @@ export const nl = {
   aiErrOverloaded: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
   aiErrNetwork:
     'Netwerkprobleem: kan de AI-service niet bereiken. Controleer je verbinding en probeer het opnieuw',
-  aiCreditsExhausted: 'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
+  aiCreditsExhausted:
+    'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
   aiRechargePrompt: 'Uw AI-credits zijn opgebruikt. Laad op om door te gaan',
   aiRechargeAction: 'Opladen',
   aiErrRequestFailed: 'Verzenden van verzoek mislukt: {msg}',
@@ -231,4 +232,8 @@ export const nl = {
   aiSumSaveTemplate: 'Stijlsjabloon "{name}" opgeslagen',
   aiSumTemplatesEmpty: 'Stijlsjablonen (leeg)',
   aiSumListTemplates: '{count} stijlsjablonen weergegeven',
+  aiPaidCallLimitPrompt:
+    'Deze taak heeft {used} betaalde MCP-aanroepen gedaan (limiet: {max}). Doorgaan?',
+  aiPaidCallLimitContinue: 'Doorgaan',
+  aiPaidCallLimitStop: 'Stoppen',
 } satisfies Record<keyof typeof zh, string>

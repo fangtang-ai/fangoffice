@@ -70,6 +70,7 @@ export interface AiChatResponse {
 
 export interface AiStreamRequest {
   requestId: string
+  aiRunId?: string
   settings: AiSettings
   system: string
   messages: AgentMessage[]

@@ -1,5 +1,6 @@
 import type { AgentSkill } from './skill'
 import type { AgentToolCall, AgentToolDef, ToolExecution } from './types'
+import type { McpCallContext } from './billing'
 
 /**
  * A built-in generation skill (技能): a curated prompt playbook the user can
@@ -38,7 +39,11 @@ export interface PresetSkillHooks {
    */
   getTools?(servers: string[]): AgentToolDef[]
   /** Executor for the tools produced by getTools (routed by tool name). */
-  executeTool?(call: AgentToolCall, signal?: AbortSignal): ToolExecution | Promise<ToolExecution>
+  executeTool?(
+    call: AgentToolCall,
+    signal?: AbortSignal,
+    context?: McpCallContext,
+  ): ToolExecution | Promise<ToolExecution>
   /**
    * Prompt section describing the current MCP tools (appended after the
    * playbook so the model knows when to reach for them).
@@ -73,8 +78,8 @@ export function createPresetSkill(active: ActivePreset, hooks?: PresetSkillHooks
       if (!preset?.mcpServers?.length || !hooks?.getTools) return []
       return hooks.getTools(preset.mcpServers)
     },
-    executeTool: (call, signal) => {
-      if (hooks?.executeTool) return hooks.executeTool(call, signal)
+    executeTool: (call, signal, context) => {
+      if (hooks?.executeTool) return hooks.executeTool(call, signal, context)
       return { output: `Unknown tool: ${call.name}`, isError: true, summary: call.name }
     },
   }

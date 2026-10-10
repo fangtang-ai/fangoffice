@@ -1,6 +1,11 @@
 import type { PresetSkillDef } from '@genoffice/agent-core'
 import type { AiChatResponse, AiProviderMeta, AiSettings } from '@genoffice/ai-provider'
-import type { McpCallResult, McpServerInfo, McpToolInfo } from '@genoffice/agent-core'
+import type {
+  McpCallContext,
+  McpCallResult,
+  McpServerInfo,
+  McpToolInfo,
+} from '@genoffice/agent-core'
 import type { UpdateChannel } from './update-api'
 
 /** UI language; kept self-contained here (mirrors Lang in @genoffice/i18n) */
@@ -171,7 +176,12 @@ export interface HomeApi {
   /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
   mcpStatus(): Promise<McpServerInfo[]>
   mcpListTools(server: string): Promise<McpToolInfo[]>
-  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+  mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ): Promise<McpCallResult>
 
   setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   /** AI settings (userData/ai-settings.json, shared by every editor) */

@@ -118,7 +118,8 @@ export const ru = {
   aiErrOverloaded: 'Сервис ИИ сейчас перегружен — повторите попытку чуть позже',
   aiErrNetwork:
     'Проблема с сетью: не удалось подключиться к сервису ИИ. Проверьте подключение и повторите попытку',
-  aiCreditsExhausted: 'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
+  aiCreditsExhausted:
+    'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
   aiRechargePrompt: 'Кредиты ИИ исчерпаны. Пополните счёт, чтобы продолжить',
   aiRechargeAction: 'Пополнить',
   aiErrRequestFailed: 'Не удалось отправить запрос: {msg}',
@@ -230,4 +231,8 @@ export const ru = {
   aiSumSaveTemplate: 'Сохранён шаблон стиля «{name}»',
   aiSumTemplatesEmpty: 'Шаблоны стиля (пусто)',
   aiSumListTemplates: 'Показано шаблонов стиля: {count}',
+  aiPaidCallLimitPrompt:
+    'Эта задача выполнила {used} платных вызовов MCP (лимит: {max}). Продолжить?',
+  aiPaidCallLimitContinue: 'Продолжить',
+  aiPaidCallLimitStop: 'Остановить',
 } satisfies Record<keyof typeof zh, string>

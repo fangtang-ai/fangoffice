@@ -265,6 +265,9 @@ export const strings = {
     aiCreditsExhausted: '模型服务额度已用尽，请联系管理员或在设置中切换其他模型后重试',
     aiRechargePrompt: 'AI 额度已用尽，充值后即可继续使用',
     aiRechargeAction: '立即充值',
+    aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
+    aiPaidCallLimitContinue: '继续调用',
+    aiPaidCallLimitStop: '停止',
     aiToolReadPages: '读取第 {start}-{end} 页',
     aiToolSearch: '搜索"{query}"（{count} 处）',
     aiToolGoto: '跳转到第 {page} 页',
@@ -584,6 +587,9 @@ export const strings = {
     aiCreditsExhausted: '模型服務額度已用盡，請聯絡管理員或在設定中切換其他模型後重試',
     aiRechargePrompt: 'Your AI credits have run out. Top up to keep using AI features',
     aiRechargeAction: 'Top up',
+    aiPaidCallLimitPrompt: 'This task has made {used} paid MCP calls (limit {max}). Continue?',
+    aiPaidCallLimitContinue: 'Continue',
+    aiPaidCallLimitStop: 'Stop',
     aiToolReadPages: 'Read pages {start}-{end}',
     aiToolSearch: 'Search "{query}" ({count} hits)',
     aiToolGoto: 'Go to page {page}',
@@ -903,9 +909,14 @@ export const strings = {
     aiOverloadedError: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
     aiNetworkError:
       'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
-    aiCreditsExhausted: 'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
+    aiCreditsExhausted:
+      'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
     aiRechargePrompt: 'AIの利用枠を使い切りました。チャージすると続きを利用できます',
     aiRechargeAction: 'チャージする',
+    aiPaidCallLimitPrompt:
+      'このタスクは有料MCP呼び出しを{used}回実行しました（上限{max}回）。続けますか？',
+    aiPaidCallLimitContinue: '続ける',
+    aiPaidCallLimitStop: '停止',
     aiToolReadPages: 'ページ {start}-{end} を読む',
     aiToolSearch: '「{query}」を検索（{count} 件）',
     aiToolGoto: 'ページ {page} へ移動',
@@ -1226,9 +1237,14 @@ export const strings = {
     aiOverloadedError: 'AI 서비스가 혼잡합니다. 잠시 후 다시 시도해 주세요',
     aiNetworkError:
       '네트워크에 문제가 있어 AI 서비스에 연결할 수 없습니다. 연결을 확인한 후 다시 시도해 주세요',
-    aiCreditsExhausted: 'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
+    aiCreditsExhausted:
+      'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
     aiRechargePrompt: 'AI 사용량을 모두 사용했습니다. 충전 후 계속 이용할 수 있습니다',
     aiRechargeAction: '충전하기',
+    aiPaidCallLimitPrompt:
+      '이 작업은 유료 MCP 호출을 {used}회 사용했습니다(한도 {max}회). 계속하시겠습니까?',
+    aiPaidCallLimitContinue: '계속',
+    aiPaidCallLimitStop: '중지',
     aiToolReadPages: '{start}-{end}쪽 읽기',
     aiToolSearch: '"{query}" 검색 ({count}건)',
     aiToolGoto: '{page}쪽으로 이동',
@@ -1552,9 +1568,14 @@ export const strings = {
     aiOverloadedError: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
     aiNetworkError:
       'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
-    aiCreditsExhausted: '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
+    aiCreditsExhausted:
+      '모델 서비스 사용량이 모두 소진되었습니다. 관리자에게 문의하거나 설정에서 다른 모델로 전환한 후 다시 시도하세요',
     aiRechargePrompt: 'Vos crédits IA sont épuisés. Rechargez pour continuer',
     aiRechargeAction: 'Recharger',
+    aiPaidCallLimitPrompt:
+      'Cette tâche a effectué {used} appels MCP payants (limite : {max}). Continuer ?',
+    aiPaidCallLimitContinue: 'Continuer',
+    aiPaidCallLimitStop: 'Arrêter',
     aiToolReadPages: 'Lire les pages {start}-{end}',
     aiToolSearch: 'Rechercher « {query} » ({count} occurrences)',
     aiToolGoto: 'Aller à la page {page}',
@@ -1880,9 +1901,14 @@ export const strings = {
     aiOverloadedError: 'Der KI-Dienst ist derzeit überlastet — bitte gleich erneut versuchen',
     aiNetworkError:
       'Netzwerkproblem: Der KI-Dienst ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut',
-    aiCreditsExhausted: 'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+    aiCreditsExhausted:
+      'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
     aiRechargePrompt: 'Ihr KI-Kontingent ist aufgebraucht. Laden Sie auf, um fortzufahren',
     aiRechargeAction: 'Aufladen',
+    aiPaidCallLimitPrompt:
+      'Diese Aufgabe hat {used} kostenpflichtige MCP-Aufrufe ausgeführt (Limit: {max}). Fortfahren?',
+    aiPaidCallLimitContinue: 'Fortfahren',
+    aiPaidCallLimitStop: 'Stoppen',
     aiToolReadPages: 'Seiten {start}-{end} lesen',
     aiToolSearch: '„{query}" suchen ({count} Treffer)',
     aiToolGoto: 'Zu Seite {page} springen',
@@ -2207,9 +2233,14 @@ export const strings = {
       'El servicio de IA está saturado en este momento; inténtalo de nuevo en unos instantes',
     aiNetworkError:
       'Problema de red: no se pudo conectar con el servicio de IA. Comprueba tu conexión e inténtalo de nuevo',
-    aiCreditsExhausted: 'Das Kontingent des Modell-Dienstes ist erschöpft. Wenden Sie sich an Ihren Administrator oder wählen Sie in den Einstellungen ein anderes Modell und versuchen Sie es erneut',
+    aiCreditsExhausted:
+      'Das Kontingent des Modell-Dienstes ist erschöpft. Wenden Sie sich an Ihren Administrator oder wählen Sie in den Einstellungen ein anderes Modell und versuchen Sie es erneut',
     aiRechargePrompt: 'Sus créditos de IA se han agotado. Recargue para continuar',
     aiRechargeAction: 'Recargar',
+    aiPaidCallLimitPrompt:
+      'Esta tarea ha realizado {used} llamadas MCP de pago (límite: {max}). ¿Continuar?',
+    aiPaidCallLimitContinue: 'Continuar',
+    aiPaidCallLimitStop: 'Detener',
     aiToolReadPages: 'Leer páginas {start}-{end}',
     aiToolSearch: 'Buscar «{query}» ({count} resultados)',
     aiToolGoto: 'Ir a la página {page}',
@@ -2532,9 +2563,14 @@ export const strings = {
     aiOverloadedError: 'บริการ AI มีผู้ใช้งานจำนวนมากในขณะนี้ โปรดลองอีกครั้งในอีกสักครู่',
     aiNetworkError:
       'เครือข่ายมีปัญหา ไม่สามารถเชื่อมต่อบริการ AI ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองใหม่',
-    aiCreditsExhausted: 'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
+    aiCreditsExhausted:
+      'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
     aiRechargePrompt: 'เครดิต AI ของคุณหมดแล้ว เติมเงินเพื่อใช้งานต่อ',
     aiRechargeAction: 'เติมเงิน',
+    aiPaidCallLimitPrompt:
+      'งานนี้ได้เรียก MCP แบบชำระเงินไปแล้ว {used} ครั้ง (จำกัด {max} ครั้ง) ต้องการดำเนินการต่อหรือไม่',
+    aiPaidCallLimitContinue: 'ดำเนินการต่อ',
+    aiPaidCallLimitStop: 'หยุด',
     aiToolReadPages: 'อ่านหน้า {start}-{end}',
     aiToolSearch: 'ค้นหา "{query}" ({count} แห่ง)',
     aiToolGoto: 'ไปที่หน้า {page}',
@@ -2855,9 +2891,14 @@ export const strings = {
     aiOverloadedError: 'Layanan AI sedang sibuk — silakan coba lagi sebentar lagi',
     aiNetworkError:
       'Masalah jaringan: tidak dapat terhubung ke layanan AI. Periksa koneksi Anda lalu coba lagi',
-    aiCreditsExhausted: 'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
+    aiCreditsExhausted:
+      'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
     aiRechargePrompt: 'Kredit AI Anda telah habis. Isi ulang untuk melanjutkan',
     aiRechargeAction: 'Isi ulang',
+    aiPaidCallLimitPrompt:
+      'Tugas ini telah melakukan {used} panggilan MCP berbayar (batas {max}). Lanjutkan?',
+    aiPaidCallLimitContinue: 'Lanjutkan',
+    aiPaidCallLimitStop: 'Hentikan',
     aiToolReadPages: 'Baca halaman {start}-{end}',
     aiToolSearch: 'Cari "{query}" ({count} temuan)',
     aiToolGoto: 'Ke halaman {page}',
@@ -3180,9 +3221,14 @@ export const strings = {
     aiOverloadedError: 'Сервис ИИ сейчас перегружен — повторите попытку чуть позже',
     aiNetworkError:
       'Проблема с сетью: не удалось подключиться к сервису ИИ. Проверьте подключение и повторите попытку',
-    aiCreditsExhausted: 'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
+    aiCreditsExhausted:
+      'Kuota layanan model telah habis. Hubungi administrator Anda atau beralih ke model lain di Pengaturan, lalu coba lagi',
     aiRechargePrompt: 'Кредиты ИИ исчерпаны. Пополните счёт, чтобы продолжить',
     aiRechargeAction: 'Пополнить',
+    aiPaidCallLimitPrompt:
+      'Эта задача выполнила {used} платных вызовов MCP (лимит: {max}). Продолжить?',
+    aiPaidCallLimitContinue: 'Продолжить',
+    aiPaidCallLimitStop: 'Остановить',
     aiToolReadPages: 'Чтение страниц {start}-{end}',
     aiToolSearch: 'Поиск «{query}» ({count} совпадений)',
     aiToolGoto: 'Перейти на страницу {page}',
@@ -3504,9 +3550,14 @@ export const strings = {
     aiOverloadedError: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
     aiNetworkError:
       'مشكلة في الشبكة: تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقق من الاتصال وحاول مجددًا',
-    aiCreditsExhausted: 'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
+    aiCreditsExhausted:
+      'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
     aiRechargePrompt: 'لقد نفدت أرصدة الذكاء الاصطناعي. أعد الشحن لمتابعة الاستخدام',
     aiRechargeAction: 'إعادة الشحن',
+    aiPaidCallLimitPrompt:
+      'نفّذت هذه المهمة {used} استدعاءات MCP مدفوعة (الحد {max}). هل تريد المتابعة؟',
+    aiPaidCallLimitContinue: 'متابعة',
+    aiPaidCallLimitStop: 'إيقاف',
     aiToolReadPages: 'قراءة الصفحات {start}-{end}',
     aiToolSearch: 'بحث عن "{query}" ({count} نتيجة)',
     aiToolGoto: 'الانتقال إلى الصفحة {page}',
@@ -3828,9 +3879,13 @@ export const strings = {
       'O serviço de IA está sobrecarregado no momento — tente novamente em instantes',
     aiNetworkError:
       'Problema de rede: não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente',
-    aiCreditsExhausted: 'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
+    aiCreditsExhausted:
+      'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
     aiRechargePrompt: 'Seus créditos de IA acabaram. Recarregue para continuar',
     aiRechargeAction: 'Recarregar',
+    aiPaidCallLimitPrompt: 'Esta tarefa fez {used} chamadas MCP pagas (limite: {max}). Continuar?',
+    aiPaidCallLimitContinue: 'Continuar',
+    aiPaidCallLimitStop: 'Parar',
     aiToolReadPages: 'Ler páginas {start}-{end}',
     aiToolSearch: 'Pesquisar "{query}" ({count} ocorrências)',
     aiToolGoto: 'Ir para a página {page}',
@@ -4155,9 +4210,14 @@ export const strings = {
     aiOverloadedError: 'Il servizio IA è momentaneamente sovraccarico — riprova tra poco',
     aiNetworkError:
       'Problema di rete: impossibile raggiungere il servizio IA. Controlla la connessione e riprova',
-    aiCreditsExhausted: 'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
+    aiCreditsExhausted:
+      'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
     aiRechargePrompt: 'I crediti IA sono esauriti. Ricarica per continuare',
     aiRechargeAction: 'Ricarica',
+    aiPaidCallLimitPrompt:
+      'Questa attività ha effettuato {used} chiamate MCP a pagamento (limite: {max}). Continuare?',
+    aiPaidCallLimitContinue: 'Continua',
+    aiPaidCallLimitStop: 'Ferma',
     aiToolReadPages: 'Leggi le pagine {start}-{end}',
     aiToolSearch: 'Cerca "{query}" ({count} risultati)',
     aiToolGoto: 'Vai alla pagina {page}',
@@ -4482,9 +4542,14 @@ export const strings = {
     aiOverloadedError: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
     aiNetworkError:
       'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
-    aiCreditsExhausted: 'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
+    aiCreditsExhausted:
+      'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
     aiRechargePrompt: 'Kredyty AI zostały wyczerpane. Doładuj konto, aby kontynuować',
     aiRechargeAction: 'Doładuj konto',
+    aiPaidCallLimitPrompt:
+      'To zadanie wykonało {used} płatnych wywołań MCP (limit: {max}). Kontynuować?',
+    aiPaidCallLimitContinue: 'Kontynuuj',
+    aiPaidCallLimitStop: 'Zatrzymaj',
     aiToolReadPages: 'Czytaj strony {start}-{end}',
     aiToolSearch: 'Szukaj „{query}" ({count} wyników)',
     aiToolGoto: 'Przejdź do strony {page}',
@@ -4809,9 +4874,14 @@ export const strings = {
     aiOverloadedError: 'De AI-service is momenteel overbelast — probeer het zo opnieuw',
     aiNetworkError:
       'Netwerkprobleem: kan de AI-service niet bereiken. Controleer je verbinding en probeer het opnieuw',
-    aiCreditsExhausted: 'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+    aiCreditsExhausted:
+      'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
     aiRechargePrompt: 'Uw AI-credits zijn opgebruikt. Laad op om door te gaan',
     aiRechargeAction: 'Opladen',
+    aiPaidCallLimitPrompt:
+      'Deze taak heeft {used} betaalde MCP-aanroepen gedaan (limiet: {max}). Doorgaan?',
+    aiPaidCallLimitContinue: 'Doorgaan',
+    aiPaidCallLimitStop: 'Stoppen',
     aiToolReadPages: "Pagina's {start}-{end} lezen",
     aiToolSearch: 'Zoeken naar "{query}" ({count} resultaten)',
     aiToolGoto: 'Ga naar pagina {page}',
@@ -5134,9 +5204,14 @@ export const strings = {
     aiOverloadedError: 'Perkhidmatan AI sedang sibuk — sila cuba lagi sebentar lagi',
     aiNetworkError:
       'Masalah rangkaian: tidak dapat menghubungi perkhidmatan AI. Semak sambungan anda dan cuba lagi',
-    aiCreditsExhausted: 'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
+    aiCreditsExhausted:
+      'Het quotum van de modelservice is uitgeput. Neem contact op met uw beheerder of kies een ander model in de instellingen en probeer het opnieuw',
     aiRechargePrompt: 'Kredit AI anda telah habis. Tambah nilai untuk terus menggunakannya',
     aiRechargeAction: 'Tambah nilai',
+    aiPaidCallLimitPrompt:
+      'Tugas ini telah membuat {used} panggilan MCP berbayar (had {max}). Teruskan?',
+    aiPaidCallLimitContinue: 'Teruskan',
+    aiPaidCallLimitStop: 'Berhenti',
     aiToolReadPages: 'Baca halaman {start}-{end}',
     aiToolSearch: 'Cari "{query}" ({count} padanan)',
     aiToolGoto: 'Pergi ke halaman {page}',
@@ -5455,9 +5530,13 @@ export const strings = {
     aiTimeoutError: 'תם הזמן לבקשת ה-AI: אין תגובה מהרשת וההרצה הופסקה. בדוק את החיבור ונסה שוב',
     aiOverloadedError: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
     aiNetworkError: 'בעיית רשת: לא ניתן להתחבר לשירות ה-AI. בדוק את החיבור ונסה שוב',
-    aiCreditsExhausted: 'Kuota perkhidmatan model telah habis. Hubungi pentadbir anda atau tukar ke model lain dalam Tetapan, kemudian cuba lagi',
+    aiCreditsExhausted:
+      'Kuota perkhidmatan model telah habis. Hubungi pentadbir anda atau tukar ke model lain dalam Tetapan, kemudian cuba lagi',
     aiRechargePrompt: 'יתרת קרדיט ה-AI אזלה. טענו כדי להמשיך להשתמש',
     aiRechargeAction: 'טעינה',
+    aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
+    aiPaidCallLimitContinue: 'המשך',
+    aiPaidCallLimitStop: 'עצור',
     aiToolReadPages: 'קריאת עמודים {start}-{end}',
     aiToolSearch: 'חיפוש "{query}" ({count} תוצאות)',
     aiToolGoto: 'מעבר לעמוד {page}',
@@ -5776,9 +5855,13 @@ export const strings = {
     aiOverloadedError: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
     aiNetworkError:
       'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
-    aiCreditsExhausted: 'מכסת שירות המודל אזלה. פנו למנהל המערכת או עברו למודל אחר בהגדרות ונסו שוב',
+    aiCreditsExhausted:
+      'מכסת שירות המודל אזלה. פנו למנהל המערכת או עברו למודל אחר בהגדרות ונסו שוב',
     aiRechargePrompt: 'आपके AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए रिचार्ज करें',
     aiRechargeAction: 'रिचार्ज करें',
+    aiPaidCallLimitPrompt: 'इस कार्य ने {used} सशुल्क MCP कॉल किए हैं (सीमा {max})। जारी रखें?',
+    aiPaidCallLimitContinue: 'जारी रखें',
+    aiPaidCallLimitStop: 'रोकें',
     aiToolReadPages: 'पृष्ठ {start}-{end} पढ़ें',
     aiToolSearch: '"{query}" खोजें ({count} परिणाम)',
     aiToolGoto: 'पृष्ठ {page} पर जाएँ',
@@ -6096,9 +6179,13 @@ export const strings = {
     aiTimeoutError: 'AI 請求逾時：網路長時間無回應，已停止。請檢查網路後重試',
     aiOverloadedError: 'AI 服務目前繁忙，請稍後重試',
     aiNetworkError: '網路有問題，無法連接 AI 服務。請檢查網路後重試',
-    aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
+    aiCreditsExhausted:
+      'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
     aiRechargePrompt: 'आपके AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए रिचार्ज करें',
     aiRechargeAction: 'रिचार्ज करें',
+    aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
+    aiPaidCallLimitContinue: '繼續呼叫',
+    aiPaidCallLimitStop: '停止',
     aiToolReadPages: '讀取第 {start}-{end} 頁',
     aiToolSearch: '搜尋「{query}」（{count} 處）',
     aiToolGoto: '跳至第 {page} 頁',
@@ -6264,4 +6351,3 @@ export const strings = {
     propModified: '修改時間',
   },
 }
-
