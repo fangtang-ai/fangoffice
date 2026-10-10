@@ -529,7 +529,7 @@ export function registerAccountIpc(): void {
       const binding = bindAccountSession()
       const accessToken = await validAccessToken(binding)
       requireCurrentAccount(binding)
-      // 站点 /api/office/account 返回 balanceCny/monthChargedCny 等；renderer 读 balanceCny + monthUsedCny
+      // 站点 /api/office/account 新形状为 products.office_ai/policy_mcp；旧形状顶层 balanceCny/monthChargedCny；renderer 双形状解析（use-account.ts）
       const response = await fetch(new URL('/api/office/account', apiBase), {
         headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.any([binding.signal, AbortSignal.timeout(15_000)]),

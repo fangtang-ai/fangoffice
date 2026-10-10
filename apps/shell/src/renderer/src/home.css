@@ -348,6 +348,13 @@ body.vib .home {
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 4px;
 }
+
+.account-menu-sub {
+  padding: 0 10px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
 /* ---- main content ---- */
 
 .content {

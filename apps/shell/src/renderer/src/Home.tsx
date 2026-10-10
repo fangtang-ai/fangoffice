@@ -16,7 +16,13 @@ import { useDismissablePopover } from '@genoffice/ui'
 import { fileCountKey, visiblePageCount } from './counts'
 import { useI18n } from './locale'
 import type { I18n, StringKey } from './locale'
-import { useAccount, type AccountApi } from './use-account'
+import {
+  useAccount,
+  accountAiPendingText,
+  accountMcpBalanceText,
+  accountMcpWalletOpened,
+  type AccountApi,
+} from './use-account'
 import { SettingsModal } from './SettingsModal'
 
 declare global {
@@ -453,8 +459,11 @@ function AccountEntry({ account }: { account: AccountApi }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const menuWrapRef = useRef<HTMLDivElement>(null)
-  const { busy, errorText, errorCode, loggedIn, name, balanceCny, login, logout, recharge } =
+  const { busy, errorText, errorCode, loggedIn, name, balanceCny, usage, login, logout, recharge } =
     account
+  const aiPending = accountAiPendingText(usage)
+  const mcpOpened = accountMcpWalletOpened(usage)
+  const mcpBalance = accountMcpBalanceText(usage)
 
   // unified dismissal: outside press, window blur, chrome press (tab strip / window drag)
   useDismissablePopover(menuOpen, () => setMenuOpen(false), {
@@ -482,23 +491,44 @@ function AccountEntry({ account }: { account: AccountApi }) {
             aria-expanded={menuOpen}
             aria-label={name}
           >
-            <span className="account-avatar logged-in">
-              {(name[0] ?? '·').toUpperCase()}
-            </span>
+            <span className="account-avatar logged-in">{(name[0] ?? '·').toUpperCase()}</span>
             <span className="account-text">
               <span className="account-name">{name}</span>
-              {balanceCny !== null && (
-                <span className="account-sub">¥{balanceCny.toFixed(2)}</span>
-              )}
+              {balanceCny !== null && <span className="account-sub">¥{balanceCny.toFixed(2)}</span>}
             </span>
-            <svg className="account-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              className="account-chevron"
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M2.5 4.5L6 8l3.5-3.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
           {menuOpen && (
             <div className="row-menu account-menu" role="menu">
               {balanceCny !== null && (
                 <div className="account-menu-balance">¥{balanceCny.toFixed(2)}</div>
+              )}
+              {aiPending && (
+                <div className="account-menu-sub">
+                  {t('accountAiPending')} · {aiPending}
+                </div>
+              )}
+              {(mcpOpened === false || mcpBalance !== null) && (
+                <div className="account-menu-sub">
+                  {mcpOpened === false
+                    ? t('accountMcpNotOpened')
+                    : `${t('accountMcpBalance')} · ${mcpBalance}`}
+                </div>
               )}
               <button
                 role="menuitem"
@@ -541,9 +571,28 @@ function AccountEntry({ account }: { account: AccountApi }) {
         >
           <span className={`account-avatar${busy ? ' waiting' : ''}`}>
             {busy ? (
-              <svg className="account-spinner" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.6" />
-                <path d="M14.5 8A6.5 6.5 0 0 0 8 1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <svg
+                className="account-spinner"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="6.5"
+                  stroke="currentColor"
+                  strokeOpacity="0.25"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M14.5 8A6.5 6.5 0 0 0 8 1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
               </svg>
             ) : (
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -573,7 +622,13 @@ const LOW_BALANCE_CNY = 6
 
 /** soft low-balance reminder above the home content; dismissal lasts for the
  * session (persisting it would hide the banner forever after one dismiss) */
-function LowBalanceBanner({ balanceCny, onRecharge }: { balanceCny: number; onRecharge: () => void }) {
+function LowBalanceBanner({
+  balanceCny,
+  onRecharge,
+}: {
+  balanceCny: number
+  onRecharge: () => void
+}) {
   const { t } = useI18n()
   const [hidden, setHidden] = useState(false)
   if (hidden || balanceCny >= LOW_BALANCE_CNY) return null
@@ -589,13 +644,17 @@ function LowBalanceBanner({ balanceCny, onRecharge }: { balanceCny: number; onRe
         aria-label={t('cancel')}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <path
+            d="M2 2l8 8M10 2l-8 8"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
         </svg>
       </button>
     </div>
   )
 }
-
 
 function DropToOpenOverlay(): ReactElement | null {
   const [visible, setVisible] = useState(false)

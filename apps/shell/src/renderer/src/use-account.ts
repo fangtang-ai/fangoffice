@@ -24,9 +24,26 @@ function parseCny(value: unknown): number | null {
   return null
 }
 
-/** balance in ¥ from the site's usage payload; null when absent/unshaped */
+/** formatted ¥ ('¥12.34'); null for absent/unparseable values */
+function fmtCny(value: unknown): string | null {
+  const cny = parseCny(value)
+  return cny === null ? null : `¥${cny.toFixed(2)}`
+}
+
+/** one product entry from the site's products map (office_ai / policy_mcp);
+ * null on legacy payloads without the products map */
+function productUsage(usage: AccountUsage, product: string): Record<string, unknown> | null {
+  const products = usage.products
+  if (!products || typeof products !== 'object') return null
+  const entry = (products as Record<string, unknown>)[product]
+  return entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : null
+}
+
+/** balance in ¥ from the site's usage payload; null when absent/unshaped.
+ * Prefers the legacy top-level field, falls back to the AI product entry */
 export function accountBalanceCny(usage: AccountUsage | null): number | null {
-  return usage ? parseCny(usage.balanceCny) : null
+  if (!usage) return null
+  return parseCny(usage.balanceCny) ?? parseCny(productUsage(usage, 'office_ai')?.balanceCny)
 }
 
 /** formatted balance ('¥12.34'), null when absent — display-only convenience */
@@ -35,11 +52,44 @@ export function accountBalanceText(usage: AccountUsage | null): string | null {
   return cny === null ? null : `¥${cny.toFixed(2)}`
 }
 
-/** formatted month-to-date spend ('¥3.20'), null when the site gives none */
+/** formatted month-to-date spend ('¥3.20'), null when the site gives none.
+ * Legacy top-level monthUsedCny, falls back to office_ai.monthChargedCny */
 export function accountMonthUsedText(usage: AccountUsage | null): string | null {
   if (!usage) return null
-  const used = parseCny(usage.monthUsedCny)
+  const used =
+    parseCny(usage.monthUsedCny) ?? parseCny(productUsage(usage, 'office_ai')?.monthChargedCny)
   return used === null ? null : `¥${used.toFixed(2)}`
+}
+
+/** AI month-to-date pending amount (reserved, not yet billed) */
+export function accountAiPendingText(usage: AccountUsage | null): string | null {
+  if (!usage) return null
+  return fmtCny(productUsage(usage, 'office_ai')?.monthPendingCny)
+}
+
+/** the MCP product entry (policy_mcp); null on legacy payloads — callers hide
+ * the MCP rows entirely rather than showing dashes */
+export function accountMcpUsage(usage: AccountUsage | null): Record<string, unknown> | null {
+  return usage ? productUsage(usage, 'policy_mcp') : null
+}
+
+export function accountMcpBalanceText(usage: AccountUsage | null): string | null {
+  return fmtCny(accountMcpUsage(usage)?.balanceCny)
+}
+
+export function accountMcpUsedText(usage: AccountUsage | null): string | null {
+  return fmtCny(accountMcpUsage(usage)?.monthChargedCny)
+}
+
+export function accountMcpPendingText(usage: AccountUsage | null): string | null {
+  return fmtCny(accountMcpUsage(usage)?.monthPendingCny)
+}
+
+/** MCP wallet opened? null = unknown (legacy payload without walletStatus) */
+export function accountMcpWalletOpened(usage: AccountUsage | null): boolean | null {
+  const mcp = accountMcpUsage(usage)
+  if (!mcp) return null
+  return mcp.walletStatus !== 'not_opened'
 }
 
 /**
@@ -101,9 +151,7 @@ export function useAccount() {
       )?.[1]
       if (code) setErrorCode(`account:${code}` as AccountErrorCode)
       setErrorText(
-        code
-          ? t(ACCOUNT_ERR_KEYS[`account:${code}` as AccountErrorCode])
-          : t('accountErrFailed'),
+        code ? t(ACCOUNT_ERR_KEYS[`account:${code}` as AccountErrorCode]) : t('accountErrFailed'),
       )
     } finally {
       setBusy(false)

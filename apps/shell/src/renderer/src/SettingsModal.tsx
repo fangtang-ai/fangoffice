@@ -11,7 +11,17 @@ import type { AiSettings } from '@genoffice/ai-provider'
 import { BUILTIN_PRESETS, type AiFeatures, type PresetSkillDef } from '@genoffice/agent-core'
 import { useI18n } from './locale'
 import type { StringKey, TFunc } from './locale'
-import { useAccount, accountBalanceText, accountMonthUsedText } from './use-account'
+import {
+  useAccount,
+  accountBalanceText,
+  accountMonthUsedText,
+  accountAiPendingText,
+  accountMcpUsage,
+  accountMcpWalletOpened,
+  accountMcpBalanceText,
+  accountMcpUsedText,
+  accountMcpPendingText,
+} from './use-account'
 import type { AiCatalogEntry, UiTheme } from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
 import './settings.css'
@@ -272,33 +282,33 @@ function AiModelPane({ t }: { t: TFunc }) {
       </div>
 
       {!managed && (
-      <div className="set-field">
-        <div className="set-field-text">
-          <label className="set-field-label">{t('setAiModelId')}</label>
+        <div className="set-field">
+          <div className="set-field-text">
+            <label className="set-field-label">{t('setAiModelId')}</label>
+          </div>
+          {meta && meta.models.length > 0 ? (
+            <Dropdown
+              className="set-dd"
+              value={config.model || meta.defaultModel}
+              ariaLabel={t('setAiModelId')}
+              options={meta.models.map((m) => ({ value: m, label: m }))}
+              onPick={(m) => updateConfig({ model: m })}
+            />
+          ) : (
+            <input
+              id="set-ai-model"
+              className="set-input"
+              type="text"
+              value={config.model}
+              placeholder="model-id"
+              spellCheck={false}
+              onChange={(e) => updateConfig({ model: e.target.value })}
+            />
+          )}
         </div>
-        {meta && meta.models.length > 0 ? (
-          <Dropdown
-            className="set-dd"
-            value={config.model || meta.defaultModel}
-            ariaLabel={t('setAiModelId')}
-            options={meta.models.map((m) => ({ value: m, label: m }))}
-            onPick={(m) => updateConfig({ model: m })}
-          />
-        ) : (
-          <input
-            id="set-ai-model"
-            className="set-input"
-            type="text"
-            value={config.model}
-            placeholder="model-id"
-            spellCheck={false}
-            onChange={(e) => updateConfig({ model: e.target.value })}
-          />
-        )}
-      </div>
       )}
       {!managed && (
-      <>
+        <>
           <div className="set-field">
             <div className="set-field-text">
               <div className="set-field-stack">
@@ -340,30 +350,30 @@ function AiModelPane({ t }: { t: TFunc }) {
               onChange={(e) => updateConfig({ baseUrl: e.target.value.trim() })}
             />
           </div>
-      </>
+        </>
       )}
       {!managed && (
-      <div className="set-field">
-        <div className="set-field-text">
-          <div className="set-field-stack">
-            <label className="set-field-label" htmlFor="set-ai-max-tokens">
-              {t('setAiMaxTokens')}
-            </label>
-            <div className="set-field-desc">{t('setAiMaxTokensDesc')}</div>
+        <div className="set-field">
+          <div className="set-field-text">
+            <div className="set-field-stack">
+              <label className="set-field-label" htmlFor="set-ai-max-tokens">
+                {t('setAiMaxTokens')}
+              </label>
+              <div className="set-field-desc">{t('setAiMaxTokensDesc')}</div>
+            </div>
           </div>
+          <input
+            id="set-ai-max-tokens"
+            className="set-input"
+            type="number"
+            min={MIN_MAX_OUTPUT_TOKENS}
+            max={MAX_MAX_OUTPUT_TOKENS}
+            step={1024}
+            value={maxTokensDraft ?? String(settings.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)}
+            onChange={(e) => setMaxTokensDraft(e.target.value)}
+            onBlur={commitMaxTokens}
+          />
         </div>
-        <input
-          id="set-ai-max-tokens"
-          className="set-input"
-          type="number"
-          min={MIN_MAX_OUTPUT_TOKENS}
-          max={MAX_MAX_OUTPUT_TOKENS}
-          step={1024}
-          value={maxTokensDraft ?? String(settings.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)}
-          onChange={(e) => setMaxTokensDraft(e.target.value)}
-          onBlur={commitMaxTokens}
-        />
-      </div>
       )}
       <div className="set-pane-footer">
         <AiStatusPill
@@ -447,7 +457,6 @@ function AiStatusPill({ status }: { status: AiStatus | null }) {
   )
 }
 
-
 const APP_LABELS: Record<string, string> = {
   docs: 'Docs',
   sheets: 'Sheets',
@@ -503,25 +512,27 @@ function SkillsPane({ t }: { t: TFunc }) {
       {apps.map((app) => (
         <div key={app} className="set-skills-group">
           <div className="set-skills-app">{APP_LABELS[app] ?? app}</div>
-          {catalog.filter((p) => p.app === app).map((preset) => (
-            <div key={preset.id} className="set-field set-skill-row">
-              <div className="set-field-text">
-                <div className="set-field-stack">
-                  <div className="set-field-label">
-                    {preset.nameEn ? `${preset.name} · ${preset.nameEn}` : preset.name}
+          {catalog
+            .filter((p) => p.app === app)
+            .map((preset) => (
+              <div key={preset.id} className="set-field set-skill-row">
+                <div className="set-field-text">
+                  <div className="set-field-stack">
+                    <div className="set-field-label">
+                      {preset.nameEn ? `${preset.name} · ${preset.nameEn}` : preset.name}
+                    </div>
+                    <div className="set-field-desc">{preset.description}</div>
                   </div>
-                  <div className="set-field-desc">{preset.description}</div>
                 </div>
+                <button
+                  className="set-switch"
+                  role="switch"
+                  aria-checked={!disabled.has(preset.id)}
+                  aria-label={`${preset.name} (${APP_LABELS[app] ?? app})`}
+                  onClick={() => toggle(preset.id)}
+                />
               </div>
-              <button
-                className="set-switch"
-                role="switch"
-                aria-checked={!disabled.has(preset.id)}
-                aria-label={`${preset.name} (${APP_LABELS[app] ?? app})`}
-                onClick={() => toggle(preset.id)}
-              />
-            </div>
-          ))}
+            ))}
         </div>
       ))}
     </>
@@ -581,10 +592,27 @@ function AccountPane() {
           </button>
         }
       />
-      <Field
-        label={t('accountMonthUsed')}
-        value={accountMonthUsedText(account.usage) ?? '—'}
-      />
+      <Field label={t('accountMonthUsed')} value={accountMonthUsedText(account.usage) ?? '—'} />
+      {accountAiPendingText(account.usage) && (
+        <Field label={t('accountAiPending')} value={accountAiPendingText(account.usage)!} />
+      )}
+      {accountMcpUsage(account.usage) && (
+        <>
+          <Field
+            label={t('accountMcpBalance')}
+            value={
+              accountMcpWalletOpened(account.usage) === false
+                ? t('accountMcpNotOpened')
+                : (accountMcpBalanceText(account.usage) ?? '—')
+            }
+          />
+          <Field label={t('accountMcpUsed')} value={accountMcpUsedText(account.usage) ?? '—'} />
+          <Field
+            label={t('accountMcpPending')}
+            value={accountMcpPendingText(account.usage) ?? '—'}
+          />
+        </>
+      )}
     </>
   )
 }
