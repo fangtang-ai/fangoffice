@@ -18,6 +18,8 @@ export interface AgentSkill {
   /** system prompt section describing this skill's rules and tools */
   systemPrompt: string
   tools: AgentToolDef[]
+  /** Await remote tool discovery before a run's first model request. */
+  prepareTools?(signal?: AbortSignal): Promise<void>
   /**
    * Fresh context sections attached to every user turn (e.g. document
    * skeleton + selection). Return '' when there is nothing to attach.
@@ -56,6 +58,9 @@ export function composeSkills(id: string, intro: string, skills: AgentSkill[]): 
     skills.find((skill) => skill.tools.some((tool) => tool.name === name))
   return {
     id,
+    prepareTools: async (signal) => {
+      await Promise.all(skills.map((skill) => skill.prepareTools?.(signal)))
+    },
     // live like tools: a sub-skill's prompt may vary with the same capability its tools key on
     get systemPrompt() {
       return [intro, ...skills.map((s) => s.systemPrompt)].filter(Boolean).join('\n\n')

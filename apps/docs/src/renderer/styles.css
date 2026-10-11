@@ -6318,11 +6318,13 @@ body.docs-crop-active
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-/* User pill: gray, fully rounded (no tail) */
+/* User pill: blue-tinted, fully rounded (no tail) */
 .ai-msg-user {
   align-self: flex-end;
-  background: var(--color-bg-subtle);
+  background: var(--color-ai-user-bg);
+  border: 1px solid var(--color-ai-user-border);
   color: var(--color-text-primary);
+  font-weight: 500;
   padding: 8px 16px;
   border-radius: 14px;
   max-width: 80%;

@@ -590,7 +590,7 @@ function AccountPane() {
         label={t('accountBalance')}
         value={accountBalanceText(account.usage) ?? '—'}
         action={
-          <button className="set-btn" onClick={account.recharge}>
+          <button className="set-btn" onClick={() => account.recharge('office_ai')}>
             {t('accountRecharge')}
           </button>
         }
@@ -607,6 +607,11 @@ function AccountPane() {
               accountMcpWalletOpened(account.usage) === false
                 ? t('accountMcpNotOpened')
                 : (accountMcpBalanceText(account.usage) ?? '—')
+            }
+            action={
+              <button className="set-btn" onClick={() => account.recharge('policy_mcp')}>
+                {t('accountRecharge')}
+              </button>
             }
           />
           <Field label={t('accountMcpUsed')} value={accountMcpUsedText(account.usage) ?? '—'} />

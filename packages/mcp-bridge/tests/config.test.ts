@@ -139,14 +139,14 @@ describe('expandEnvRefs via loadMcpConfig', () => {
       mcpServers: {
         wiki: {
           transport: 'http',
-          url: 'https://\${MCP_TEST_HOST}/mcp',
-          headers: { Authorization: 'Bearer \${MCP_TEST_TOKEN}' },
+          url: 'https://${MCP_TEST_HOST}/mcp',
+          headers: { Authorization: 'Bearer ${MCP_TEST_TOKEN}' },
         },
         erp: {
           transport: 'stdio',
-          command: '\${MCP_TEST_CMD}',
-          args: ['--token', '\${MCP_TEST_TOKEN}'],
-          env: { ERP_KEY: '\${MCP_TEST_TOKEN}' },
+          command: '${MCP_TEST_CMD}',
+          args: ['--token', '${MCP_TEST_TOKEN}'],
+          env: { ERP_KEY: '${MCP_TEST_TOKEN}' },
         },
       },
     })
@@ -165,7 +165,7 @@ describe('expandEnvRefs via loadMcpConfig', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mcp-'))
     const path = writeConfig(dir, 'm.json', {
       mcpServers: {
-        wiki: { transport: 'http', url: 'https://x/\${MCP_TEST_MISSING}/y' },
+        wiki: { transport: 'http', url: 'https://x/${MCP_TEST_MISSING}/y' },
       },
     })
     expect(loadMcpConfig(path).servers.wiki!.url).toBe('https://x//y')

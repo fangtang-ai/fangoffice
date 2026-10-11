@@ -5,6 +5,7 @@ import type {
   McpCallResult,
   McpServerInfo,
   McpToolInfo,
+  OfficeBillingProduct,
 } from '@genoffice/agent-core'
 import type { UpdateChannel } from './update-api'
 
@@ -167,8 +168,8 @@ export interface HomeApi {
   logoutAccount(): Promise<void>
   /** aggregated AI usage/balance; null when signed out or the site is unreachable */
   getAccountUsage(): Promise<AccountUsage | null>
-  /** open the top-up page in the browser (falls back to the company site) */
-  openRecharge(): Promise<void>
+  /** open the selected wallet's top-up page with the current desktop account */
+  openRecharge(product: OfficeBillingProduct): Promise<void>
   /** account session changed anywhere (login/logout/expiry, broadcast from main) */
   onAccountSessionChanged(handler: (session: AccountView) => void): () => void
   /** built-in skill visibility (Settings → 技能); shared across editors */

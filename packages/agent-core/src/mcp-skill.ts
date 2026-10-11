@@ -159,15 +159,41 @@ export function createMcpPresetHooks(
     snapshot = { key: [...always, ...presetServers].join(','), tools }
   }
 
+  function startRefresh(presetServers: string[]) {
+    if (!inFlight) {
+      inFlight = refresh(presetServers)
+        .catch(() => {})
+        .finally(() => {
+          inFlight = null
+        })
+    }
+    return inFlight
+  }
+
   return {
-    getTools: (presetServers: string[]) => {
-      if (!inFlight) {
-        inFlight = refresh(presetServers)
-          .catch(() => {})
-          .finally(() => {
-            inFlight = null
-          })
+    prepareTools: async (presetServers, signal) => {
+      if (signal?.aborted) return
+      // An older selection may already be loading; finish it before preparing this run's selection.
+      const pending = (async () => {
+        await inFlight
+        if (!signal?.aborted) await startRefresh(presetServers)
+      })()
+      if (!signal) {
+        await pending
+        return
       }
+      // Stop the run immediately; a late discovery response may only update the shared tool cache.
+      await new Promise<void>((resolve) => {
+        const finish = () => {
+          signal.removeEventListener('abort', finish)
+          resolve()
+        }
+        signal.addEventListener('abort', finish, { once: true })
+        void pending.then(finish, finish)
+      })
+    },
+    getTools: (presetServers: string[]) => {
+      void startRefresh(presetServers)
       const key = [...(alwaysServers ?? []), ...presetServers].join(',')
       return snapshot.key === key ? snapshot.tools : []
     },

@@ -102,7 +102,9 @@ describe('AiPanel teardown', () => {
     Object.defineProperty(window, 'projectApi', { configurable: true, value: undefined })
     const deps: MarkdownAiDeps = {
       getEditor: () => null,
-      getSnapshot: () => '',
+      getFrontmatter: () => '',
+      setFrontmatter: () => {},
+      getSnapshot: () => ({ body: '', frontmatter: '' }),
       restoreSnapshot: () => {},
       onRunDone: () => {},
     }
@@ -118,6 +120,7 @@ describe('AiPanel teardown', () => {
       await Promise.resolve()
     })
     expect(aiStream).toHaveBeenCalledTimes(1)
+    expect(aiStreamCancel).not.toHaveBeenCalled()
 
     unmount(root)
 

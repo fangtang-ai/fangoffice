@@ -3411,7 +3411,7 @@ button {
   filter: brightness(0.88);
 }
 
-/* Chat messages (scaled to the 14px panel): user = gray pill, AI = plain text without a bubble, no accent colors */
+/* Chat messages (scaled to the 14px panel): user = blue pill, AI = plain text without a bubble */
 .ai-msg {
   position: relative;
   margin: 0;
@@ -3421,11 +3421,13 @@ button {
   overflow-wrap: break-word;
 }
 
-/* User pill: gray, fully rounded (no tail) */
+/* User pill: blue-tinted, fully rounded (no tail) */
 .ai-msg-user {
   align-self: flex-end;
   color: var(--color-text-primary);
-  background: var(--color-bg-subtle);
+  background: var(--color-ai-user-bg);
+  border: 1px solid var(--color-ai-user-border);
+  font-weight: 500;
   padding: 8px 16px;
   border-radius: 14px;
   max-width: 80%;

@@ -197,8 +197,8 @@ const homeApi: HomeApi = {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAccountUsage)
     return result && typeof result === 'object' ? (result as AccountUsage) : null
   },
-  async openRecharge() {
-    await ipcRenderer.invoke(HOME_CHANNELS.openRecharge)
+  async openRecharge(product) {
+    await ipcRenderer.invoke(HOME_CHANNELS.openRecharge, product)
   },
   onAccountSessionChanged(handler) {
     const listener = (_event: IpcRendererEvent, session: unknown) => {

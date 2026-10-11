@@ -537,7 +537,7 @@ function AccountEntry({ account }: { account: AccountApi }) {
                 role="menuitem"
                 onClick={() => {
                   setMenuOpen(false)
-                  recharge()
+                  recharge('office_ai')
                 }}
               >
                 {t('accountRecharge')}
@@ -1767,7 +1767,10 @@ export function Home({ active = true }: { active?: boolean }) {
 
       <div className="home-main">
         {account.loggedIn && account.balanceCny !== null && (
-          <LowBalanceBanner balanceCny={account.balanceCny} onRecharge={account.recharge} />
+          <LowBalanceBanner
+            balanceCny={account.balanceCny}
+            onRecharge={() => account.recharge('office_ai')}
+          />
         )}
         {selectedProjectId ? renderProjectContent() : renderGlobalContent()}
       </div>

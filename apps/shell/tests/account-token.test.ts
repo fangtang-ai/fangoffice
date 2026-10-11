@@ -6,6 +6,9 @@ const fixture = vi.hoisted(() => ({
   refresh: vi.fn<() => Promise<TokenSet>>(),
   write: vi.fn(),
   unlink: vi.fn(),
+  openExternal: vi.fn().mockResolvedValue(undefined),
+  rechargeUrl:
+    'https://web.invalid/account/office-recharge?source=desktop&product=office_ai&accountId=old-account',
   stored: true,
   session: {
     userId: 'account-A',
@@ -23,7 +26,7 @@ vi.mock('electron', () => ({
       fixture.handlers.set(name, handler),
   },
   safeStorage: { isEncryptionAvailable: () => false },
-  shell: { openExternal: vi.fn().mockResolvedValue(undefined) },
+  shell: { openExternal: fixture.openExternal },
 }))
 
 vi.mock('node:fs', () => ({
@@ -42,6 +45,7 @@ vi.mock('@genoffice/electron-utils', () => ({
     logtoEndpoint: 'https://login.invalid',
     logtoClientId: 'fixture',
     logtoApiResource: 'https://account.invalid',
+    rechargeUrl: fixture.rechargeUrl,
   }),
   setAccountManagedDefaults: vi.fn(),
   setAccountManagedDefaultsPending: vi.fn(),
@@ -59,6 +63,9 @@ beforeEach(() => {
   fixture.refresh.mockReset()
   fixture.write.mockClear()
   fixture.unlink.mockClear()
+  fixture.openExternal.mockClear()
+  fixture.rechargeUrl =
+    'https://web.invalid/account/office-recharge?source=desktop&product=office_ai&accountId=old-account'
   fixture.stored = true
   fixture.unlink.mockImplementation(() => {
     fixture.stored = false
@@ -70,6 +77,43 @@ beforeEach(() => {
 })
 
 afterEach(() => vi.unstubAllGlobals())
+
+it('opens the selected MCP wallet and supplies the current desktop account for the website check', async () => {
+  const { registerAccountIpc } = await import('../src/main/auth')
+  registerAccountIpc()
+
+  await fixture.handlers.get('account:open-recharge')!({}, 'policy_mcp')
+
+  expect(fixture.openExternal).toHaveBeenCalledWith(
+    'https://web.invalid/account/office-recharge?source=desktop&product=policy_mcp&accountId=account-A',
+  )
+})
+
+it('rejects an invalid wallet at the IPC boundary without opening a browser', async () => {
+  const { registerAccountIpc } = await import('../src/main/auth')
+  registerAccountIpc()
+
+  expect(() => fixture.handlers.get('account:open-recharge')!({}, 'unknown-product')).toThrow(
+    'Invalid billing product',
+  )
+  expect(fixture.openExternal).not.toHaveBeenCalled()
+})
+
+it.each([
+  'javascript:alert(1)',
+  'file:///tmp/payment.html',
+  'http://untrusted.invalid/recharge',
+  'https://fixture-user:fixture-password@web.invalid/recharge',
+])('rejects unsafe recharge URLs without launching them: %s', async (url) => {
+  fixture.rechargeUrl = url
+  const { registerAccountIpc } = await import('../src/main/auth')
+  registerAccountIpc()
+
+  expect(() => fixture.handlers.get('account:open-recharge')!({}, 'policy_mcp')).toThrow(
+    'Invalid recharge URL',
+  )
+  expect(fixture.openExternal).not.toHaveBeenCalled()
+})
 
 it('coalesces concurrent account usage refreshes into one token exchange', async () => {
   let resolveRefresh!: (value: TokenSet) => void

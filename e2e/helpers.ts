@@ -27,6 +27,7 @@ interface LaunchOptions {
   onboardingSeen?: boolean
   /** subdir of e2e/artifacts to store this launch's video in */
   videoDir: string
+  recordVideo?: boolean
   /** absolute document path passed as argv, opened in an editor tab on launch */
   openFile?: string
 }
@@ -42,10 +43,11 @@ export async function launchShell(options: LaunchOptions): Promise<LaunchedApp> 
     throw new Error(`Missing build output at ${SHELL_MAIN} — run \`npm run build:all\` first`)
   }
   const userDataDir = options.userDataDir ?? (await mkdtemp(join(tmpdir(), 'genoffice-e2e-')))
-  if (options.onboardingSeen) {
+  const settingsPath = join(userDataDir, 'app-settings.json')
+  if (options.onboardingSeen || !existsSync(settingsPath)) {
     await writeFile(
-      join(userDataDir, 'app-settings.json'),
-      JSON.stringify({ onboardingSeen: true }),
+      settingsPath,
+      JSON.stringify({ onboardingSeen: options.onboardingSeen ?? false, analyticsEnabled: false }),
     )
   }
   const require = createRequire(join(SHELL_DIR, 'package.json'))
@@ -75,13 +77,18 @@ export async function launchShell(options: LaunchOptions): Promise<LaunchedApp> 
     // (page.url() stays empty, no lifecycle events, evaluate hangs) — record
     // only where it works
     recordVideo:
-      process.platform === 'linux'
+      process.platform === 'linux' ||
+      options.recordVideo === false ||
+      process.env.FANGTANG_E2E_RECORD_VIDEO === '0'
         ? undefined
         : {
             dir: join(ARTIFACTS_DIR, options.videoDir),
             size: { width: 1280, height: 800 },
           },
   })
+  await app.evaluate(({ app: electronApp }, scratchDir) => {
+    electronApp.setPath('documents', scratchDir)
+  }, userDataDir)
   const page = await app.firstWindow()
   await waitForDocumentReady(app, page)
   return { app, page, userDataDir }

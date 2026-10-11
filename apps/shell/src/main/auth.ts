@@ -12,6 +12,7 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { join } from 'node:path'
+import type { OfficeBillingProduct } from '@genoffice/agent-core'
 import {
   getAccountManagedDefaults,
   loadFangTangAccountConfig,
@@ -22,7 +23,7 @@ import {
 } from '@genoffice/electron-utils'
 import type { AccountErrorCode, AccountUsage, AccountView } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
-import { rechargeMismatchView } from './account-recharge'
+import { accountRechargeUrl, rechargeMismatchView } from './account-recharge'
 import {
   AccountMcpError,
   type AccountMcpAccess,
@@ -565,12 +566,13 @@ export function registerAccountIpc(): void {
     }
   })
 
-  ipcMain.handle(HOME_CHANNELS.openRecharge, (): void => {
+  ipcMain.handle(HOME_CHANNELS.openRecharge, (_event, product: OfficeBillingProduct) => {
     // remember whose wallet the user went to top up; a different user on the
     // next published session view gets flagged once (rechargeMismatchView)
-    rechargeUserIdAtOpen = currentSession()?.userId ?? null
-    const rechargeUrl = loadFangTangAccountConfig().rechargeUrl
-    shell.openExternal(rechargeUrl || 'https://fang-tang.cn').catch(() => undefined)
+    const userId = currentSession()?.userId
+    const rechargeUrl = accountRechargeUrl(loadFangTangAccountConfig().rechargeUrl, product, userId)
+    rechargeUserIdAtOpen = userId ?? null
+    return shell.openExternal(rechargeUrl)
   })
 
   // IPC is registered before app.ready. safeStorage cannot decrypt then, so

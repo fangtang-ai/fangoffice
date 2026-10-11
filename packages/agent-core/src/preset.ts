@@ -33,6 +33,8 @@ export interface ActivePreset {
 }
 
 export interface PresetSkillHooks {
+  /** Complete discovery for the selected and always-available servers before model execution. */
+  prepareTools?(servers: string[], signal?: AbortSignal): Promise<void>
   /**
    * Tool defs offered for the active preset's MCP servers (cached upstream).
    * Called before every model turn; return [] when no server answers.
@@ -60,6 +62,9 @@ export interface PresetSkillHooks {
 export function createPresetSkill(active: ActivePreset, hooks?: PresetSkillHooks): AgentSkill {
   return {
     id: 'preset',
+    prepareTools: async (signal) => {
+      await hooks?.prepareTools?.(active.current?.mcpServers ?? [], signal)
+    },
     get systemPrompt() {
       const preset = active.current
       if (!preset) return ''
@@ -75,8 +80,7 @@ export function createPresetSkill(active: ActivePreset, hooks?: PresetSkillHooks
     },
     get tools() {
       const preset = active.current
-      if (!preset?.mcpServers?.length || !hooks?.getTools) return []
-      return hooks.getTools(preset.mcpServers)
+      return hooks?.getTools?.(preset?.mcpServers ?? []) ?? []
     },
     executeTool: (call, signal, context) => {
       if (hooks?.executeTool) return hooks.executeTool(call, signal, context)

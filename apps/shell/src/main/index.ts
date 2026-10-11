@@ -3520,9 +3520,6 @@ function installDockMenu(): void {
 // Prefer proxy env vars (terminal launch); a packaged app launched from Finder inherits no shell
 // env vars, so fall back to the system HTTP proxy. The renderer uses Chromium's system proxy and
 // is unaffected. Same bootstrap as slides-main startSlidesStandalone.
-// awaited before the first AI request so it cannot race the proxy resolution
-let proxyBootstrap: Promise<void> = Promise.resolve()
-
 async function installMainProcessProxy(): Promise<void> {
   let proxyUrl = [
     process.env.HTTPS_PROXY,
@@ -3648,7 +3645,7 @@ app.whenReady().then(async () => {
     }
   }
 
-  proxyBootstrap = installMainProcessProxy()
+  void installMainProcessProxy()
   app.setAccessibilitySupportEnabled(true)
   // Settle the shared uiLang from saved settings BEFORE any tab renderer can
   // ask 'app:get-language': the editor handlers return the i18n module's

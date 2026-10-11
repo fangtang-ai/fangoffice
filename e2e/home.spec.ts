@@ -1,7 +1,24 @@
 import { test, expect } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { launchShell, closeAndSaveVideo, screenshotPath } from './helpers'
 
 test.describe('home screen', () => {
+  test('isolates native documents and disables analytics for a fresh profile', async () => {
+    const launched = await launchShell({ videoDir: 'home-profile-isolation' })
+    try {
+      expect(await launched.app.evaluate(({ app }) => app.getPath('documents'))).toBe(
+        launched.userDataDir,
+      )
+      const settings = JSON.parse(
+        await readFile(join(launched.userDataDir, 'app-settings.json'), 'utf8'),
+      ) as { analyticsEnabled?: boolean }
+      expect(settings.analyticsEnabled).toBe(false)
+    } finally {
+      await closeAndSaveVideo(launched, 'home-profile-isolation')
+    }
+  })
+
   test('shows hero, quick-create cards and tab bar', async () => {
     const launched = await launchShell({ onboardingSeen: true, videoDir: 'home-basics' })
     const { page } = launched

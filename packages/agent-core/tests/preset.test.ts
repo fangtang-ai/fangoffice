@@ -60,7 +60,10 @@ describe('createPresetSkill', () => {
     const skill = createPresetSkill(active, {
       getTools: (servers) => {
         calls.push(servers)
-        return [{ name: 'mcp__crm__lookup', description: 'lookup', inputSchema: { type: 'object' } }]
+        if (!servers.includes('crm')) return []
+        return [
+          { name: 'mcp__crm__lookup', description: 'lookup', inputSchema: { type: 'object' } },
+        ]
       },
       executeTool: (call) => ({ output: `ran ${call.name}`, summary: call.name }),
     })

@@ -300,6 +300,7 @@ export class AgentLoop<TSnapshot = unknown> {
     this.executedCalls = []
     this.verifyRetryUsed = false
     this.abortController = new AbortController()
+    this.handle = null
     const context = this.options.skill.buildContext?.() ?? ''
     const format =
       this.options.formatUserMessage ??
@@ -315,6 +316,20 @@ export class AgentLoop<TSnapshot = unknown> {
   /** Compact (if needed), push the user message, then start the turn. Compaction failure doesn't block the run. */
   private async beginRun(userMsg: AgentMessage): Promise<void> {
     const generation = this.generation
+    try {
+      await this.options.skill.prepareTools?.(this.abortController?.signal)
+    } catch (error) {
+      if (generation !== this.generation) return
+      this.running = false
+      this.options.events?.onError?.(error instanceof Error ? error.message : String(error))
+      return
+    }
+    if (generation !== this.generation) return
+    if (this.cancelled) {
+      this.running = false
+      this.options.events?.onDone?.({ text: '', cancelled: true, turnLimit: false })
+      return
+    }
     try {
       await this.maybeCompact()
     } catch {

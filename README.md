@@ -25,29 +25,33 @@ Markdown：文字处理、电子表格、演示文稿、PDF 编辑器和 Markdow
 - **AI that edits documents** — block-level edits with snapshots and diffs, document-aware agents.
 - **内置生成技能（built-in skills）** — 每个编辑器的 AI 对话窗口可一键选用内置文档生成技能（周报、会议纪要、合同、工作汇报、数据分析报表等），由内置提示词 playbook 驱动。
 - **内置 MCP 服务器** — 通过部署配置文件接入企业内部 MCP 工具，AI 技能可直接调用内部系统能力。
-- **AI 部署即配置** — IT 通过 `fangtang-defaults.json` 预配置企业大模型接入点（OpenAI 兼容网关、Claude、GLM、DeepSeek 等），员工开箱即用，无需注册任何账号。
+- **AI 部署即配置** — IT 可预配置企业自有大模型端点；方塘受管 AI 与政策数据 MCP 使用统一方塘账户登录，并分别展示钱包余额与充值入口。
 - **Light / dark / system themes.**
 - **macOS, Windows, Linux.**
 
 ## Apps
 
-| App             | Product        | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/docs`     | **方塘Office Docs**     | `.docx` word processor. Byte-preserving round trip: only dirty paragraphs are regenerated (paragraph patch), everything else in the original file is kept byte-for-byte, so opening and saving never breaks layout in Word. Paginated view whose line metrics reproduce the original document's layout, tracked changes, comments, styles, equations, ink.                                                                                                               |
-| `apps/sheets`   | **方塘Office Sheets**   | `.xlsx` spreadsheet. UI built on the open-source [Univer](https://github.com/dream-num/univer) core (Apache-2.0) with a large layer of in-house extensions; `.xlsx` import/export runs through an in-house Rust sidecar (calamine + IronCalc), charts are rendered in-house (Konva), plus pivot tables, slicers, conditional formatting, and formula tracing.                                                                                                         |
-| `apps/slides`   | **方塘Office Slides**   | `.pptx` presentations. In-house `.pptx` parse/render/edit engine with masters, charts, cropping, ink, and text shaping (HarfBuzz metrics).                                                                                                                                                                                                                                                                                                                                                                             |
+| App             | Product                 | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/docs`     | **方塘Office Docs**     | `.docx` word processor. Byte-preserving round trip: only dirty paragraphs are regenerated (paragraph patch), everything else in the original file is kept byte-for-byte, so opening and saving never breaks layout in Word. Paginated view whose line metrics reproduce the original document's layout, tracked changes, comments, styles, equations, ink.                                                                                                                                                                                                                                                                                                                                                     |
+| `apps/sheets`   | **方塘Office Sheets**   | `.xlsx` spreadsheet. UI built on the open-source [Univer](https://github.com/dream-num/univer) core (Apache-2.0) with a large layer of in-house extensions; `.xlsx` import/export runs through an in-house Rust sidecar (calamine + IronCalc), charts are rendered in-house (Konva), plus pivot tables, slicers, conditional formatting, and formula tracing.                                                                                                                                                                                                                                                                                                                                                  |
+| `apps/slides`   | **方塘Office Slides**   | `.pptx` presentations. In-house `.pptx` parse/render/edit engine with masters, charts, cropping, ink, and text shaping (HarfBuzz metrics).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `apps/pdf`      | **方塘Office PDF**      | `.pdf` viewer/editor on [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0) + [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT): annotations, forms, outlines, stamps, signatures, page operations, and printing support. True text editing — paragraph selection with in-block reflow, alignment restoration, original-font preservation — and content-stream image insert/edit, all rewriting page content streams through [PDFium](https://pdfium.googlesource.com/pdfium/) wasm (BSD-3-Clause) with subset-embedded fonts. Converts PDFs into editable Word, PowerPoint, and Excel files fully locally (`packages/pdf2docx`), with OCR support for scanned pages (system OCR on macOS and Windows). |
-| `apps/markdown` | **方塘Office Markdown** | `.md` / `.markdown` editor: Tiptap block editor over plain Markdown files — headings, lists, tables, images, code blocks — saved back as plain Markdown, hosted in shell tabs.                                                                                                                                                                                                                                                                                                                                        |
-| `apps/shell`    | **方塘Office**          | The suite shell: home screen, tabbed hosting of the five editors, light/dark/system theme.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `apps/markdown` | **方塘Office Markdown** | `.md` / `.markdown` editor: Tiptap block editor over plain Markdown files — headings, lists, tables, images, code blocks — saved back as plain Markdown, hosted in shell tabs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `apps/shell`    | **方塘Office**          | The suite shell: home screen, tabbed hosting of the five editors, light/dark/system theme.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 Every app embeds the same AI panel: block-granular AI editing with version
 snapshots and diffs in docs, a tool-calling agent over workbook/slide/PDF
 state in the others.
 
-**AI backends — company endpoint out of the box, BYOK for everything else.**
-There is no account system: IT preconfigures the company LLM endpoint in
+**AI backends — account-managed services, company endpoints, and BYOK.**
+The shell signs in with the user's existing Fangtang account for managed AI
+and policy MCP services. AI and MCP have separate product wallets; their
+balances and recharge buttons appear in Account settings. Returning from
+recharge refreshes the balances without automatically retrying a paid task.
+IT can also preconfigure a company LLM endpoint in
 `resources/fangtang-defaults.json` (or via `FANGTANG_AI_*` environment
-variables), and every AI panel works immediately. Employees can switch to any
+variables). Employees can switch to any
 built-in provider in Settings → AI Model: Claude, OpenAI, Gemini, DeepSeek,
 Kimi, GLM, Qwen, Doubao, MiniMax, Grok, Mistral, OpenRouter, OpenCode Zen/Go,
 or any OpenAI-compatible endpoint (base URL + key) — local model servers
@@ -114,12 +118,12 @@ automatically.
 
 ### 1. 文件位置
 
-| 场景 | 位置 |
-| --- | --- |
-| 仓库（开发/构建源） | `apps/shell/resources/`（提交空模板；`*.local.json` 已被 .gitignore 忽略） |
-| 安装后（Windows） | `安装目录\resources\` |
-| 安装后（macOS） | `方塘Office.app/Contents/Resources/` |
-| 用户级覆盖（无需管理员/重打包） | `userData/fangtang-mcp.json`、`userData/presets/<app>/*.md` |
+| 场景                            | 位置                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------ |
+| 仓库（开发/构建源）             | `apps/shell/resources/`（提交公开模板；密钥不得入库，`*.local.json` 已被 .gitignore 忽略） |
+| 安装后（Windows）               | `安装目录\resources\`                                                                      |
+| 安装后（macOS）                 | `方塘Office.app/Contents/Resources/`                                                       |
+| 用户级覆盖（无需管理员/重打包） | `userData/fangtang-mcp.json`、`userData/presets/<app>/*.md`                                |
 
 读取优先级：
 
@@ -130,18 +134,23 @@ automatically.
 
 ### 2. 环境变量
 
-| 变量 | 作用 |
-| --- | --- |
-| `FANGTANG_AI_PROVIDER` | 覆盖出厂 provider（`custom`/`anthropic`/`gemini`/`deepseek`/`openai`/`kimi`/`glm`/`qwen`/`doubao`/`minimax`/`xai`/`mistral`/`openrouter`/`opencode-zen`/`opencode-go`） |
-| `FANGTANG_AI_BASE_URL` | 覆盖端点地址（`custom` 必填，其他 provider 可用于区域镜像） |
-| `FANGTANG_AI_API_KEY` | 覆盖 API Key |
-| `FANGTANG_AI_MODEL` | 覆盖默认模型 |
-| `SERPER_API_KEY` | 联网/图片搜索用 Serper（Google 结果，推荐） |
-| `TAVILY_API_KEY` | 联网搜索用 Tavily；两者都不配时回退免 key DuckDuckGo |
-| `FANGTANG_UPDATE_URL` | 自动更新源（HTTPS 前缀）；不设则关闭自动更新 |
-| `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` | 主进程出网代理（访问境外 LLM/搜索 API 时需要） |
-| `FANGTANG_USER_DATA` | （开发调试）指定独立的 userData 目录 |
-| `FANGTANG_LANG` | （开发调试）强制 UI 语言 |
+| 变量                                       | 作用                                                                                                                                                                    |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FANGTANG_AI_PROVIDER`                     | 覆盖出厂 provider（`custom`/`anthropic`/`gemini`/`deepseek`/`openai`/`kimi`/`glm`/`qwen`/`doubao`/`minimax`/`xai`/`mistral`/`openrouter`/`opencode-zen`/`opencode-go`） |
+| `FANGTANG_AI_BASE_URL`                     | 覆盖端点地址（`custom` 必填，其他 provider 可用于区域镜像）                                                                                                             |
+| `FANGTANG_AI_API_KEY`                      | 覆盖 API Key                                                                                                                                                            |
+| `FANGTANG_AI_MODEL`                        | 覆盖默认模型                                                                                                                                                            |
+| `FANGTANG_LOGTO_ENDPOINT`                  | 方塘账户登录服务地址                                                                                                                                                    |
+| `FANGTANG_LOGTO_CLIENT_ID`                 | Office 原生登录应用的公开 client ID                                                                                                                                     |
+| `FANGTANG_LOGTO_API_RESOURCE`              | Office API 的访问令牌 audience                                                                                                                                          |
+| `FANGTANG_ACCOUNT_API_BASE`                | 方塘账户及受管服务 API 地址                                                                                                                                             |
+| `FANGTANG_ACCOUNT_RECHARGE_URL`            | 充值页地址；客户端附加当前产品与账户标识                                                                                                                                |
+| `SERPER_API_KEY`                           | 联网/图片搜索用 Serper（Google 结果，推荐）                                                                                                                             |
+| `TAVILY_API_KEY`                           | 联网搜索用 Tavily；两者都不配时回退免 key DuckDuckGo                                                                                                                    |
+| `FANGTANG_UPDATE_URL`                      | 自动更新源（HTTPS 前缀）；不设则关闭自动更新                                                                                                                            |
+| `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` | 主进程出网代理（访问境外 LLM/搜索 API 时需要）                                                                                                                          |
+| `FANGTANG_USER_DATA`                       | （开发调试）指定独立的 userData 目录                                                                                                                                    |
+| `FANGTANG_LANG`                            | （开发调试）强制 UI 语言                                                                                                                                                |
 
 Windows 批量设置示例（登录脚本 / setx）：
 
@@ -157,7 +166,7 @@ macOS/Linux（launchd / systemd / shell profile）同名变量，按各环境标
 
 ### 3. `fangtang-defaults.json`（出厂 AI 端点）
 
-仓库模板只含空值。IT 有两种注入方式——**方式 A（推荐）**：只设环境变量，文件保持空模板；**方式 B**：编辑安装目录里的 `fangtang-defaults.json`（或同目录放 `fangtang-defaults.local.json`，该文件优先且不入库），完整示例：
+仓库模板可包含公开端点与登录应用参数，但不得包含密钥。IT 有两种注入方式——**方式 A（推荐）**：使用环境变量覆盖部署参数与密钥；**方式 B**：编辑安装目录里的 `fangtang-defaults.json`（或同目录放 `fangtang-defaults.local.json`，该文件优先且不入库），自有端点示例：
 
 ```json
 {
@@ -200,6 +209,26 @@ macOS/Linux（launchd / systemd / shell profile）同名变量，按各环境标
 
 字段说明：`enabled: false` 停用；`alwaysAvailable: true` 时该服务器工具进入所有 AI 会话，否则仅当所选技能的 `mcpServers` 声明引用时进入；`timeoutMs` 为单次工具调用超时（缺省 30000）。IT 设置 `MCP_WIKI_TOKEN`、`ERP_TOKEN` 等环境变量即可完成鉴权注入。
 
+方塘账户受管 MCP 使用下列配置，不使用静态 Bearer token：
+
+```json
+{
+  "mcpServers": {
+    "policy": {
+      "transport": "http",
+      "auth": "fangtang-account",
+      "url": "${ACCOUNT_API_BASE}/api/office/mcp",
+      "enabled": false,
+      "alwaysAvailable": true
+    }
+  }
+}
+```
+
+`${ACCOUNT_API_BASE}` 由当前账户配置在运行时绑定；访问令牌动态获取，禁止使用 `${ACCOUNT_TOKEN}` 静态展开。`billingProduct` 是可信服务器状态中的派生信息，不是部署配置字段。受管收费调用先展示费用告知，每个任务默认在第 11 次调用前再次确认；拒绝不执行后续调用，同意不重跑已完成调用。
+
+公共 MCP 模板默认没有服务器，示例也默认停用；完成服务端部署和用户授权后再启用。AI 与政策 MCP 钱包不互通，充值入口分别指定 `office_ai`、`policy_mcp` 并携带当前账户标识。网站确认到账前不得将订单已付款等同钱包已增加余额。安装包不得携带 `fangtang-defaults.local.json` 部署密钥；免安装测试包的本机配置不代表正式部署已验收。
+
 ### 5. 内置生成技能（presets）
 
 每个技能一个 markdown 文件，按编辑器应用分目录：`presets/<app>/<技能>.md`（`docs` / `sheets` / `slides` / `pdf` / `markdown`）。可选 frontmatter 携带元数据，其余正文为所选技能注入 AI 对话 system prompt 的执行手册（playbook）：
@@ -210,7 +239,7 @@ id: docs-fangtang-gongwen
 name: 方塘公文写作
 nameEn: FangTang official-document writing
 description: 党政机关公文/总结/述职/讲话稿写作
-mcpServers: erp, wiki        # 可选：该技能可调用的内置 MCP 服务器
+mcpServers: erp, wiki # 可选：该技能可调用的内置 MCP 服务器
 ---
 
 <执行手册：角色、结构、文风与交互规则>
@@ -252,8 +281,35 @@ OpenAI-compatible endpoint — including local model servers. The company
 endpoint arrives preconfigured.
 
 **Does 方塘Office collect any data?**
-No. This build ships without analytics keys and the telemetry client stays a
-no-op.
+Local editing does not upload your documents. Account services and configured
+AI/MCP endpoints receive the information needed for authentication, billing,
+and requested online work. Anonymous usage statistics run only when a
+deployment supplies analytics credentials and can be disabled in Settings.
+See [PRIVACY.md](PRIVACY.md) for the data flows and storage limits.
+
+## Electron regression tests
+
+Build the apps and generate the Sheets fixtures before running the suite:
+
+```sh
+npm run build:all
+npm run fixtures -w @genoffice/sheets
+npm run test:e2e
+```
+
+The launcher uses scratch user-data and native document directories and
+disables analytics for fresh test profiles. Some save regressions also need
+`unzip` on `PATH`; visual baselines and clipboard checks have platform-specific
+requirements. AI/MCP billing fixtures simulate services, not real payments.
+
+If Electron video capture stalls a local Windows run, disable recording only:
+
+```powershell
+$env:FANGTANG_E2E_RECORD_VIDEO = '0'
+npm run test:e2e
+```
+
+UI assertions and screenshots remain enabled.
 
 ## Security
 

@@ -32,7 +32,11 @@ export interface PresetFileDef {
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/
 
-export function parsePresetMarkdown(app: string, filename: string, content: string): PresetFileDef | null {
+export function parsePresetMarkdown(
+  app: string,
+  filename: string,
+  content: string,
+): PresetFileDef | null {
   const stem = filename.replace(/\.md$/i, '').trim()
   if (!stem) return null
   const def: PresetFileDef = { app, id: stem, name: stem, systemPrompt: '' }
@@ -69,7 +73,7 @@ export function parsePresetMarkdown(app: string, filename: string, content: stri
 
 function loadDir(dir: string, into: Map<string, PresetFileDef>): void {
   if (!existsSync(dir)) return
-  let apps: string[] = []
+  let apps: string[]
   try {
     apps = readdirSync(dir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
@@ -79,9 +83,11 @@ function loadDir(dir: string, into: Map<string, PresetFileDef>): void {
   }
   for (const app of apps) {
     const appDir = join(dir, app)
-    let files: string[] = []
+    let files: string[]
     try {
-      files = readdirSync(appDir).filter((f) => f.toLowerCase().endsWith('.md')).sort()
+      files = readdirSync(appDir)
+        .filter((f) => f.toLowerCase().endsWith('.md'))
+        .sort()
     } catch {
       continue
     }

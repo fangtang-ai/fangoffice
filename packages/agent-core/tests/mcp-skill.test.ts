@@ -9,6 +9,10 @@ import {
   type McpToolInfo,
 } from '../src/mcp-skill'
 import type { AgentToolDef } from '../src/types'
+import { createPresetSkill } from '../src/preset'
+import { AgentLoop } from '../src/loop'
+import { composeSkills } from '../src/skill'
+import type { AgentTransport } from '../src/types'
 
 describe('mcp tool naming', () => {
   it('round-trips server and tool through the prefixed name', () => {
@@ -40,6 +44,114 @@ function fakeApi(
 }
 
 describe('createMcpPresetHooks', () => {
+  it('stops immediately while tools are loading and ignores their late completion', async () => {
+    let releaseStatus: ((servers: McpServerInfo[]) => void) | undefined
+    const api = fakeApi([], {})
+    api.status = vi.fn(
+      () =>
+        new Promise<McpServerInfo[]>((resolve) => {
+          releaseStatus = resolve
+        }),
+    )
+    const transport: AgentTransport = { stream: vi.fn(() => ({ cancel: () => {} })) }
+    const onDone = vi.fn()
+    const loop = new AgentLoop({
+      transport,
+      skill: composeSkills('managed', '', [
+        createPresetSkill({ current: null }, createMcpPresetHooks(api)),
+      ]),
+      events: { onDone },
+    })
+    loop.run('Search policies')
+    await vi.waitFor(() => expect(api.status).toHaveBeenCalled())
+    loop.cancel()
+    await vi.waitFor(() =>
+      expect(onDone).toHaveBeenCalledWith({
+        text: '',
+        cancelled: true,
+        turnLimit: false,
+      }),
+    )
+    expect(loop.busy).toBe(false)
+    expect(loop.messages).toEqual([])
+    releaseStatus?.([])
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+    expect(transport.stream).not.toHaveBeenCalled()
+    expect(onDone).toHaveBeenCalledOnce()
+  })
+
+  it('waits for managed tools before the first model request without a warm-up', async () => {
+    let releaseStatus: ((servers: McpServerInfo[]) => void) | undefined
+    const pendingStatus = new Promise<McpServerInfo[]>((resolve) => {
+      releaseStatus = resolve
+    })
+    const api = fakeApi([], { policy: [{ name: 'search', inputSchema: { type: 'object' } }] })
+    api.status = vi.fn(() => pendingStatus)
+    const modelTools: string[][] = []
+    const transport: AgentTransport = {
+      stream(request, callbacks) {
+        modelTools.push(request.tools.map((tool) => tool.name))
+        queueMicrotask(() => {
+          callbacks.onDelta('Ready')
+          callbacks.onDone()
+        })
+        return { cancel: () => {} }
+      },
+    }
+    const onDone = vi.fn()
+    const loop = new AgentLoop({
+      transport,
+      skill: composeSkills('managed', '', [
+        createPresetSkill({ current: null }, createMcpPresetHooks(api)),
+      ]),
+      events: { onDone },
+    })
+    loop.run('Search policies')
+    await vi.waitFor(() => expect(api.status).toHaveBeenCalled())
+    expect(modelTools).toEqual([])
+    releaseStatus?.([
+      {
+        name: 'policy',
+        transport: 'http',
+        enabled: true,
+        alwaysAvailable: true,
+        connected: true,
+        toolCount: 1,
+        billingProduct: 'policy_mcp',
+      },
+    ])
+    await vi.waitFor(() => expect(modelTools).toEqual([['mcp__policy__search']]))
+    expect(onDone).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    null,
+    { id: 'plain', app: 'markdown', name: 'Plain skill', systemPrompt: 'Write clearly.' },
+  ])('exposes always-available tools when the preset has no MCP servers: %j', async (preset) => {
+    const hooks = createMcpPresetHooks(
+      fakeApi(
+        [
+          {
+            name: 'wiki',
+            transport: 'http',
+            enabled: true,
+            alwaysAvailable: true,
+            connected: true,
+            toolCount: 1,
+          },
+        ],
+        { wiki: [{ name: 'search', inputSchema: { type: 'object' } }] },
+      ),
+    )
+    const skill = createPresetSkill({ current: preset }, hooks)
+    await vi.waitFor(() => {
+      expect(skill.tools.map((tool) => tool.name)).toEqual(['mcp__wiki__search'])
+    })
+    await expect(
+      skill.executeTool({ id: 'always-call', name: 'mcp__wiki__search', input: {} }),
+    ).resolves.toMatchObject({ output: 'ok:search', isError: false })
+  })
+
   it('forwards application-owned run/call context and keeps billing details out of tool output', async () => {
     const context = {
       aiRunId: 'f4245812-731b-43e0-a1b4-ef2810140b05',

@@ -78,16 +78,11 @@ if (changedFiles.length === 0) {
   process.exit(0)
 }
 
-const prettierExecutable = join(
-  repoRoot,
-  'node_modules',
-  '.bin',
-  process.platform === 'win32' ? 'prettier.cmd' : 'prettier',
-)
+const prettierExecutable = join(repoRoot, 'node_modules', 'prettier', 'bin', 'prettier.cjs')
 const prettierMode = mode === '--write' ? '--write' : '--check'
 const result = spawnSync(
-  prettierExecutable,
-  [prettierMode, '--ignore-unknown', '--', ...changedFiles],
+  process.execPath,
+  [prettierExecutable, prettierMode, '--ignore-unknown', '--', ...changedFiles],
   {
     cwd: repoRoot,
     stdio: 'inherit',

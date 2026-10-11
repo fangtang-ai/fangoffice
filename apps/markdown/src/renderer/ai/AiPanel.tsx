@@ -4,7 +4,7 @@ import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 
 import { AgentLoop, composeSkills, createPresetSkill } from '@genoffice/agent-core'
 import { createMcpPresetHooks } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider'
-import { AiComposer, AiSkillPicker, AiTypingIndicator, Markdown, useAiSkills } from '@genoffice/ui'
+import { AiComposer, AiTypingIndicator, Markdown, useAiSkills } from '@genoffice/ui'
 import type { Editor } from '@tiptap/core'
 import { aiLangDirective, t as tGlobal, useI18n } from '../i18n/locale'
 import sendEnterOn from '../assets/send-enter-on.png'
@@ -170,11 +170,7 @@ export function AiPanel({
 
   const settingsRef = useRef<AiSettings | null>(null)
   // built-in generation skill (技能) selected in the composer; live-read per turn
-  const {
-    presets: skillOptions,
-    active: activeSkill,
-    pick: pickSkill,
-  } = useAiSkills(
+  const { active: activeSkill } = useAiSkills(
     'markdown',
     () => window.markdownApi.getAiFeatures?.(),
     () => window.markdownApi.getPresetCatalog?.(),
@@ -475,7 +471,6 @@ export function AiPanel({
     if (!paidCallGate) return
     return () => paidCallGate.resolve(false)
   }, [paidCallGate])
-  useEffect(() => () => loopRef.current?.cancel(), [])
 
   const stop = (): void => {
     if (paidCallGate) {

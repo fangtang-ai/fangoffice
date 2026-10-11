@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { OfficeBillingProduct } from '@genoffice/agent-core'
 import type { AccountErrorCode, AccountUsage, AccountView } from '../../shared/home-api'
 import { useI18n } from './locale'
 import type { StringKey } from './locale'
@@ -100,23 +101,35 @@ export function accountMcpWalletOpened(usage: AccountUsage | null): boolean | nu
 export function useAccount() {
   const { t } = useI18n()
   const [session, setSession] = useState<AccountView | null>(null)
-  const [usage, setUsage] = useState<AccountUsage | null>(null)
+  const [accountUsage, setAccountUsage] = useState<{
+    userId: string | undefined
+    data: AccountUsage | null
+  } | null>(null)
+  const usage =
+    session?.loggedIn && accountUsage?.userId === session.userId
+      ? (accountUsage?.data ?? null)
+      : null
   const [busy, setBusy] = useState(false)
   const [errorText, setErrorText] = useState<string | null>(null)
   const [errorCode, setErrorCode] = useState<AccountErrorCode | null>(null)
+  const requestUsage = useRef<() => void>(() => {})
+  const refreshUsage = useCallback(() => requestUsage.current(), [])
 
   useEffect(() => {
     let active = true
+    let sessionChanged = false
     void window.aiOffice.getAccountSession().then((view) => {
-      if (active) setSession(view)
+      if (active && !sessionChanged) setSession(view)
     })
     // login/logout/expiry anywhere (incl. another window) re-renders consumers
     const unsubscribe = window.aiOffice.onAccountSessionChanged((view) => {
+      // A broadcast supersedes the startup snapshot, even if its IPC reply arrives last.
+      sessionChanged = true
       setSession(view)
       setBusy(false)
       setErrorText(null)
       setErrorCode(null)
-      if (!view.loggedIn) setUsage(null)
+      if (!view.loggedIn) setAccountUsage(null)
     })
     return () => {
       active = false
@@ -129,13 +142,33 @@ export function useAccount() {
   // and whenever the session flips to signed-in
   useEffect(() => {
     if (!session?.loggedIn) return
+    let active = true
+    let pending = false
+    // Focus and visible-tab refreshes share one request bound to this account's lifetime.
     const pull = () => {
-      void window.aiOffice.getAccountUsage().then(setUsage)
+      if (pending) return
+      pending = true
+      void window.aiOffice
+        .getAccountUsage()
+        .then((data) => {
+          if (active) setAccountUsage({ userId: session.userId, data })
+        })
+        .catch(() => {
+          if (active) setAccountUsage({ userId: session.userId, data: null })
+        })
+        .finally(() => {
+          pending = false
+        })
     }
+    requestUsage.current = pull
     pull()
     window.addEventListener('focus', pull)
-    return () => window.removeEventListener('focus', pull)
-  }, [session?.loggedIn])
+    return () => {
+      active = false
+      requestUsage.current = () => {}
+      window.removeEventListener('focus', pull)
+    }
+  }, [session?.loggedIn, session?.userId])
 
   const login = async () => {
     setBusy(true)
@@ -169,11 +202,9 @@ export function useAccount() {
     balanceCny: accountBalanceCny(usage),
     login,
     /** re-pull the balance (Home calls this when its tab becomes visible) */
-    refreshUsage: () => {
-      if (session?.loggedIn) void window.aiOffice.getAccountUsage().then(setUsage)
-    },
+    refreshUsage,
     logout: () => void window.aiOffice.logoutAccount(),
-    recharge: () => void window.aiOffice.openRecharge(),
+    recharge: (product: OfficeBillingProduct) => void window.aiOffice.openRecharge(product),
   }
 }
 

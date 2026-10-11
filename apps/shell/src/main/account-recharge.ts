@@ -1,4 +1,26 @@
 import type { AccountView } from '../shared/home-api'
+import type { OfficeBillingProduct } from '@genoffice/agent-core'
+
+export function accountRechargeUrl(
+  configuredUrl: string | undefined,
+  product: OfficeBillingProduct,
+  userId?: string,
+) {
+  if (product !== 'office_ai' && product !== 'policy_mcp') {
+    throw new Error('Invalid billing product')
+  }
+  const url = new URL(configuredUrl || 'https://fang-tang.cn/account/office-recharge')
+  const localHttp =
+    url.protocol === 'http:' && ['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname)
+  if ((url.protocol !== 'https:' && !localHttp) || url.username || url.password) {
+    throw new Error('Invalid recharge URL')
+  }
+  // The website uses accountId only to warn about a different signed-in user; it never grants access.
+  url.searchParams.set('product', product)
+  url.searchParams.delete('accountId')
+  if (userId) url.searchParams.set('accountId', userId)
+  return url.href
+}
 
 /**
  * One-shot recharge account check. While a recharge is open under user A, a

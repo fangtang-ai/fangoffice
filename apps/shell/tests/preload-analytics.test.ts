@@ -29,6 +29,13 @@ import '../src/preload/index'
 
 const homeApi = electronMocks.exposed.get('aiOffice') as HomeApi
 
+describe('product-specific recharge preload API', () => {
+  it('forwards the selected wallet to the main process', async () => {
+    await homeApi.openRecharge('policy_mcp')
+    expect(electronMocks.invoke).toHaveBeenLastCalledWith(HOME_CHANNELS.openRecharge, 'policy_mcp')
+  })
+})
+
 beforeEach(() => {
   electronMocks.invoke.mockReset()
   electronMocks.send.mockReset()

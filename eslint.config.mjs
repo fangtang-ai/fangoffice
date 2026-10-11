@@ -8,6 +8,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 export default tseslint.config(
   {
     ignores: [
+      '.local/**',
+      'tmp/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/out/**',
