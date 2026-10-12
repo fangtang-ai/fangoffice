@@ -208,13 +208,15 @@ describe('fangtang billing proxy', () => {
   })
 
   it('keeps login-class errors out of the credits/recharge path', async () => {
-    const sseLogin = vi.fn().mockResolvedValue(
-      okResponse(
-        sseStream([
-          'data: {"type":"error","code":"invalid_access_token","message":"登录已失效"}',
-        ]),
-      ),
-    )
+    const sseLogin = vi
+      .fn()
+      .mockResolvedValue(
+        okResponse(
+          sseStream([
+            'data: {"type":"error","code":"invalid_access_token","message":"登录已失效"}',
+          ]),
+        ),
+      )
     vi.stubGlobal('fetch', sseLogin)
     const sseError = await streamForProvider(
       'fangtang',
