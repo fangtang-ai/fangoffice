@@ -11,6 +11,17 @@ function writeConfig(dir: string, name: string, body: unknown): string {
 }
 
 describe('loadMcpConfig', () => {
+  it('ships an enabled account-backed Office MCP without a profile override or static token', () => {
+    const config = loadMcpConfig(join(__dirname, '../../../apps/shell/resources/fangtang-mcp.json'))
+    expect(config.servers.office).toEqual({
+      transport: 'http',
+      auth: 'fangtang-account',
+      url: '${ACCOUNT_API_BASE}/api/office/mcp',
+      enabled: true,
+      alwaysAvailable: true,
+    })
+  })
+
   it('preserves account auth and the managed URL without expanding account secrets', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mcp-'))
     const path = writeConfig(dir, 'account.json', {

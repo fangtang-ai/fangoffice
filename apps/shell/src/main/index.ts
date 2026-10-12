@@ -41,6 +41,7 @@ import {
   windowMenuTemplate,
 } from '@genoffice/electron-utils'
 import { readAppSettings, writeAppSetting, writeAppSettings } from './app-settings'
+import { registerAccountMcpSettings } from './account-mcp-settings'
 import {
   ANALYTICS_ENABLED_KEY,
   analyticsEnabledFrom,
@@ -3593,6 +3594,7 @@ const mcpHub = new McpHub(
   loadMcpConfig(undefined, join(app.getPath('userData'), 'fangtang-mcp.json')).servers,
   { account: getAccountMcpAccess() },
 )
+registerAccountMcpSettings(mcpHub, APP_SETTINGS_PATH())
 registerMcpIpc(mcpHub)
 registerProjectIpc()
 registerDocsIpc()

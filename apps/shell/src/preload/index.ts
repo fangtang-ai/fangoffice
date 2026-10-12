@@ -216,6 +216,22 @@ const homeApi: HomeApi = {
     const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
     return Array.isArray(result) ? (result as PresetSkillDef[]) : []
   },
+  async getFangtangMcpEnabled() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getFangtangMcpEnabled)
+    return result !== false
+  },
+  async setFangtangMcpEnabled(enabled) {
+    if (typeof enabled !== 'boolean') throw new Error('Invalid Fangtang MCP preference.')
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.setFangtangMcpEnabled, enabled)
+    return result === true
+  },
+  onFangtangMcpEnabledChanged(handler) {
+    const listener = (_event: IpcRendererEvent, enabled: unknown) => {
+      if (typeof enabled === 'boolean') handler(enabled)
+    }
+    ipcRenderer.on('mcp:account-enabled-changed', listener)
+    return () => ipcRenderer.removeListener('mcp:account-enabled-changed', listener)
+  },
   async mcpStatus() {
     return (await ipcRenderer.invoke('mcp:status')) as Awaited<ReturnType<HomeApi['mcpStatus']>>
   },

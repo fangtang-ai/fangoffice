@@ -15,6 +15,12 @@ export const strings = {
     accountBalance: '余额',
     accountMonthUsed: '本月已用',
     accountAiPending: '本期待结算',
+    accountMcpEnabled: '启用方塘 MCP',
+    accountMcpDesc:
+      '默认开启，AI 可按需调用方塘 MCP，费用从独立 MCP 钱包扣除。关闭不影响 AI 对话和其他 MCP。',
+    accountMcpLoginHint: '登录方塘账号后可使用。',
+    accountMcpSettingFailed: 'MCP 设置未更新，请重试。',
+    accountMcpInsufficient: '方塘 MCP 可用余额不足，请充值 MCP 钱包后重新发起，不会自动重试。',
     accountMcpBalance: 'MCP 余额',
     accountMcpUsed: 'MCP 本月已用',
     accountMcpPending: 'MCP 待结算',
@@ -199,6 +205,13 @@ export const strings = {
     accountBalance: 'Balance',
     accountMonthUsed: 'Used this month',
     accountAiPending: 'Pending settlement',
+    accountMcpEnabled: 'Enable Fangtang MCP',
+    accountMcpDesc:
+      'On by default. AI can use Fangtang MCP as needed, billed to its separate MCP wallet. Turning it off does not disable AI chat or other MCP servers.',
+    accountMcpLoginHint: 'Sign in to Fangtang to use it.',
+    accountMcpSettingFailed: 'MCP settings could not be updated. Please try again.',
+    accountMcpInsufficient:
+      'Fangtang MCP available balance is insufficient. Top up the MCP wallet, then start again. Calls will not retry automatically.',
     accountMcpBalance: 'MCP balance',
     accountMcpUsed: 'MCP used this month',
     accountMcpPending: 'MCP pending',
@@ -380,6 +393,13 @@ export const strings = {
     accountBalance: '残高',
     accountMonthUsed: '今月の使用額',
     accountAiPending: '今週請求予定',
+    accountMcpEnabled: 'Fangtang MCP を有効にする',
+    accountMcpDesc:
+      '標準で有効です。AI は必要に応じて MCP を利用し、専用ウォレットから課金されます。無効にしても AI チャットや他の MCP は使えます。',
+    accountMcpLoginHint: 'Fangtang にログインして利用できます。',
+    accountMcpSettingFailed: 'MCP 設定を更新できませんでした。再試行してください。',
+    accountMcpInsufficient:
+      'MCP の利用可能残高が不足しています。専用ウォレットにチャージして再実行してください。自動再試行は行いません。',
     accountMcpBalance: 'MCP残高',
     accountMcpUsed: 'MCP今月の使用額',
     accountMcpPending: 'MCP請求予定',
@@ -574,6 +594,13 @@ export const strings = {
     accountBalance: '잔액',
     accountMonthUsed: '이번 달 사용액',
     accountAiPending: '이번 주 청구 예정',
+    accountMcpEnabled: 'Fangtang MCP 활성화',
+    accountMcpDesc:
+      '기본으로 켜져 있습니다. AI가 필요할 때 MCP를 사용하며 별도 MCP 지갑에서 요금이 차감됩니다. 꺼도 AI 채팅과 다른 MCP는 사용할 수 있습니다.',
+    accountMcpLoginHint: 'Fangtang에 로그인하면 사용할 수 있습니다.',
+    accountMcpSettingFailed: 'MCP 설정을 업데이트하지 못했습니다. 다시 시도하세요.',
+    accountMcpInsufficient:
+      'MCP 사용 가능 잔액이 부족합니다. MCP 지갑을 충전한 뒤 다시 시작하세요. 자동 재시도하지 않습니다.',
     accountMcpBalance: 'MCP 잔액',
     accountMcpUsed: 'MCP 이번 달 사용액',
     accountMcpPending: 'MCP 청구 예정',
@@ -765,6 +792,13 @@ export const strings = {
     accountBalance: 'Solde',
     accountMonthUsed: 'Utilisé ce mois',
     accountAiPending: 'En attente cette semaine',
+    accountMcpEnabled: 'Activer Fangtang MCP',
+    accountMcpDesc:
+      'Activé par défaut. Les appels MCP de l’IA sont facturés au portefeuille MCP distinct. Le désactiver ne bloque ni le chat IA ni les autres MCP.',
+    accountMcpLoginHint: 'Connectez-vous à Fangtang pour l’utiliser.',
+    accountMcpSettingFailed: 'La mise à jour des paramètres MCP a échoué. Réessayez.',
+    accountMcpInsufficient:
+      'Solde MCP disponible insuffisant. Rechargez le portefeuille MCP puis relancez. Aucun nouvel essai automatique.',
     accountMcpBalance: 'Solde MCP',
     accountMcpUsed: 'MCP utilisé ce mois',
     accountMcpPending: 'MCP en attente',
@@ -961,6 +995,14 @@ export const strings = {
     accountBalance: 'Guthaben',
     accountMonthUsed: 'Diesen Monat verbraucht',
     accountAiPending: 'Diese Woche fällig',
+    accountMcpEnabled: 'Fangtang MCP aktivieren',
+    accountMcpDesc:
+      'Standardmäßig aktiv. MCP-Aufrufe der KI werden über das separate MCP-Wallet abgerechnet. Das Deaktivieren betrifft weder KI-Chat noch andere MCP-Server.',
+    accountMcpLoginHint: 'Zur Nutzung bei Fangtang anmelden.',
+    accountMcpSettingFailed:
+      'MCP-Einstellungen konnten nicht aktualisiert werden. Bitte erneut versuchen.',
+    accountMcpInsufficient:
+      'Verfügbares MCP-Guthaben reicht nicht aus. MCP-Wallet aufladen und erneut starten. Keine automatischen Wiederholungen.',
     accountMcpBalance: 'MCP-Guthaben',
     accountMcpUsed: 'MCP diesen Monat verbraucht',
     accountMcpPending: 'MCP ausstehend',
@@ -1159,6 +1201,13 @@ export const strings = {
     accountBalance: 'Saldo',
     accountMonthUsed: 'Usado este mes',
     accountAiPending: 'Por cobrar esta semana',
+    accountMcpEnabled: 'Activar Fangtang MCP',
+    accountMcpDesc:
+      'Activado por defecto. Las llamadas MCP de la IA se cobran en una cartera MCP independiente. Desactivarlo no afecta al chat de IA ni a otros MCP.',
+    accountMcpLoginHint: 'Inicia sesión en Fangtang para usarlo.',
+    accountMcpSettingFailed: 'No se pudo actualizar la configuración MCP. Inténtalo de nuevo.',
+    accountMcpInsufficient:
+      'Saldo MCP disponible insuficiente. Recarga la cartera MCP y vuelve a iniciar. No se reintentará automáticamente.',
     accountMcpBalance: 'Saldo MCP',
     accountMcpUsed: 'MCP usado este mes',
     accountMcpPending: 'MCP por cobrar',
@@ -1354,6 +1403,13 @@ export const strings = {
     accountBalance: 'ยอดคงเหลือ',
     accountMonthUsed: 'ใช้ไปเดือนนี้',
     accountAiPending: 'รอเก็บสัปดาห์นี้',
+    accountMcpEnabled: 'เปิดใช้ Fangtang MCP',
+    accountMcpDesc:
+      'เปิดโดยค่าเริ่มต้น AI ใช้ MCP ตามความจำเป็นและคิดเงินจากกระเป๋า MCP แยกต่างหาก การปิดไม่กระทบแชต AI หรือ MCP อื่น',
+    accountMcpLoginHint: 'เข้าสู่ระบบ Fangtang เพื่อใช้งาน',
+    accountMcpSettingFailed: 'อัปเดตการตั้งค่า MCP ไม่สำเร็จ โปรดลองอีกครั้ง',
+    accountMcpInsufficient:
+      'ยอด MCP ที่ใช้ได้ไม่พอ เติมกระเป๋า MCP แล้วเริ่มใหม่ ระบบจะไม่ลองซ้ำอัตโนมัติ',
     accountMcpBalance: 'ยอดคงเหลือ MCP',
     accountMcpUsed: 'MCP ใช้ไปเดือนนี้',
     accountMcpPending: 'MCP รอเก็บ',
@@ -1545,6 +1601,13 @@ export const strings = {
     accountBalance: 'Saldo',
     accountMonthUsed: 'Terpakai bulan ini',
     accountAiPending: 'Ditagihkan minggu ini',
+    accountMcpEnabled: 'Aktifkan Fangtang MCP',
+    accountMcpDesc:
+      'Aktif secara default. AI menggunakan MCP sesuai kebutuhan dan dikenakan biaya dari dompet MCP terpisah. Menonaktifkannya tidak memengaruhi chat AI atau MCP lain.',
+    accountMcpLoginHint: 'Masuk ke Fangtang untuk menggunakannya.',
+    accountMcpSettingFailed: 'Pengaturan MCP gagal diperbarui. Coba lagi.',
+    accountMcpInsufficient:
+      'Saldo MCP tersedia tidak cukup. Isi ulang dompet MCP lalu mulai lagi. Tidak akan dicoba ulang otomatis.',
     accountMcpBalance: 'Saldo MCP',
     accountMcpUsed: 'MCP terpakai bulan ini',
     accountMcpPending: 'MCP ditagihkan',
@@ -1739,6 +1802,13 @@ export const strings = {
     accountBalance: 'Баланс',
     accountMonthUsed: 'Израсходовано за месяц',
     accountAiPending: 'К оплате за неделю',
+    accountMcpEnabled: 'Включить Fangtang MCP',
+    accountMcpDesc:
+      'Включён по умолчанию. ИИ использует MCP по необходимости, оплата списывается с отдельного кошелька MCP. Отключение не влияет на чат ИИ и другие MCP.',
+    accountMcpLoginHint: 'Войдите в Fangtang для использования.',
+    accountMcpSettingFailed: 'Не удалось обновить настройки MCP. Повторите попытку.',
+    accountMcpInsufficient:
+      'Недостаточно доступных средств MCP. Пополните кошелёк MCP и запустите снова. Автоматических повторов не будет.',
     accountMcpBalance: 'Баланс MCP',
     accountMcpUsed: 'MCP израсходовано за месяц',
     accountMcpPending: 'MCP к оплате',
@@ -1935,6 +2005,13 @@ export const strings = {
     accountBalance: 'الرصيد',
     accountMonthUsed: 'المستخدم هذا الشهر',
     accountAiPending: 'مستحق هذا الأسبوع',
+    accountMcpEnabled: 'تفعيل Fangtang MCP',
+    accountMcpDesc:
+      'مفعّل افتراضيًا. يستخدم الذكاء الاصطناعي MCP عند الحاجة وتُخصم الرسوم من محفظة MCP المستقلة. إيقافه لا يؤثر على المحادثة أو خوادم MCP الأخرى.',
+    accountMcpLoginHint: 'سجّل الدخول إلى Fangtang لاستخدامه.',
+    accountMcpSettingFailed: 'تعذّر تحديث إعدادات MCP. حاول مجددًا.',
+    accountMcpInsufficient:
+      'رصيد MCP المتاح غير كافٍ. اشحن محفظة MCP ثم ابدأ مجددًا. لن تُعاد المحاولة تلقائيًا.',
     accountMcpBalance: 'رصيد MCP',
     accountMcpUsed: 'MCP المستخدم هذا الشهر',
     accountMcpPending: 'MCP مستحق',
@@ -2127,6 +2204,13 @@ export const strings = {
     accountBalance: 'Saldo',
     accountMonthUsed: 'Usado este mês',
     accountAiPending: 'A cobrar esta semana',
+    accountMcpEnabled: 'Ativar Fangtang MCP',
+    accountMcpDesc:
+      'Ativado por padrão. A IA usa MCP conforme necessário, cobrado na carteira MCP separada. Desativar não afeta o chat de IA nem outros MCP.',
+    accountMcpLoginHint: 'Entre no Fangtang para usar.',
+    accountMcpSettingFailed: 'Não foi possível atualizar as configurações MCP. Tente novamente.',
+    accountMcpInsufficient:
+      'Saldo MCP disponível insuficiente. Recarregue a carteira MCP e reinicie. Não haverá novas tentativas automáticas.',
     accountMcpBalance: 'Saldo MCP',
     accountMcpUsed: 'MCP usado este mês',
     accountMcpPending: 'MCP a cobrar',
@@ -2312,6 +2396,13 @@ export const strings = {
     accountBalance: 'Saldo',
     accountMonthUsed: 'Usato questo mese',
     accountAiPending: 'Da saldare questa settimana',
+    accountMcpEnabled: 'Attiva Fangtang MCP',
+    accountMcpDesc:
+      'Attivo per impostazione predefinita. L’IA usa MCP quando serve, con addebito sul portafoglio MCP separato. Disattivarlo non influisce sulla chat IA o su altri MCP.',
+    accountMcpLoginHint: 'Accedi a Fangtang per usarlo.',
+    accountMcpSettingFailed: 'Impossibile aggiornare le impostazioni MCP. Riprova.',
+    accountMcpInsufficient:
+      'Saldo MCP disponibile insufficiente. Ricarica il portafoglio MCP e avvia di nuovo. Nessun tentativo automatico.',
     accountMcpBalance: 'Saldo MCP',
     accountMcpUsed: 'MCP usato questo mese',
     accountMcpPending: 'MCP da saldare',
@@ -2498,6 +2589,13 @@ export const strings = {
     accountBalance: 'Saldo',
     accountMonthUsed: 'Wykorzystano w tym miesiącu',
     accountAiPending: 'Do rozliczenia w tym tygodniu',
+    accountMcpEnabled: 'Włącz Fangtang MCP',
+    accountMcpDesc:
+      'Domyślnie włączony. AI używa MCP w razie potrzeby, pobierając opłaty z osobnego portfela MCP. Wyłączenie nie wpływa na czat AI ani inne MCP.',
+    accountMcpLoginHint: 'Zaloguj się do Fangtang, aby korzystać.',
+    accountMcpSettingFailed: 'Nie udało się zaktualizować ustawień MCP. Spróbuj ponownie.',
+    accountMcpInsufficient:
+      'Za mało dostępnych środków MCP. Doładuj portfel MCP i uruchom ponownie. Bez automatycznych ponowień.',
     accountMcpBalance: 'Saldo MCP',
     accountMcpUsed: 'MCP wykorzystane w tym miesiącu',
     accountMcpPending: 'MCP do rozliczenia',
@@ -2683,6 +2781,13 @@ export const strings = {
     accountBalance: 'Saldo',
     accountMonthUsed: 'Deze maand gebruikt',
     accountAiPending: 'Deze week te vorderen',
+    accountMcpEnabled: 'Fangtang MCP inschakelen',
+    accountMcpDesc:
+      'Standaard ingeschakeld. AI gebruikt MCP wanneer nodig, betaald uit de aparte MCP-portemonnee. Uitschakelen heeft geen invloed op AI-chat of andere MCP-servers.',
+    accountMcpLoginHint: 'Log in bij Fangtang om dit te gebruiken.',
+    accountMcpSettingFailed: 'MCP-instellingen konden niet worden bijgewerkt. Probeer opnieuw.',
+    accountMcpInsufficient:
+      'Onvoldoende beschikbaar MCP-saldo. Laad de MCP-portemonnee op en start opnieuw. Geen automatische herhaling.',
     accountMcpBalance: 'MCP-saldo',
     accountMcpUsed: 'MCP deze maand gebruikt',
     accountMcpPending: 'MCP te vorderen',
@@ -2869,6 +2974,13 @@ export const strings = {
     accountBalance: 'Baki',
     accountMonthUsed: 'Digunakan bulan ini',
     accountAiPending: 'Perlu dibayar minggu ini',
+    accountMcpEnabled: 'Aktifkan Fangtang MCP',
+    accountMcpDesc:
+      'Aktif secara lalai. AI menggunakan MCP apabila perlu dan dicaj daripada dompet MCP berasingan. Mematikannya tidak menjejaskan sembang AI atau MCP lain.',
+    accountMcpLoginHint: 'Log masuk ke Fangtang untuk menggunakannya.',
+    accountMcpSettingFailed: 'Tetapan MCP tidak dapat dikemas kini. Cuba lagi.',
+    accountMcpInsufficient:
+      'Baki MCP tersedia tidak mencukupi. Tambah nilai dompet MCP kemudian mulakan semula. Tiada percubaan semula automatik.',
     accountMcpBalance: 'Baki MCP',
     accountMcpUsed: 'MCP digunakan bulan ini',
     accountMcpPending: 'MCP perlu dibayar',
@@ -3054,6 +3166,13 @@ export const strings = {
     accountBalance: 'יתרה',
     accountMonthUsed: 'שימוש החודש',
     accountAiPending: 'לתשלום השבוע',
+    accountMcpEnabled: 'הפעלת Fangtang MCP',
+    accountMcpDesc:
+      'מופעל כברירת מחדל. ה-AI משתמש ב-MCP לפי הצורך ומחייב את ארנק ה-MCP הנפרד. כיבוי אינו משפיע על צ׳אט AI או שרתי MCP אחרים.',
+    accountMcpLoginHint: 'יש להתחבר ל-Fangtang כדי להשתמש.',
+    accountMcpSettingFailed: 'לא ניתן לעדכן את הגדרות MCP. נסו שוב.',
+    accountMcpInsufficient:
+      'אין מספיק יתרת MCP זמינה. טענו את ארנק ה-MCP והתחילו שוב. לא יתבצע ניסיון חוזר אוטומטי.',
     accountMcpBalance: 'יתרת MCP',
     accountMcpUsed: 'MCP שימוש החודש',
     accountMcpPending: 'MCP לתשלום',
@@ -3231,6 +3350,13 @@ export const strings = {
     accountBalance: 'बैलेंस',
     accountMonthUsed: 'इस माह उपयोग',
     accountAiPending: 'इस सप्ताह देय',
+    accountMcpEnabled: 'Fangtang MCP सक्षम करें',
+    accountMcpDesc:
+      'डिफ़ॉल्ट रूप से चालू है। AI ज़रूरत पर MCP उपयोग करता है और अलग MCP वॉलेट से शुल्क कटता है। बंद करने से AI चैट या अन्य MCP प्रभावित नहीं होते।',
+    accountMcpLoginHint: 'उपयोग के लिए Fangtang में साइन इन करें।',
+    accountMcpSettingFailed: 'MCP सेटिंग अपडेट नहीं हो सकी। दोबारा कोशिश करें।',
+    accountMcpInsufficient:
+      'उपलब्ध MCP शेष अपर्याप्त है। MCP वॉलेट रिचार्ज करके फिर शुरू करें। स्वचालित पुनः प्रयास नहीं होगा।',
     accountMcpBalance: 'MCP शेष',
     accountMcpUsed: 'MCP इस माह उपयोग',
     accountMcpPending: 'MCP देय',
@@ -3416,6 +3542,12 @@ export const strings = {
     accountBalance: '餘額',
     accountMonthUsed: '本月已用',
     accountAiPending: '本期待結算',
+    accountMcpEnabled: '啟用方塘 MCP',
+    accountMcpDesc:
+      '預設開啟，AI 可按需呼叫方塘 MCP，費用從獨立 MCP 錢包扣除。關閉不影響 AI 對話和其他 MCP。',
+    accountMcpLoginHint: '登入方塘帳號後可使用。',
+    accountMcpSettingFailed: 'MCP 設定未更新，請重試。',
+    accountMcpInsufficient: '方塘 MCP 可用餘額不足，請儲值 MCP 錢包後重新發起，不會自動重試。',
     accountMcpBalance: 'MCP 餘額',
     accountMcpUsed: 'MCP 本月已用',
     accountMcpPending: 'MCP 待結算',

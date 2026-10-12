@@ -41,6 +41,22 @@ beforeEach(() => {
   electronMocks.send.mockReset()
 })
 
+describe('Fangtang MCP preference preload API', () => {
+  it('reads the default and forwards explicit opt-out booleans', async () => {
+    electronMocks.invoke.mockResolvedValue(true)
+    expect(await homeApi.getFangtangMcpEnabled()).toBe(true)
+    expect(electronMocks.invoke).toHaveBeenLastCalledWith(HOME_CHANNELS.getFangtangMcpEnabled)
+    electronMocks.invoke.mockResolvedValue(false)
+    expect(await homeApi.setFangtangMcpEnabled(false)).toBe(false)
+    expect(electronMocks.invoke).toHaveBeenLastCalledWith(
+      HOME_CHANNELS.setFangtangMcpEnabled,
+      false,
+    )
+    const setEnabled = homeApi.setFangtangMcpEnabled as (enabled: unknown) => Promise<boolean>
+    await expect(setEnabled('false')).rejects.toThrow('Invalid Fangtang MCP preference')
+  })
+})
+
 describe('analytics consent preload API', () => {
   it('defaults malformed main-process state to on', async () => {
     electronMocks.invoke.mockResolvedValue('invalid')

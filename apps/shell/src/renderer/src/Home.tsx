@@ -24,6 +24,7 @@ import {
   type AccountApi,
 } from './use-account'
 import { SettingsModal } from './SettingsModal'
+import { AccountMcpBalanceBanner } from './AccountMcpSettings'
 
 declare global {
   interface Window {
@@ -613,6 +614,11 @@ function AccountEntry({ account }: { account: AccountApi }) {
             <span className="account-name">{t('accountSignIn')}</span>
             {errorText && <span className="account-sub error">{errorText}</span>}
           </span>
+        </button>
+      )}
+      {!loggedIn && (
+        <button className="account-btn account-settings-btn" onClick={() => setSettingsOpen(true)}>
+          {t('settings')}
         </button>
       )}
     </div>
@@ -1766,6 +1772,7 @@ export function Home({ active = true }: { active?: boolean }) {
       </aside>
 
       <div className="home-main">
+        <AccountMcpBalanceBanner account={account} />
         {account.loggedIn && account.balanceCny !== null && (
           <LowBalanceBanner
             balanceCny={account.balanceCny}

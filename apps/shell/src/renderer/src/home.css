@@ -265,6 +265,12 @@ body.vib .home {
   background: var(--surface-subtle);
 }
 
+.account-settings-btn {
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 .account-avatar {
   display: flex;
   align-items: center;

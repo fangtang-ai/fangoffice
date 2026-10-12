@@ -67,6 +67,8 @@ export class McpHub {
   private readonly connections = new Map<string, Connection>()
   private readonly pendingConnections = new Map<string, Promise<Connection>>()
   private accountGeneration = 0
+  private accountEnabled = true
+  private accountAbort = new AbortController()
   private stopped = false
   private readonly unsubscribe: (() => void) | undefined
   /** per-server call timeout override */
@@ -89,8 +91,26 @@ export class McpHub {
   /** Servers whose tools join every chat (in config order). */
   alwaysAvailableServers(): string[] {
     return [...this.servers.entries()]
-      .filter(([, cfg]) => cfg.alwaysAvailable)
+      .filter(
+        ([, cfg]) =>
+          cfg.alwaysAvailable && (cfg.auth !== 'fangtang-account' || this.accountEnabled),
+      )
       .map(([name]) => name)
+  }
+
+  isAccountEnabled() {
+    return this.accountEnabled
+  }
+
+  async setAccountEnabled(enabled: boolean) {
+    if (this.accountEnabled === enabled) return
+    this.accountEnabled = enabled
+    if (!enabled) await this.closeAccountConnections()
+  }
+
+  private assertEnabled(name: string) {
+    if (!this.accountEnabled && this.servers.get(name)?.auth === 'fangtang-account')
+      throw new AccountMcpError('account:mcp-disabled')
   }
 
   hasServer(name: string): boolean {
@@ -99,6 +119,7 @@ export class McpHub {
 
   private async connect(name: string): Promise<Connection> {
     if (this.stopped) throw new Error('MCP hub stopped')
+    this.assertEnabled(name)
     const cfg = this.servers.get(name)
     if (!cfg) throw new Error(`Unknown MCP server: ${name}`)
     const existing = this.connections.get(name)
@@ -121,7 +142,15 @@ export class McpHub {
     const generation = this.accountGeneration
     if (cfg.auth === 'fangtang-account' && !this.options.account)
       throw new AccountMcpError('account:required')
-    const binding = cfg.auth === 'fangtang-account' ? this.options.account!.bind() : undefined
+    const accountBinding =
+      cfg.auth === 'fangtang-account' ? this.options.account!.bind() : undefined
+    // A disable/account switch also cancels token waits, so no late refresh can send a new paid request.
+    const binding = accountBinding
+      ? {
+          ...accountBinding,
+          signal: AbortSignal.any([accountBinding.signal, this.accountAbort.signal]),
+        }
+      : undefined
     const client = new Client({ name: APP_NAME, version: APP_VERSION })
     try {
       if (cfg.transport === 'http') {
@@ -133,7 +162,16 @@ export class McpHub {
         const transport = new StreamableHTTPClientTransport(url, {
           ...(binding
             ? {
-                fetch: createAccountMcpFetch(url, this.options.account!, binding),
+                fetch: createAccountMcpFetch(
+                  url,
+                  {
+                    ...this.options.account!,
+                    // Cancel MCP I/O, not the shared account refresh: rotating tokens must still be saved.
+                    token: (_binding, rejectedToken) =>
+                      this.options.account!.token(accountBinding!, rejectedToken),
+                  },
+                  binding,
+                ),
                 reconnectionOptions: {
                   maxRetries: 0,
                   maxReconnectionDelay: 0,
@@ -170,6 +208,7 @@ export class McpHub {
   /** Cached tool definitions for one server (fetches on first use). */
   async listTools(name: string): Promise<McpToolInfo[]> {
     const connection = await this.connect(name)
+    this.assertEnabled(name)
     if (connection.tools.length > 0) return connection.tools
     const options: RequestOptions = {}
     const timeout = this.timeouts.get(name)
@@ -199,6 +238,7 @@ export class McpHub {
     let connection: Connection | undefined
     try {
       connection = await this.connect(server)
+      this.assertEnabled(server)
       // the SDK's RequestOptions is not exactOptionalPropertyTypes-clean
       const options: RequestOptions = {}
       const timeout = this.timeouts.get(server)
@@ -243,7 +283,9 @@ export class McpHub {
           }
     return {
       text: managed
-        ? error instanceof AccountMcpError && !error.problem
+        ? error instanceof AccountMcpError &&
+          !error.problem &&
+          error.code !== 'account:mcp-disabled'
           ? error.code
           : mcpProblemText(problem)
         : error instanceof Error
@@ -262,7 +304,7 @@ export class McpHub {
       return {
         name,
         transport: cfg.transport,
-        enabled: cfg.enabled !== false,
+        enabled: cfg.enabled !== false && (cfg.auth !== 'fangtang-account' || this.accountEnabled),
         alwaysAvailable: cfg.alwaysAvailable === true,
         connected: connection !== undefined,
         toolCount: connection?.tools.length ?? 0,
@@ -273,6 +315,7 @@ export class McpHub {
 
   async shutdown(): Promise<void> {
     this.stopped = true
+    this.accountAbort.abort()
     this.unsubscribe?.()
     const closing = [...this.connections.values()].map((connection) =>
       connection.client.close().catch(() => {}),
@@ -283,6 +326,8 @@ export class McpHub {
 
   private async closeAccountConnections() {
     this.accountGeneration++
+    this.accountAbort.abort()
+    this.accountAbort = new AbortController()
     const closing: Promise<void>[] = []
     for (const [name, cfg] of this.servers) {
       if (cfg.auth !== 'fangtang-account') continue

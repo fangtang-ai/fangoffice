@@ -24,6 +24,7 @@ import {
 } from './use-account'
 import type { AiCatalogEntry, UiTheme } from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
+import { AccountMcpSettings } from './AccountMcpSettings'
 import './settings.css'
 
 // ── Settings modal (opened from the account menu) ─────────
@@ -568,6 +569,7 @@ function AccountPane() {
             </button>
           }
         />
+        <AccountMcpSettings account={account} />
       </>
     )
   }
@@ -599,6 +601,7 @@ function AccountPane() {
       {accountAiPendingText(account.usage) && (
         <Field label={t('accountAiPending')} value={accountAiPendingText(account.usage)!} />
       )}
+      <AccountMcpSettings account={account} />
       {accountMcpUsage(account.usage) && (
         <>
           <Field

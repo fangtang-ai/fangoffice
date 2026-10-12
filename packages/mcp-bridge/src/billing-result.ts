@@ -62,6 +62,8 @@ export function readMcpToolProblem(structured: unknown, text: string): OfficeBil
 }
 
 export function mcpProblemText(problem: OfficeBillingProblem) {
+  if (problem.code === 'account:mcp-disabled')
+    return '方塘 MCP 已关闭，请在设置 → 账号中启用后重新发起。'
   if (problem.code === 'insufficient_balance')
     return '方糖MCP 余额不足，请充值后由用户重新发起；不会自动重跑或确认到账。'
   if (problem.code === 'quota_exceeded')

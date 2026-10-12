@@ -177,6 +177,9 @@ export interface HomeApi {
   /** effective built-in skill catalog (file presets replace compiled-in per app) */
   getPresetCatalog(): Promise<PresetSkillDef[]>
   /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
+  getFangtangMcpEnabled(): Promise<boolean>
+  setFangtangMcpEnabled(enabled: boolean): Promise<boolean>
+  onFangtangMcpEnabledChanged(handler: (enabled: boolean) => void): () => void
   mcpStatus(): Promise<McpServerInfo[]>
   mcpListTools(server: string): Promise<McpToolInfo[]>
   mcpCallTool(
@@ -277,6 +280,8 @@ export const HOME_CHANNELS = {
   setTheme: 'home:set-theme',
   getAnalyticsEnabled: 'home:get-analytics-enabled',
   setAnalyticsEnabled: 'home:set-analytics-enabled',
+  getFangtangMcpEnabled: 'home:get-fangtang-mcp-enabled',
+  setFangtangMcpEnabled: 'home:set-fangtang-mcp-enabled',
   getDefaultSaveDir: 'home:get-default-save-dir',
   pickDefaultSaveDir: 'home:pick-default-save-dir',
   openCompanySite: 'home:open-company-site',

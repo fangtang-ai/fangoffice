@@ -93,6 +93,26 @@ export function accountMcpWalletOpened(usage: AccountUsage | null): boolean | nu
   return mcp.walletStatus !== 'not_opened'
 }
 
+export function accountMcpInsufficientBalance(usage: AccountUsage | null) {
+  const mcp = accountMcpUsage(usage)
+  if (!mcp || mcp.available === false) return false
+  if (mcp.walletStatus === 'not_opened') return true
+  const balance = parseCny(mcp.balanceCny)
+  const available =
+    parseCny(mcp.availableCny) ??
+    (balance === null ? null : balance - (parseCny(mcp.reservedCny) ?? 0))
+  if (available === null) return false
+  const pricing = mcp.pricing
+  const unitPriceFen =
+    pricing && typeof pricing === 'object'
+      ? (pricing as Record<string, unknown>).unitPriceFen
+      : undefined
+  // Compare spendable MCP funds with one call, not the AI wallet or a generic low-balance threshold.
+  return typeof unitPriceFen === 'number' && Number.isSafeInteger(unitPriceFen) && unitPriceFen >= 0
+    ? Math.round(available * 100) < unitPriceFen
+    : available <= 0
+}
+
 /**
  * Shared 方塘 account state: session, balance, and the login/logout/recharge
  * actions with stable error codes. Consumers each hold their own instance —

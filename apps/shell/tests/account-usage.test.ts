@@ -5,6 +5,7 @@ import {
   accountBalanceCny,
   accountBalanceText,
   accountMcpBalanceText,
+  accountMcpInsufficientBalance,
   accountMcpPendingText,
   accountMcpUsage,
   accountMcpUsedText,
@@ -35,6 +36,42 @@ const mcpNotOpened = usage({
 })
 
 describe('account usage helpers', () => {
+  it.each([
+    { mcp: { availableCny: '0.49', pricing: { unitPriceFen: 50 } }, expected: true },
+    {
+      mcp: { availableCny: '0.50', pricing: { unitPriceFen: 50 }, lowBalance: true },
+      expected: false,
+    },
+    {
+      mcp: { balanceCny: '15.00', reservedCny: '14.51', pricing: { unitPriceFen: 50 } },
+      expected: true,
+    },
+    { mcp: { availableCny: '0.00', pricing: { unitPriceFen: 0 } }, expected: false },
+    { mcp: { balanceCny: '0.00' }, expected: true },
+    { mcp: { walletStatus: 'not_opened' }, expected: true },
+    { mcp: { available: false, availableCny: '0.00' }, expected: false },
+    { mcp: { availableCny: 'unavailable' }, expected: false },
+  ])(
+    'uses spendable MCP funds and the current unit price, not AI funds: $mcp',
+    ({ mcp, expected }) => {
+      expect(
+        accountMcpInsufficientBalance(
+          usage({
+            products: {
+              office_ai: { balanceCny: '100.00' },
+              policy_mcp: mcp,
+            },
+          }),
+        ),
+      ).toBe(expected)
+    },
+  )
+
+  it('does not invent an MCP shortage when usage is unavailable', () => {
+    expect(accountMcpInsufficientBalance(null)).toBe(false)
+    expect(accountMcpInsufficientBalance(legacy)).toBe(false)
+  })
+
   it('parses the legacy top-level fields first and falls back to the AI product entry', () => {
     expect(accountBalanceCny(legacy)).toBe(12.34)
     expect(accountBalanceCny(dual)).toBe(8)

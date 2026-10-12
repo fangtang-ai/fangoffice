@@ -17,6 +17,7 @@ export class AccountMcpError extends Error {
   constructor(
     readonly code:
       | 'account:required'
+      | 'account:mcp-disabled'
       | 'account:changed'
       | 'account:untrusted-target'
       | 'account:request-failed',
