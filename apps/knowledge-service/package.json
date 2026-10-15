@@ -1,0 +1,34 @@
+{
+  "name": "@genoffice/knowledge-service",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated knowledge API/worker runtime and shared pure policies",
+  "exports": {
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./parsing": "./src/parsing/index.ts"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start:api": "node dist/api.mjs",
+    "start:worker": "node dist/worker.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@genoffice/knowledge-contract": "*",
+    "jose": "6.2.12",
+    "pdfjs-dist": "^6.2.108",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/pg": "8.23.1",
+    "esbuild": "0.25.12",
+    "pdf-lib": "^1.17.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
