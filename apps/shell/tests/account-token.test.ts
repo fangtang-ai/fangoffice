@@ -10,6 +10,8 @@ const fixture = vi.hoisted(() => ({
   rechargeUrl:
     'https://web.invalid/account/office-recharge?source=desktop&product=office_ai&accountId=old-account',
   stored: true,
+  packaged: false,
+  configReads: 0,
   session: {
     userId: 'account-A',
     accessToken: 'expired-A',
@@ -20,7 +22,13 @@ const fixture = vi.hoisted(() => ({
 
 vi.mock('electron', () => ({
   BrowserWindow: { getAllWindows: () => [] },
-  app: { getPath: () => 'synthetic-profile', whenReady: () => new Promise<void>(() => {}) },
+  app: {
+    getPath: () => 'synthetic-profile',
+    whenReady: () => new Promise<void>(() => {}),
+    get isPackaged() {
+      return fixture.packaged
+    },
+  },
   ipcMain: {
     handle: (name: string, handler: (...args: unknown[]) => unknown) =>
       fixture.handlers.set(name, handler),
@@ -40,13 +48,17 @@ vi.mock('node:fs', () => ({
 
 vi.mock('@genoffice/electron-utils', () => ({
   getAccountManagedDefaults: () => null,
-  loadFangTangAccountConfig: () => ({
-    accountApiBase: 'https://account.invalid',
-    logtoEndpoint: 'https://login.invalid',
-    logtoClientId: 'fixture',
-    logtoApiResource: 'https://account.invalid',
-    rechargeUrl: fixture.rechargeUrl,
-  }),
+  loadFangTangAccountConfig: () => {
+    fixture.configReads++
+    return {
+      accountApiBase: 'https://account.invalid',
+      knowledgeApiBase: 'https://account.invalid/api/knowledge',
+      logtoEndpoint: 'https://login.invalid',
+      logtoClientId: 'fixture',
+      logtoApiResource: 'https://account.invalid',
+      rechargeUrl: fixture.rechargeUrl,
+    }
+  },
   setAccountManagedDefaults: vi.fn(),
   setAccountManagedDefaultsPending: vi.fn(),
   setAccountManagedTokenProvider: vi.fn(),
@@ -67,6 +79,8 @@ beforeEach(() => {
   fixture.rechargeUrl =
     'https://web.invalid/account/office-recharge?source=desktop&product=office_ai&accountId=old-account'
   fixture.stored = true
+  fixture.packaged = false
+  vi.stubEnv('FANGTANG_ALLOW_LOOPBACK_ACCOUNT_API', '0')
   fixture.unlink.mockImplementation(() => {
     fixture.stored = false
   })
@@ -76,7 +90,10 @@ beforeEach(() => {
   )
 })
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
 
 it('opens the selected MCP wallet and supplies the current desktop account for the website check', async () => {
   const { registerAccountIpc } = await import('../src/main/auth')
@@ -168,6 +185,63 @@ it('provides main-only bound MCP access, reuses an already-renewed token and inv
   expect(invalidated).toHaveBeenCalledTimes(1)
   await expect(access.token(binding)).rejects.toThrow('account:changed')
   unsubscribe()
+})
+
+it('provides knowledge access over the same main-process session and invalidates on logout', async () => {
+  fixture.refresh.mockResolvedValue({ accessToken: 'renewed-A', expiresAt: Date.now() + 3600000 })
+  const auth = await import('../src/main/auth')
+  auth.registerAccountIpc()
+  const access = auth.getAccountKnowledgeAccess()
+  const binding = access.bind()
+  expect(access.apiBase()).toBe('https://account.invalid')
+  expect(access.knowledgeBase()).toBe('https://account.invalid/api/knowledge')
+  expect(await access.token(binding)).toBe('renewed-A')
+  expect(await auth.getAccountMcpAccess().token(binding, 'expired-A')).toBe('renewed-A')
+  expect(fixture.refresh).toHaveBeenCalledTimes(1)
+  await fixture.handlers.get('account:logout')!()
+  expect(binding.signal.aborted).toBe(true)
+  expect(access.isCurrent(binding)).toBe(false)
+  await expect(access.token(binding)).rejects.toThrow()
+})
+
+it('pins deployment configuration per knowledge adapter without repeated synchronous file reads', async () => {
+  const auth = await import('../src/main/auth')
+  const before = fixture.configReads
+  const access = auth.getAccountKnowledgeAccess()
+  expect(access.apiBase()).toBe('https://account.invalid')
+  expect(access.knowledgeBase()).toBe('https://account.invalid/api/knowledge')
+  access.apiBase()
+  access.knowledgeBase()
+  expect(fixture.configReads - before).toBe(1)
+})
+
+it('creates the main-process knowledge client lazily and never reuses it across logout', async () => {
+  fixture.refresh.mockResolvedValue({ accessToken: 'renewed-A', expiresAt: Date.now() + 3600000 })
+  const result = { items: [], nextCursor: null }
+  const network = vi.fn().mockImplementation(async () => Response.json(result))
+  vi.stubGlobal('fetch', network)
+  const auth = await import('../src/main/auth')
+  auth.registerAccountIpc()
+  const { createAccountKnowledgeClient } = await import('../src/main/knowledge')
+  const client = createAccountKnowledgeClient()
+  expect(network).not.toHaveBeenCalled()
+  expect(await client.listSpaces()).toEqual(result)
+  expect(String(network.mock.calls[0]?.[0])).toBe(
+    'https://account.invalid/api/knowledge/spaces?limit=20',
+  )
+  await fixture.handlers.get('account:logout')!()
+  await expect(client.listSpaces()).rejects.toThrow('knowledge:account-required')
+  expect(network).toHaveBeenCalledOnce()
+  client.close()
+})
+
+it('permits loopback only under an explicit nonpackaged development gate', async () => {
+  const auth = await import('../src/main/auth')
+  expect(auth.getAccountKnowledgeAccess().allowLoopback).toBe(false)
+  vi.stubEnv('FANGTANG_ALLOW_LOOPBACK_ACCOUNT_API', '1')
+  expect(auth.getAccountKnowledgeAccess().allowLoopback).toBe(true)
+  fixture.packaged = true
+  expect(auth.getAccountKnowledgeAccess().allowLoopback).toBe(false)
 })
 
 it('discards a previous account usage response arriving after logout', async () => {

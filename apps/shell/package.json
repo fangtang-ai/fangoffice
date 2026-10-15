@@ -26,6 +26,7 @@
     "@genoffice/docx-engine": "*",
     "@genoffice/electron-utils": "*",
     "@genoffice/i18n": "*",
+    "@genoffice/knowledge-client": "*",
     "@genoffice/mcp-bridge": "*",
     "@genoffice/pptx-engine": "*",
     "@genoffice/pptx-render": "*",

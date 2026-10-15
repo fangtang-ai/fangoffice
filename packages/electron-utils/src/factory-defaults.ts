@@ -19,6 +19,7 @@
  *     "logtoClientId": "",         // Logto native-app client id for this Office build
  *     "logtoApiResource": "",      // LOGTO_API_RESOURCE audience for the office API
  *     "accountApiBase": "",        // office API origin, e.g. https://api.fang-tang.cn
+ *     "knowledgeApiBase": "",      // explicit same-origin /api/knowledge deployment
  *     "rechargeUrl": ""            // top-up page opened by the account menu
  *   }
  * }
@@ -48,6 +49,8 @@ export interface FangTangAccountConfig {
   logtoApiResource?: string
   /** office API origin, e.g. https://api.fang-tang.cn (ai-endpoint/usage calls) */
   accountApiBase?: string
+  /** Explicit same-origin /api/knowledge deployment; missing means disabled. */
+  knowledgeApiBase?: string
   /** top-up page opened by the account menu; defaults to the company site */
   rechargeUrl?: string
 }
@@ -136,6 +139,7 @@ export function loadFangTangAccountConfig(): FangTangAccountConfig {
     logtoClientId: env.FANGTANG_LOGTO_CLIENT_ID || file.logtoClientId,
     logtoApiResource: env.FANGTANG_LOGTO_API_RESOURCE || file.logtoApiResource,
     accountApiBase: env.FANGTANG_ACCOUNT_API_BASE || file.accountApiBase,
+    knowledgeApiBase: env.FANGTANG_KNOWLEDGE_API_BASE || file.knowledgeApiBase,
     rechargeUrl: env.FANGTANG_ACCOUNT_RECHARGE_URL || file.rechargeUrl,
   }
   const config: FangTangAccountConfig = {}
