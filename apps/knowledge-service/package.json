@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "description": "Isolated knowledge API/worker runtime and shared pure policies",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./runtime": "./src/runtime/index.ts",

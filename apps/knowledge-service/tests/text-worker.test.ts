@@ -1,4 +1,5 @@
 import { build } from 'esbuild'
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { beforeAll, expect, it, vi } from 'vitest'
 import { parseKnowledgeTextDocument } from '../src/parsing'
@@ -8,6 +9,7 @@ let parser: typeof import('../src/parsing')
 
 beforeAll(async () => {
   const directory = new URL('../.build/text-tests/', import.meta.url)
+  const nodeTarget = (await readFile(new URL('../.node-version', import.meta.url), 'utf8')).trim()
   await build({
     absWorkingDir: fileURLToPath(new URL('../', import.meta.url)),
     entryPoints: { parser: 'src/parsing/index.ts', 'text-worker': 'src/parsing/text-worker.ts' },
@@ -15,7 +17,7 @@ beforeAll(async () => {
     outExtension: { '.js': '.mjs' },
     bundle: true,
     platform: 'node',
-    target: 'node22.12',
+    target: `node${nodeTarget}`,
     format: 'esm',
   })
   parser = await import(new URL('parser.mjs', directory).href)
