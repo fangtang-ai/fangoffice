@@ -1,8 +1,14 @@
 import { Pool } from 'pg'
 import { deny, KnowledgePolicyError } from '../errors'
 import type { KnowledgeRuntimeConfig } from './config'
+import type { KnowledgePrincipal } from '../identity'
+import {
+  withKnowledgeTransaction,
+  type KnowledgeTransaction,
+  type KnowledgeTransactionPool,
+} from './transaction'
 
-export interface KnowledgeDatabasePool {
+export interface KnowledgeDatabasePool extends KnowledgeTransactionPool {
   query: (sql: string) => Promise<{ rows: unknown[] }>
   end: () => Promise<void>
   on: (event: 'error', listener: () => void) => unknown
@@ -27,9 +33,22 @@ export function createKnowledgeDatabase(
     verified = false
     failure.abort()
   })
+  const healthy = () => verified && !closed && !failure.signal.aborted
   return {
     signal: failure.signal,
-    healthy: () => verified && !closed && !failure.signal.aborted,
+    healthy,
+    async transaction<Result>(
+      principal: KnowledgePrincipal,
+      work: (transaction: KnowledgeTransaction) => Promise<Result>,
+    ) {
+      if (!healthy()) deny('SERVICE_UNAVAILABLE')
+      return withKnowledgeTransaction(pool, principal, async (transaction) => {
+        if (!healthy()) deny('SERVICE_UNAVAILABLE')
+        const result = await work(transaction)
+        if (!healthy()) deny('SERVICE_UNAVAILABLE')
+        return result
+      })
+    },
     async verify() {
       if (closed || failure.signal.aborted) deny('SERVICE_UNAVAILABLE')
       verified = false

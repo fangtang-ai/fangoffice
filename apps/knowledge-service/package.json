@@ -17,8 +17,17 @@
     "build": "node scripts/build.mjs",
     "start:api": "node dist/api.mjs",
     "start:worker": "node dist/worker.mjs",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:check": "drizzle-kit check --config drizzle.config.ts",
+    "db:apply:local": "node --experimental-strip-types integration/apply-local.mjs",
+    "db:apply:immutable:local": "node --experimental-strip-types integration/apply-immutable-local.mjs",
+    "db:apply:content:local": "node --experimental-strip-types integration/apply-build-content-local.mjs",
+    "db:apply:queue:local": "node --experimental-strip-types integration/apply-queue-local.mjs",
+    "db:apply:build-lifecycle:local": "node --experimental-strip-types integration/apply-build-lifecycle-local.mjs",
+    "db:apply:publish:local": "node --experimental-strip-types integration/apply-build-publish-local.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:database": "vitest run --config vitest.database.config.ts"
   },
   "dependencies": {
     "@genoffice/knowledge-contract": "*",
@@ -29,7 +38,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "pg-boss": "12.37.1",
     "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.2",
     "esbuild": "0.25.12",
     "pdf-lib": "^1.17.1",
     "typescript": "^5.9.3",

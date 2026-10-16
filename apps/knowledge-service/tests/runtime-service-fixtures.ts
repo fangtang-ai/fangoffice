@@ -4,6 +4,9 @@ import { apiConfig } from './runtime-fixtures'
 
 export function syntheticPool(role = 'knowledge_api') {
   return {
+    connect: vi.fn(async () => {
+      throw new Error('No synthetic transaction configured')
+    }),
     query: vi.fn(async (_sql: string) => ({
       rows: [
         {

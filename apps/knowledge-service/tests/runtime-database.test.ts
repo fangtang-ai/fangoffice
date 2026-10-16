@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { createKnowledgeDatabase } from '../src/runtime'
 import { apiConfig } from './runtime-fixtures'
+import { createKnowledgePrincipal } from '../src/identity'
 
 function databaseFixture(overrides: Record<string, unknown> = {}) {
   let idleError = () => {}
@@ -16,6 +17,15 @@ function databaseFixture(overrides: Record<string, unknown> = {}) {
     ...overrides,
   }
   const pool = {
+    connect: vi.fn(async () => ({
+      query: vi.fn(async (_statement: string, _values?: unknown[]) => ({
+        rows: [{ owner_id: null }],
+        rowCount: 1,
+      })),
+      release: vi.fn((_destroy: boolean) => {}),
+      on: vi.fn((_event: 'error', _listener: () => void) => {}),
+      removeListener: vi.fn((_event: 'error', _listener: () => void) => {}),
+    })),
     query: vi.fn(async (_sql: string) => ({ rows: [identity] })),
     end: vi.fn(async () => {}),
     on: (_event: 'error', listener: () => void) => {
@@ -109,4 +119,63 @@ it('sanitizes a synchronous driver-construction error', () => {
       throw new Error('synthetic-private-dsn')
     }),
   ).toThrow('SERVICE_UNAVAILABLE')
+})
+
+it('does not enter work if database health fails while waiting for a transaction connection', async () => {
+  const { database, pool, idleError } = databaseFixture()
+  const principal = createKnowledgePrincipal(
+    {
+      issuer: 'https://issuer.invalid',
+      audiences: ['knowledge'],
+      subject: 'synthetic-owner',
+      expiresAt: Date.now() + 60000,
+      permissions: [],
+    },
+    { issuer: 'https://issuer.invalid', audience: 'knowledge' },
+    Date.now(),
+  )
+  const client = await pool.connect()
+  pool.connect.mockImplementation(async () => {
+    idleError()
+    return client
+  })
+  await database.verify()
+  const work = vi.fn(async () => 'must not run')
+  await expect(database.transaction(principal, work)).rejects.toThrow('SERVICE_UNAVAILABLE')
+  expect(work).not.toHaveBeenCalled()
+  expect(client.query).toHaveBeenLastCalledWith('ROLLBACK')
+  await database.close()
+})
+
+it('allows owner-bound transactions only while the dedicated database is verified and healthy', async () => {
+  const { database, pool, idleError } = databaseFixture()
+  const principal = createKnowledgePrincipal(
+    {
+      issuer: 'https://issuer.invalid',
+      audiences: ['knowledge'],
+      subject: 'synthetic-owner',
+      expiresAt: Date.now() + 60000,
+      permissions: [],
+    },
+    { issuer: 'https://issuer.invalid', audience: 'knowledge' },
+    Date.now(),
+  )
+  const work = vi.fn(async () => 'complete')
+  await expect(database.transaction(principal, work)).rejects.toThrow('SERVICE_UNAVAILABLE')
+  expect(pool.connect).not.toHaveBeenCalled()
+  await database.verify()
+  expect(await database.transaction(principal, work)).toBe('complete')
+  expect(pool.connect).toHaveBeenCalledOnce()
+  await expect(
+    database.transaction(principal, async () => {
+      idleError()
+      return 'must roll back'
+    }),
+  ).rejects.toThrow('SERVICE_UNAVAILABLE')
+  const client = pool.connect.mock.results[1]
+  if (client?.type !== 'return') throw new Error('Missing checked-out client')
+  expect((await client.value).query).toHaveBeenLastCalledWith('ROLLBACK')
+  await database.close()
+  await expect(database.transaction(principal, work)).rejects.toThrow('SERVICE_UNAVAILABLE')
+  expect(pool.connect).toHaveBeenCalledTimes(2)
 })

@@ -1,9 +1,182 @@
-# Knowledge service (A6 policies / B1 runtime)
+# Knowledge service (policies, isolated runtime and local data-domain slices)
 
-The API and worker now have independent Node entry points. Business tables, RLS,
-queue processing, uploads, model calls and billing are not implemented. Local
-tests use synthetic keys, fake database pools and loopback HTTP only; no deployed
-service or real database integration has been validated.
+The API and worker have independent Node entry points. The 16-table candidate,
+owner RLS/FORCE, restricted local roles and trusted transactions have passed a
+real, disposable Windows PostgreSQL 18.2 / pgvector 0.8.7 acceptance slice.
+Four-table immutable facts and building-content/frozen-build gates also pass local
+SQL, real lock-race and restore checks. The queue-driven claim/content/seal
+lifecycle and the active-pointer publication gate are executed on the same
+cluster. Retention/GC state-transition gates, budget admission, uploads,
+model calls and billing remain unfinished. No existing business database, private
+document, Docker instance or
+cloud deployment is used. Default tests remain offline; real database tests have
+a separate, explicitly invoked local-only entry.
+
+## Explicit local database acceptance
+
+The approved target is only `tmp/knowledge-pg-isolated`, `127.0.0.1:55432`,
+database `knowledge_isolated`. The cluster uses its own native runtime copy,
+SCRAM credentials and an instance marker; local secrets are ignored by Git.
+No environment DSN or external database target is accepted by this harness.
+
+```sh
+npm run db:apply:local -w @genoffice/knowledge-service
+npm run db:apply:immutable:local -w @genoffice/knowledge-service
+npm run db:apply:content:local -w @genoffice/knowledge-service
+npm run db:apply:queue:local -w @genoffice/knowledge-service
+npm run db:apply:build-lifecycle:local -w @genoffice/knowledge-service
+npm run db:apply:publish:local -w @genoffice/knowledge-service
+npm run test:database -w @genoffice/knowledge-service
+```
+
+The first command requires the already initialized marked local cluster. It
+applies the generated SQL, FORCE supplement and `security/local-grants.sql`
+in one migration-role transaction, records hashes and refuses an existing schema.
+The second command requires that accepted baseline. It verifies the marked
+cluster, baseline hashes and table security, then atomically applies the separate
+`security/immutable-facts.sql` supplement and records its own receipt. Both
+commands refuse replay. The third command chains both accepted hash receipts and
+applies `security/build-content.sql` in a separate atomic transaction; it likewise
+refuses replay. None is a production migration runner or startup action.
+The later queue, lifecycle and publication entries are likewise explicit local
+increments with chained hash receipts; none is a startup action. Real tests cover
+schema constraints, all 15 populated tenant tables, role
+restrictions, pool identity/failure paths, four-table immutable facts and native
+backup/restore including function/trigger definitions, ownership and privileges.
+Recovery creates only `knowledge_isolated_restore` in the same isolated cluster,
+refuses an existing target and removes it only after checking its task marker.
+
+The baseline grants keep worker/GC read-only; later supplements grant worker
+only controlled content INSERT, seal columns, operation phase and active-pointer
+publication columns. API writes remain limited to space metadata. Desired-pointer
+admission, original writes, GC, metering and receipt mutations are not enabled.
+Local acceptance does not unlock cloud resources or R1/R3–R6.
+
+The fact gate freezes all profile fields, verified-original facts, metering facts
+and receipt request snapshots, and rejects row deletion. Only explicit version
+retention/GC or metering/receipt delivery fields may change; their lifecycle
+semantics still need separate gates. No runtime write grant is added. See
+[security/README.md](security/README.md) for the exact allowlists and boundaries.
+
+Source units, chunks, mappings and embeddings now accept only INSERT into a
+building/live, unsealed parent locked FOR SHARE. UPDATE/DELETE are denied, and
+closed builds cannot reopen. Build identity is immutable; once sealed, its
+manifest/hash/counts/seal time remain frozen even after invalidation. Fourteen
+real multi-session races verify state changes wait for writers and waiting writers
+recheck committed state. Later B4/B6 slices add queue identity and publication
+guards, but complete sealing validation, persistent quota admission, atomic
+metering and authorized GC remain open. Original B5 is capacity reservation;
+original B7 is independent deletion intent, not the publication slice. See
+[ACCEPTANCE.md](ACCEPTANCE.md) for the stable task mapping and remaining gates.
+
+## B2: offline schema candidate
+
+`src/schema/index.ts` declares 16 tables in `knowledge`, separately from the
+runtime and the website application. The fixed development tools are Drizzle ORM
+0.45.2 and Kit 0.31.10. `drizzle.config.ts` has only local schema/output settings:
+no credentials, environment loader, database connection or automatic migration.
+
+From the repository root, these commands only generate/check local files:
+
+```sh
+npm run db:generate -w @genoffice/knowledge-service
+npm run db:check -w @genoffice/knowledge-service
+```
+
+Review `drizzle/0000_knowledge_base.sql`, `drizzle/meta/0000_snapshot.json` and
+`drizzle/meta/_journal.json` together. The schema tests regenerate a fresh copy
+outside the repository and compare SQL and snapshot metadata, not just the CLI
+exit code. The runtime still ships the same 13 files with `pg` as its only external
+dependency; no Drizzle tool, table definition or migration is imported by the API,
+worker, parser or desktop entries.
+
+This is **not executable deployment approval**. See
+[SCHEMA.md](SCHEMA.md) for relation/NULL/precision decisions and the outstanding
+remaining lifecycle, queue and deployment gates. The explicit local acceptance
+above does not establish production readiness or a real model's dimension.
+
+## B3: offline security candidate
+
+All 15 tenant tables declare permissive access plus a restrictive owner guard,
+using the same transaction-local identity for reads and writes. The generated
+candidate includes ENABLE and policies; `security/force-rls.sql` is a separate
+separately applied local supplement, not part of the generated journal.
+
+The runtime exports `withKnowledgeTransaction`; the B1 database exposes
+`transaction(principal, work)` only while verified and healthy. It binds a genuine
+principal on one checked-out client, expires the query handle after work, rolls
+back failed work and evicts unsafe connections. It does not accept request SQL,
+invent worker identity, retry ambiguous commits or integrate the queue.
+
+See [security/README.md](security/README.md) for the proposed API/worker/GC/migration
+matrix, custom-setting trust boundary, immutable/seal/GC prerequisites and real
+role/cross-owner/pool/concurrency checklist. Restricted roles and RLS are now
+verified only in the approved local cluster. B3 remains in progress because
+full lifecycle-aware grants, sealing validation and budget/deletion/authorized-GC
+protocols are not complete.
+
+## F7: selected XLSX DocIR
+
+`parseKnowledgeXlsxDocument(input, policy)` is an offline, read-only parser exported
+from `@genoffice/knowledge-service/parsing`. The input has exactly `bytes`,
+`sourceHash`, `snapshot` and `snapshotHash`; the latter two are F6's frozen output.
+The parser checks both hashes and reconstructs source-bound sheet names, ranges,
+visibility and date system before accepting snapshot metadata. Hash equality is
+integrity checking, not proof of human confirmation or ownership: the service
+must supply the approved persisted snapshot, not trust an arbitrary HTTP body.
+
+Output units represent physical rows with cell-level raw/value/display/type,
+one-based coordinates, A1 locators and deterministic source/selection-bound IDs.
+The first visible selected row is carried as `headers` with explicit
+`headerSource: first_selected_row`; this is structural context, not a claim that
+the parser inferred semantic headers, currencies or units. Original header text
+such as `金额（元）` remains attached to each row. Merged anchors retain their
+range; covered blank cells are not duplicated. An unavailable/out-of-range
+anchor produces an incomplete-table warning, never an out-of-scope read.
+
+- Shared/inline/rich strings preserve leading zeros, Unicode and SpreadsheetML
+  escapes; booleans, blank cells and error values remain distinguishable.
+- General values retain their exact numeric strings. A bounded simple-format
+  subset handles fixed decimals, grouping, zero padding and percentages with
+  BigInt decimal rounding rather than binary floating-point conversion.
+  Explicit cell styles override custom row defaults, which override column defaults;
+  untouched column metadata is cached only for encountered physical columns.
+- Common dates use the workbook's 1900/1904 system. Date displays are explicitly
+  marked `canonical_date`, not localized Excel screenshots. The fictitious
+  1900-02-29 remains unknown; ISO date cells are validated separately.
+- Formulas are never evaluated. Stored results have unknown freshness and a
+  stale-cache warning; absent results remain unknown and make coverage partial
+  or failed. Unsupported custom formats retain raw values with no invented display.
+- Hidden rows/columns are re-read from complete worksheet metadata, not the
+  preflight's capped display examples. Unselected sheets, ranges and headers
+  never enter returned text or previews. Macros, links and unsupported drawing
+  content produce explicit warnings and are not executed or followed.
+
+Coverage has `scope: selection` and counts physical selected cells, not row units
+or the entire workbook. Excluded cells and unknown results are reported. Empty
+selections and malformed/contradictory coordinates are rejected, not silently
+repaired or truncated. Preview text is escaped separately from source values.
+
+All policy fields are required positive integers, bounded by these hard ceilings:
+
+| Field                | Ceiling                                                  |
+| -------------------- | -------------------------------------------------------- |
+| `maxBytes`           | 20 MiB                                                   |
+| `maxXmlBytes`        | 32 MiB aggregate declared XML/relationship bytes         |
+| `maxSheets`          | 5 selected sheets                                        |
+| `maxRowsPerSheet`    | 5,000 selected physical rows, including context rows     |
+| `maxColumnsPerSheet` | 100 distinct selected physical columns                   |
+| `maxCells`           | 50,000 emitted physical cells, including explicit blanks |
+| `maxCodePoints`      | 4,194,304 emitted text code points                       |
+
+Additional conservative bounds are 4,096 ZIP entries, 1,024 merged ranges per
+sheet, 200,000 shared strings and 65,536 cell styles. Sparse coordinates do not
+allocate an empty grid. DTD/entity declarations, invalid UTF-8, invalid XML,
+duplicate package parts, missing references and overlapping merges are rejected.
+
+This is not a new worker/queue/upload route, formula engine, model integration or
+F8's cross-format publication/billing/RSS/deadline acceptance. Those boundaries
+and the remaining J1 release gates stay outstanding.
 
 ## B1 runtime
 
@@ -13,11 +186,65 @@ Build with `npm run build:knowledge` from the repository root. Start the API wit
 to the configured database and must only be used after the corresponding resource
 approval. Neither process imports the website application or runs migrations.
 
-The outputs are `dist/api.mjs`, `dist/worker.mjs` and `dist/build-meta.json` inside
-this workspace. They target Node >=22.12.0, bundle JOSE/shared contracts, and retain
-the pinned `pg` runtime dependency. They are not self-contained deployment images;
-J1 owns release packaging, CI and migration/rollback orchestration. Desktop builds
-do not import these entries or include service credentials.
+The code-only candidate contains six `.mjs` entries (`api`, `worker`, `check-config`,
+`parser`, `text-worker` and `markdown-worker`), `package.json`, `package-lock.json`,
+`api.env.example`, `worker.env.example`, `OPERATIONS.md`, `build-meta.json` and
+`build-manifest.json` in `dist/`. It requires Node >=22.13.0,
+bundles the parser dependencies and JOSE/shared contracts, and retains pinned `pg`
+as its only external package. The installation manifest and lock in `deployment/`
+must match the service version, engines and `pg` dependency before building.
+Installation files, templates and the runbook are included in the source and
+artifact hashes and the CI upload allowlist. Desktop builds do not import these entries or include service
+credentials. These files are a runtime candidate, not a deployment image or approval.
+
+To reproduce an installation, copy only those 13 files to a new directory outside
+the repository, then run from that directory:
+
+```sh
+npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+```
+
+The automated build test adds `--offline` and uses the local npm cache, never the
+repository's `node_modules`. A missing cache entry fails rather than downloading
+packages. The installed candidate runs TXT/Markdown workers, XLSX/PDF parsers and
+both service entries in independent processes; the service entries must fail with
+`NOT_CONFIGURED` despite unrelated business database environment variables. No
+database connection, migration or deployment is performed by this smoke test.
+Starting a configured service remains subject to the separate resource approvals.
+
+The new `check-config.mjs api|worker` entry reuses the pure configuration parser and
+imports no database driver. From the candidate directory, an operator can preflight
+trusted, externally stored role-specific configuration without opening connections:
+
+```sh
+node --env-file=/protected/knowledge-api.env check-config.mjs api
+node --env-file=/protected/knowledge-worker.env check-config.mjs worker
+```
+
+Unfilled examples fail with `NOT_CONFIGURED`; success prints only the role and
+configuration-valid message. It proves syntax, not database/JWKS connectivity,
+grants/RLS, entitlements or migration compatibility. Node gives inherited variables
+precedence and can apply `NODE_OPTIONS` from the file: use a dedicated environment
+and only trusted operator-managed files, never an uploaded file. See
+[deployment/OPERATIONS.md](deployment/OPERATIONS.md) for secret isolation, gated
+launch and stop/recovery checks. No production migration runner is implemented;
+the marked local B2 candidate and native recovery slice are accepted, not a
+configured deployment or production recovery exercise.
+
+The workspace `.node-version` pins the minimum compatibility target to `22.13.0`.
+Production builds, worker test bundles and the knowledge CI read this same file;
+it is also included in the build source hash. The service manifest and lock record
+the corresponding minimum engine without changing the repository's desktop Node
+baseline. CI artifact names use the actual setup-node version output.
+
+Windows local validation runs the synthetic knowledge suites, typechecks and build
+with an actual, SHA256-checked Node 22.13.0 executable, in addition to the installed
+Node 25.8.1. The independent-process build smoke exercises TXT/Markdown workers,
+selected XLSX and a synthetic text PDF from `dist/parser.mjs`; it does not only
+set an esbuild target while running a newer Node. This minimum-compatibility pin
+is not a production security patch recommendation. A repository-external clean
+installation passes locally on both tested Node versions; hosted Linux/Windows CI,
+production patch selection, migration/rollback and R6 release approval remain unverified.
 
 Required settings (no fallback to `DATABASE_URL`, `PGHOST`, `PGUSER` or website config):
 
@@ -113,4 +340,5 @@ projection 中被替换容量必须由服务端从当前 base 得到，不能采
 `npm run typecheck -w @genoffice/knowledge-service`；根目录
 `npm run test:knowledge` / `npm run typecheck:knowledge` 聚合三个知识 workspace。
 The B1 dependency installation uses pinned JOSE/pg and disables install scripts.
-Tests never read user documents, connect to a real database or call a model.
+Default tests never read user documents, connect to a real database or call a
+model. Only `test:database` connects to the marked disposable local cluster.
