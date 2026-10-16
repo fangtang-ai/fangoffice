@@ -2,6 +2,7 @@ export { parseKnowledgeTextDocument, type KnowledgeTextDocument } from './text-d
 export { parseKnowledgeMarkdownDocument, type KnowledgeMarkdownDocument } from './markdown-document'
 export { parseKnowledgeDocxDocument, type KnowledgeDocxDocument } from './docx-document'
 export { parseKnowledgePdfDocument, type KnowledgePdfDocument } from './pdf-document'
+export { parseKnowledgeXlsxDocument, type KnowledgeXlsxDocument } from './xlsx-document'
 export {
   freezeKnowledgeXlsxSelection,
   inspectKnowledgeXlsxWorkbook,

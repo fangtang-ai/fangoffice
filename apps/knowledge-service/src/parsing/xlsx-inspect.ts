@@ -2,107 +2,9 @@ import { rejectText } from './errors'
 import { xlsxRequest, xlsxSelectionRequest } from './request'
 import { textHash } from './text-unit'
 import { readZipEntry, zipEntries } from './zip'
+import { scanXlsxXml as scanXmlTags } from './xlsx-xml'
 
 export const xlsxInspectRevision = 'xlsx-ooxml-preflight-v1'
-
-// shortcut: entity/attr/tag helpers duplicate docx.ts locals; extracting a shared xml.ts waits for F7 sheet parsing.
-const entityPattern = /&(?:lt|gt|amp|quot|apos|#\d+|#x[0-9a-fA-F]+);/g
-
-function decodeEntities(value: string) {
-  return value.replace(entityPattern, (match) => {
-    if (match === '&lt;') return '<'
-    if (match === '&gt;') return '>'
-    if (match === '&amp;') return '&'
-    if (match === '&quot;') return '"'
-    if (match === '&apos;') return "'"
-    const numeric = match.slice(1, -1)
-    const point = numeric.startsWith('#x')
-      ? Number.parseInt(numeric.slice(2), 16)
-      : Number.parseInt(numeric.slice(1), 10)
-    if (!Number.isSafeInteger(point) || point < 1 || point > 0x10ffff)
-      rejectText('CORRUPT_CONTAINER')
-    return String.fromCodePoint(point)
-  })
-}
-
-function parseAttributes(fragment: string) {
-  const attrs: Record<string, string> = {}
-  const pattern = /([A-Za-z0-9_.:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g
-  let match: RegExpExecArray | null
-  while ((match = pattern.exec(fragment)))
-    attrs[match[1]!] = decodeEntities(match[2] ?? match[3] ?? '')
-  return attrs
-}
-
-type TagVisitor = (
-  prefix: string,
-  local: string,
-  attrs: Record<string, string>,
-  selfClosing: boolean,
-) => void
-
-// Tag-level scan without a document stack: preflight only reads flat row/col/cell markers.
-// Closing tags carry no information here, so they are skipped rather than balanced.
-function scanXmlTags(xml: string, onTag: TagVisitor) {
-  let position = 0
-  const prolog = /<\?xml[^?]*\?>/.exec(xml.slice(0, 200))
-  if (prolog) position = prolog[0].length
-  while (position < xml.length) {
-    const lessThan = xml.indexOf('<', position)
-    if (lessThan < 0) rejectText('CORRUPT_CONTAINER')
-    if (xml.startsWith('<!--', lessThan)) {
-      const end = xml.indexOf('-->', lessThan + 4)
-      if (end < 0) rejectText('CORRUPT_CONTAINER')
-      position = end + 3
-      continue
-    }
-    if (xml.startsWith('<![CDATA[', lessThan)) {
-      const end = xml.indexOf(']]>', lessThan + 9)
-      if (end < 0) rejectText('CORRUPT_CONTAINER')
-      position = end + 3
-      continue
-    }
-    if (xml[lessThan + 1] === '?') {
-      const end = xml.indexOf('?>', lessThan + 2)
-      if (end < 0) rejectText('CORRUPT_CONTAINER')
-      position = end + 2
-      continue
-    }
-    if (xml[lessThan + 1] === '!') {
-      const end = xml.indexOf('>', lessThan + 2)
-      if (end < 0) rejectText('CORRUPT_CONTAINER')
-      position = end + 1
-      continue
-    }
-    let quote: string | null = null
-    let greaterThan = -1
-    for (let index = lessThan + 1; index < xml.length; index += 1) {
-      const character = xml[index]!
-      if (quote) {
-        if (character === quote) quote = null
-      } else if (character === '"' || character === "'") quote = character
-      else if (character === '>') {
-        greaterThan = index
-        break
-      }
-    }
-    if (greaterThan < 0) rejectText('CORRUPT_CONTAINER')
-    const fragment = xml.slice(lessThan + 1, greaterThan)
-    position = greaterThan + 1
-    if (fragment.startsWith('/')) continue
-    const selfClosing = fragment.endsWith('/')
-    const tag = selfClosing ? fragment.slice(0, -1) : fragment
-    const separator = tag.search(/[\s:/]/)
-    if (separator === 0) rejectText('CORRUPT_CONTAINER')
-    const name = separator < 0 ? tag : tag.slice(0, separator)
-    const rest = separator < 0 ? '' : tag.slice(separator)
-    const colon = name.indexOf(':')
-    const prefix = colon < 0 ? '' : name.slice(0, colon)
-    const local = colon < 0 ? name : name.slice(colon + 1)
-    if (!local) rejectText('CORRUPT_CONTAINER')
-    onTag(prefix, local, parseAttributes(rest), selfClosing)
-  }
-}
 
 function parseSheetRef(ref: string) {
   const match = /^([A-Z]{1,3})([0-9]+)$/.exec(ref)
@@ -259,7 +161,7 @@ function inspectSheetXml(xmlBytes: Uint8Array): Omit<SheetSummary, 'sheetId' | '
   }
 }
 
-function resolvePartTarget(target: string, mode: string | undefined) {
+export function resolvePartTarget(target: string, mode: string | undefined) {
   // Sheet targets must be internal package parts; any scheme (http:, file:) is not a worksheet.
   if (mode === 'External' || /^[a-z][a-z0-9+.-]*:/i.test(target)) rejectText('CORRUPT_CONTAINER')
   const path = target.startsWith('/') ? target.slice(1) : `xl/${target}`

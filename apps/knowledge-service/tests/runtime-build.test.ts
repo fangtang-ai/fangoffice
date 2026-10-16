@@ -64,7 +64,9 @@ it('builds independent Node entries and rejects missing configuration without bu
   expect(Object.keys(metadata.outputs)).toContain('dist/markdown-worker.mjs')
   expect(
     Object.keys(metadata.inputs).filter((input) =>
-      /shell|electron|fangtang-site|tests\//.test(input),
+      /(?:^|\/)apps\/shell\/|(?:^|\/)electron(?:\/|$)|(?:^|\/)fangtang-site\/|(?:^|\/)tests\//.test(
+        input,
+      ),
     ),
   ).toEqual([])
   expect(

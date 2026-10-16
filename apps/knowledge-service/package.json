@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@genoffice/knowledge-contract": "*",
+    "fast-xml-parser": "5.10.1",
     "jose": "6.2.12",
     "pdfjs-dist": "^6.2.108",
     "pg": "8.23.1"

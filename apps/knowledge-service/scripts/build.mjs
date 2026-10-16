@@ -36,7 +36,7 @@ const sourceInputs = Object.keys(result.metafile.inputs)
 if (
   sourceInputs.some(
     (input) =>
-      !/^(src\/|\.\.\/\.\.\/packages\/knowledge-contract\/src\/|(?:\.\.\/\.\.\/)?node_modules\/(jose|pdfjs-dist)\/)/.test(
+      !/^(src\/|\.\.\/\.\.\/packages\/knowledge-contract\/src\/|(?:\.\.\/\.\.\/)?node_modules\/(jose|pdfjs-dist|fast-xml-parser|fast-xml-builder|is-unsafe|path-expression-matcher|strnum|anynum|xml-naming|@nodable\/entities)\/)/.test(
         input,
       ),
   )

@@ -24,6 +24,39 @@ const xlsxSelectionHardLimits = {
   maxSelectedCells: 2000000,
 }
 
+const xlsxDocumentHardLimits = {
+  maxBytes: 20 * 1024 * 1024,
+  maxXmlBytes: 32 * 1024 * 1024,
+  maxSheets: 5,
+  maxRowsPerSheet: 5000,
+  maxColumnsPerSheet: 100,
+  maxCells: 50000,
+  maxCodePoints: 4 * 1024 * 1024,
+}
+
+export function xlsxDocumentRequest(value: unknown, policy: unknown) {
+  if (
+    typeof value !== 'object' ||
+    !value ||
+    Object.keys(value).length !== 4 ||
+    !('bytes' in value) ||
+    !('sourceHash' in value) ||
+    !('snapshot' in value) ||
+    !('snapshotHash' in value) ||
+    typeof value.snapshotHash !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(value.snapshotHash)
+  )
+    rejectText('INVALID_REQUEST')
+  const input = sourceInput({ bytes: value.bytes, sourceHash: value.sourceHash })
+  const limits = exactPolicy<typeof xlsxDocumentHardLimits>(
+    policy,
+    Object.keys(xlsxDocumentHardLimits) as (keyof typeof xlsxDocumentHardLimits)[],
+    xlsxDocumentHardLimits,
+  )
+  if (input.bytes.byteLength > limits.maxBytes) rejectText('LIMIT_EXCEEDED')
+  return { input, limits, snapshot: value.snapshot, snapshotHash: value.snapshotHash }
+}
+
 function boundedLimit(value: unknown, maximum: number) {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1 || value > maximum)
     rejectText('INVALID_REQUEST')
