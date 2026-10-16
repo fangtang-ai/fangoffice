@@ -59,7 +59,13 @@ export type {
 export { AI_PROVIDERS } from '@genoffice/ai-provider'
 
 // ---- agent protocol: canonical types live in @genoffice/agent-core ----
-import type { McpCallResult, McpServerInfo, McpToolInfo, PresetSkillDef } from '@genoffice/agent-core'
+import type {
+  McpCallContext,
+  McpCallResult,
+  McpServerInfo,
+  McpToolInfo,
+  PresetSkillDef,
+} from '@genoffice/agent-core'
 
 export type {
   AgentMessage,
@@ -290,7 +296,12 @@ export interface DesktopApi {
   /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
   mcpStatus(): Promise<McpServerInfo[]>
   mcpListTools(server: string): Promise<McpToolInfo[]>
-  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+  mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ): Promise<McpCallResult>
 
   setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   aiChat(request: AiChatRequest): Promise<AiChatResponse>

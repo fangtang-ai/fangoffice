@@ -117,7 +117,10 @@ export const hi = {
   aiErrOverloaded: 'AI सेवा अभी व्यस्त है — कृपया थोड़ी देर बाद फिर से प्रयास करें',
   aiErrNetwork:
     'नेटवर्क समस्या: AI सेवा से कनेक्ट नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें',
-  aiCreditsExhausted: 'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
+  aiCreditsExhausted:
+    'मॉडल सेवा की कोटा समाप्त हो गई है। कृपया व्यवस्थापक से संपर्क करें या सेटिंग्स में दूसरा मॉडल चुनकर पुनः प्रयास करें',
+  aiRechargePrompt: 'आपके AI क्रेडिट समाप्त हो गए हैं। जारी रखने के लिए रिचार्ज करें',
+  aiRechargeAction: 'रिचार्ज करें',
   aiErrRequestFailed: 'अनुरोध भेजने में विफल: {msg}',
   aiErrGenerateFailed: 'जनरेशन विफल',
   aiErrRegenFailed: 'स्लाइड फिर से बनाने में विफल',
@@ -227,4 +230,8 @@ export const hi = {
   aiSumSaveTemplate: 'स्टाइल टेम्पलेट "{name}" सहेजा गया',
   aiSumTemplatesEmpty: 'स्टाइल टेम्पलेट (खाली)',
   aiSumListTemplates: '{count} स्टाइल टेम्पलेट सूचीबद्ध किए गए',
+  aiPaidCallLimitPrompt: 'इस कार्य ने {used} सशुल्क MCP कॉल किए हैं (सीमा {max})। जारी रखें?',
+  aiPaidCallLimitContinue: 'जारी रखें',
+  aiPaidCallDisclosurePrompt: 'यह कार्य सशुल्क MCP टूल कॉल करेगा (प्रति कॉल ¥0.5)। जारी रखें?',
+  aiPaidCallLimitStop: 'रोकें',
 } satisfies Record<keyof typeof zh, string>

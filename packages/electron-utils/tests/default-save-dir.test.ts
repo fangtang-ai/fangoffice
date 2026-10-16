@@ -1,8 +1,13 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { accessSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock(import('node:fs'), async (importOriginal) => {
+  const filesystem = await importOriginal()
+  return { ...filesystem, accessSync: vi.fn(filesystem.accessSync) }
+})
 
 import {
   configuredDefaultSaveDir,
@@ -61,13 +66,12 @@ describe('resolveDefaultSaveDir', () => {
   it('degrades to the fallback when the configured folder is not writable', () => {
     const readOnly = join(root, 'read-only')
     mkdirSync(readOnly)
-    chmodSync(readOnly, 0o500)
+    vi.mocked(accessSync).mockImplementationOnce(() => {
+      throw new Error('EACCES')
+    })
     const fallback = join(root, 'fallback')
-    try {
-      expect(resolveDefaultSaveDir(readOnly, fallback)).toBe(fallback)
-    } finally {
-      chmodSync(readOnly, 0o700)
-    }
+    expect(resolveDefaultSaveDir(readOnly, fallback)).toBe(fallback)
+    expect(existsSync(fallback)).toBe(true)
   })
 })
 

@@ -395,6 +395,23 @@
   line-height: 1.5;
 }
 
+.set-mcp-warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.set-mcp-warning .set-btn {
+  flex-shrink: 0;
+}
+
 /* footer feedback pill: spinner while testing, green on success/saved, red on failure */
 .set-ai-status {
   display: inline-flex;

@@ -12,8 +12,15 @@
  *   "model": "",
  *   "maxOutputTokens": 32768,
  *   "serperApiKey": "",            // optional: web/image search via Serper (google results)
- *   "tavilyApiKey": ""             // optional: web search via Tavily; with neither,
+ *   "tavilyApiKey": "",            // optional: web search via Tavily; with neither,
  *                                  // search falls back to keyless DuckDuckGo
+ *   "account": {                   // optional: 方塘 account / AI billing (V1)
+ *     "logtoEndpoint": "",         // Logto tenant origin, e.g. https://logto.fang-tang.cn
+ *     "logtoClientId": "",         // Logto native-app client id for this Office build
+ *     "logtoApiResource": "",      // LOGTO_API_RESOURCE audience for the office API
+ *     "accountApiBase": "",        // office API origin, e.g. https://api.fang-tang.cn
+ *     "rechargeUrl": ""            // top-up page opened by the account menu
+ *   }
  * }
  */
 
@@ -28,6 +35,21 @@ export interface FangTangDefaultsFile {
   maxOutputTokens?: number
   serperApiKey?: string
   tavilyApiKey?: string
+  account?: FangTangAccountConfig
+}
+
+/** 方塘 account/billing configuration (V1): Logto OIDC + office API endpoints. */
+export interface FangTangAccountConfig {
+  /** Logto tenant origin, e.g. https://logto.fang-tang.cn */
+  logtoEndpoint?: string
+  /** Logto native-app client id issued for this Office build */
+  logtoClientId?: string
+  /** LOGTO_API_RESOURCE audience; access tokens are minted for this API */
+  logtoApiResource?: string
+  /** office API origin, e.g. https://api.fang-tang.cn (ai-endpoint/usage calls) */
+  accountApiBase?: string
+  /** top-up page opened by the account menu; defaults to the company site */
+  rechargeUrl?: string
 }
 
 function defaultsFilePath(): string {
@@ -58,17 +80,24 @@ function defaultsFilePath(): string {
  * when nothing is configured, so callers can treat "empty" as "not
  * preconfigured" and let the AI panels show their not-configured hint.
  */
-export function loadFangTangDefaults(): FangTangDefaultsFile {
-  let file: FangTangDefaultsFile = {}
+function readDefaultsFile(): FangTangDefaultsFile {
   try {
     const raw: unknown = JSON.parse(readFileSync(defaultsFilePath(), 'utf-8'))
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      file = raw as FangTangDefaultsFile
+      return raw as FangTangDefaultsFile
     }
   } catch {
     // missing or unreadable file: no factory defaults
   }
+  return {}
+}
+
+/**
+ * AI provider defaults from the deployment file + FANGTANG_AI_* env overrides.
+ */
+export function loadFangTangDefaults(): FangTangDefaultsFile {
   const env = process.env
+  const file = readDefaultsFile()
   return {
     ...(file.serperApiKey || env.SERPER_API_KEY
       ? { serperApiKey: env.SERPER_API_KEY || file.serperApiKey }
@@ -90,6 +119,30 @@ export function loadFangTangDefaults(): FangTangDefaultsFile {
       ? { maxOutputTokens: file.maxOutputTokens }
       : {}),
   }
+}
+
+/**
+ * Account/billing configuration from the same deployment source
+ * (fangtang-defaults.json + FANGTANG_* env overrides). Empty result = account
+ * features stay hidden and the app keeps its pre-V1 anonymous behavior.
+ */
+export function loadFangTangAccountConfig(): FangTangAccountConfig {
+  const file = readDefaultsFile().account ?? {}
+  const env = process.env
+  // merged first, then stripped: exactOptionalPropertyTypes forbids explicit
+  // undefined on the optional target props
+  const merged = {
+    logtoEndpoint: env.FANGTANG_LOGTO_ENDPOINT || file.logtoEndpoint,
+    logtoClientId: env.FANGTANG_LOGTO_CLIENT_ID || file.logtoClientId,
+    logtoApiResource: env.FANGTANG_LOGTO_API_RESOURCE || file.logtoApiResource,
+    accountApiBase: env.FANGTANG_ACCOUNT_API_BASE || file.accountApiBase,
+    rechargeUrl: env.FANGTANG_ACCOUNT_RECHARGE_URL || file.rechargeUrl,
+  }
+  const config: FangTangAccountConfig = {}
+  for (const [key, value] of Object.entries(merged)) {
+    if (value) config[key as keyof FangTangAccountConfig] = value
+  }
+  return config
 }
 
 /**

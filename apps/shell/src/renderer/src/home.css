@@ -95,6 +95,67 @@ body.vib .home {
   height: calc(100vh - 40px);
 }
 
+/* content column: low-balance banner (optional) + the home content itself */
+.home-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.low-balance-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin: 14px 36px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  font-size: 13px;
+}
+
+.low-balance-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+}
+
+.low-balance-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  background: none;
+  color: var(--accent);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.low-balance-btn:hover {
+  background: var(--accent-soft);
+}
+
+.low-balance-dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.low-balance-dismiss:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -204,6 +265,12 @@ body.vib .home {
   background: var(--surface-subtle);
 }
 
+.account-settings-btn {
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 .account-avatar {
   display: flex;
   align-items: center;
@@ -271,66 +338,29 @@ body.vib .home {
   color: #b3261e;
 }
 
-/* one-line rescue hint while waiting for the browser sign-in (auto-open may have failed) */
-.login-hint {
-  position: absolute;
-  left: -8px;
-  bottom: calc(100% + 4px);
-  width: calc(100% + 16px);
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 30;
+/* logged-in popover: reuses .row-menu styling, opens upward from the entry */
+.account-menu.row-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: auto;
 }
 
-.login-hint button {
-  border: none;
-  background: none;
-  font: inherit;
-  cursor: pointer;
+.account-menu-balance {
+  padding: 7px 10px;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
 }
 
-.login-hint button:hover {
-  background: var(--bg-hover);
-}
-
-.login-hint-open {
-  flex: 1;
-  min-width: 0;
-  border-radius: 7px;
-  font-size: 12.5px;
-  line-height: 17px;
-  padding: 4px 6px;
-  color: var(--accent);
-  text-align: start;
-}
-
-.login-hint-copy {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  align-self: center;
-  width: 25px;
-  height: 25px;
-  padding: 0;
-  border-radius: 7px;
+.account-menu-sub {
+  padding: 0 10px 6px;
+  font-size: 12px;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
-
-.login-hint-copy:hover {
-  color: var(--text-primary);
-}
-
-.login-hint-copy.copied {
-  color: var(--accent);
-}
-
 /* ---- main content ---- */
 
 .content {

@@ -61,6 +61,8 @@ export const zh = {
   aiOverloadedError: 'AI 服务当前繁忙，请稍后重试',
   aiNetworkError: '网络有问题，无法连接 AI 服务。请检查网络后重试',
   aiCreditsExhausted: '模型服务额度已用尽，请联系管理员或在设置中切换其他模型后重试',
+  aiRechargePrompt: 'AI 额度已用尽，充值后即可继续使用',
+  aiRechargeAction: '立即充值',
   aiToolWorkbookContext: '读取工作表信息',
   aiToolReadRange: '读取范围',
   aiToolReadRangeOf: '读取范围 {range}',
@@ -100,4 +102,8 @@ export const zh = {
   aiScopeColumns: '已选中 {names} 共 {count} 列',
   aiScopeRangeTip: 'AI 会把"这一列 / 这些行 / 选中部分"理解为该区域；发送后本轮固定不变',
   aiScopeClearTitle: '取消该区域范围，本次针对整张表',
+  aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
+  aiPaidCallLimitContinue: '继续调用',
+  aiPaidCallDisclosurePrompt: '本任务将开始调用付费 MCP 工具：每次收费 0.5 元。是否继续？',
+  aiPaidCallLimitStop: '停止',
 }

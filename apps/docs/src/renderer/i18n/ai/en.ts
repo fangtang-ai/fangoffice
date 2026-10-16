@@ -107,7 +107,10 @@ export const en = {
   aiOverloadedError: 'The AI service is busy right now — please try again in a moment',
   aiNetworkError:
     'Network problem: could not reach the AI service. Check your connection and try again',
-  aiCreditsExhausted: 'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
+  aiCreditsExhausted:
+    'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
+  aiRechargePrompt: 'Your AI credits have run out. Top up to keep using AI features',
+  aiRechargeAction: 'Top up',
   aiSumReadAttachment: 'Read attachment',
   aiSumImageAttachment: 'Image attachment {name}',
   aiSumRead: 'Read {name}',
@@ -154,4 +157,9 @@ export const en = {
   aiCmdImages: 'Updated {count} image(s)',
   aiCmdToc: 'Inserted a table of contents ({count} entries)',
   aiCmdSkipped: ' ({count} protected block(s) skipped)',
+  aiPaidCallLimitPrompt: 'This task has made {used} paid MCP calls (limit {max}). Continue?',
+  aiPaidCallLimitContinue: 'Continue',
+  aiPaidCallDisclosurePrompt:
+    'This task is about to call paid MCP tools: each call costs ¥0.5. Continue?',
+  aiPaidCallLimitStop: 'Stop',
 } satisfies Record<keyof typeof zh, string>

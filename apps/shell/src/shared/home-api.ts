@@ -1,6 +1,12 @@
 import type { PresetSkillDef } from '@genoffice/agent-core'
 import type { AiChatResponse, AiProviderMeta, AiSettings } from '@genoffice/ai-provider'
-import type { McpCallResult, McpServerInfo, McpToolInfo } from '@genoffice/agent-core'
+import type {
+  McpCallContext,
+  McpCallResult,
+  McpServerInfo,
+  McpToolInfo,
+  OfficeBillingProduct,
+} from '@genoffice/agent-core'
 import type { UpdateChannel } from './update-api'
 
 /** UI language; kept self-contained here (mirrors Lang in @genoffice/i18n) */
@@ -44,6 +50,32 @@ export interface RecentEntry {
       listed like Word's recents instead of silently dropped (r158) */
   missing?: boolean
 }
+
+/** the account menu's view of the 方塘 account (empty = logged out / unavailable) */
+export interface AccountView {
+  loggedIn: boolean
+  userId?: string
+  displayName?: string
+  avatarUrl?: string
+  /** one-shot: the session switched to another user while a recharge was open */
+  rechargeAccountChanged?: boolean
+}
+
+/**
+ * Aggregated balance/usage from GET /api/office/account (mapped in main:
+ * monthChargedCny → monthUsedCny). Unknown fields pass through untouched so
+ * the UI can render what exists.
+ */
+export type AccountUsage = Record<string, unknown>
+
+/** the user-facing login errors (stable codes, localized in the renderer) */
+export type AccountErrorCode =
+  | 'account:not-configured'
+  | 'account:busy'
+  | 'account:canceled'
+  | 'account:timeout'
+  | 'account:failed'
+  | 'account:expired'
 
 /** paged query for the home file lists */
 export interface RecentQuery {
@@ -128,14 +160,34 @@ export interface HomeApi {
   onThemeChanged(handler: (theme: UiTheme) => void): () => void
   /** open the company website in the default browser */
   openCompanySite(): Promise<void>
+  /** current 方塘 account (anonymous false-login view when not signed in) */
+  getAccountSession(): Promise<AccountView>
+  /** interactive Logto login via the system browser; resolves with the session view */
+  loginAccount(): Promise<AccountView>
+  /** sign out (end Logto session in the browser + clear local tokens) */
+  logoutAccount(): Promise<void>
+  /** aggregated AI usage/balance; null when signed out or the site is unreachable */
+  getAccountUsage(): Promise<AccountUsage | null>
+  /** open the selected wallet's top-up page with the current desktop account */
+  openRecharge(product: OfficeBillingProduct): Promise<void>
+  /** account session changed anywhere (login/logout/expiry, broadcast from main) */
+  onAccountSessionChanged(handler: (session: AccountView) => void): () => void
   /** built-in skill visibility (Settings → 技能); shared across editors */
   getAiFeatures(): Promise<{ disabledPresets?: string[] }>
   /** effective built-in skill catalog (file presets replace compiled-in per app) */
   getPresetCatalog(): Promise<PresetSkillDef[]>
   /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
+  getFangtangMcpEnabled(): Promise<boolean>
+  setFangtangMcpEnabled(enabled: boolean): Promise<boolean>
+  onFangtangMcpEnabledChanged(handler: (enabled: boolean) => void): () => void
   mcpStatus(): Promise<McpServerInfo[]>
   mcpListTools(server: string): Promise<McpToolInfo[]>
-  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+  mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ): Promise<McpCallResult>
 
   setAiFeatures(features: { disabledPresets?: string[] }): Promise<void>
   /** AI settings (userData/ai-settings.json, shared by every editor) */
@@ -228,9 +280,16 @@ export const HOME_CHANNELS = {
   setTheme: 'home:set-theme',
   getAnalyticsEnabled: 'home:get-analytics-enabled',
   setAnalyticsEnabled: 'home:set-analytics-enabled',
+  getFangtangMcpEnabled: 'home:get-fangtang-mcp-enabled',
+  setFangtangMcpEnabled: 'home:set-fangtang-mcp-enabled',
   getDefaultSaveDir: 'home:get-default-save-dir',
   pickDefaultSaveDir: 'home:pick-default-save-dir',
   openCompanySite: 'home:open-company-site',
+  getAccountSession: 'account:session',
+  loginAccount: 'account:login',
+  logoutAccount: 'account:logout',
+  getAccountUsage: 'account:usage',
+  openRecharge: 'account:open-recharge',
 } as const
 
 export const PROJECT_CHANNELS = {

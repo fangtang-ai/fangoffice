@@ -1,11 +1,5 @@
 import { execSync, spawn } from 'node:child_process'
-import {
-  copyFileSync,
-  existsSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, join } from 'node:path'
 import {
   BrowserWindow,
@@ -47,6 +41,7 @@ import {
   windowMenuTemplate,
 } from '@genoffice/electron-utils'
 import { readAppSettings, writeAppSetting, writeAppSettings } from './app-settings'
+import { registerAccountMcpSettings } from './account-mcp-settings'
 import {
   ANALYTICS_ENABLED_KEY,
   analyticsEnabledFrom,
@@ -150,6 +145,7 @@ import { HOME_CHANNELS } from '../shared/home-api'
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
+import { getAccountMcpAccess, registerAccountIpc } from './auth'
 import { normalizeRecentQuery, pageRecentPaths, statPathEntries } from './recent-files'
 import { isSameFile, isValidRenameName } from './rename-validation'
 import { TabManager } from './tab-manager'
@@ -175,7 +171,6 @@ if (!app.isPackaged)
     'userData',
     process.env.FANGTANG_USER_DATA ?? join(app.getPath('appData'), '方塘Office Dev'),
   )
-
 
 // module build outputs: packaged builds carry them as extraResources
 // (resources/modules/*, resources/native/*); dev/unpacked resolves them
@@ -348,7 +343,6 @@ function initAnalytics(): void {
     // analytics must never block startup
   }
 }
-
 
 const tMain = createI18n({
   zh: {
@@ -2724,7 +2718,6 @@ function registerHomeIpc(): void {
     writeAppSetting(APP_SETTINGS_PATH(), DEFAULT_SAVE_DIR_KEY, picked)
     return picked
   })
-
 }
 
 function stringPaths(value: unknown): string[] {
@@ -3528,9 +3521,6 @@ function installDockMenu(): void {
 // Prefer proxy env vars (terminal launch); a packaged app launched from Finder inherits no shell
 // env vars, so fall back to the system HTTP proxy. The renderer uses Chromium's system proxy and
 // is unaffected. Same bootstrap as slides-main startSlidesStandalone.
-// awaited before the first AI request so it cannot race the proxy resolution
-let proxyBootstrap: Promise<void> = Promise.resolve()
-
 async function installMainProcessProxy(): Promise<void> {
   let proxyUrl = [
     process.env.HTTPS_PROXY,
@@ -3602,10 +3592,13 @@ installContextMenu(app, () => contextMenuLabels(currentLang()))
 registerAiIpc()
 const mcpHub = new McpHub(
   loadMcpConfig(undefined, join(app.getPath('userData'), 'fangtang-mcp.json')).servers,
+  { account: getAccountMcpAccess() },
 )
+registerAccountMcpSettings(mcpHub, APP_SETTINGS_PATH())
 registerMcpIpc(mcpHub)
 registerProjectIpc()
 registerDocsIpc()
+registerAccountIpc()
 registerHomeIpc()
 registerTabsIpc()
 registerDroppedFilesIpc()
@@ -3654,7 +3647,7 @@ app.whenReady().then(async () => {
     }
   }
 
-  proxyBootstrap = installMainProcessProxy()
+  void installMainProcessProxy()
   app.setAccessibilitySupportEnabled(true)
   // Settle the shared uiLang from saved settings BEFORE any tab renderer can
   // ask 'app:get-language': the editor handlers return the i18n module's

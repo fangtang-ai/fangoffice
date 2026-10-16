@@ -42,9 +42,20 @@ export {
 export { fetchRemoteImage, remoteImageHeaders } from './remote-image'
 export {
   applySearchProviderEnv,
+  loadFangTangAccountConfig,
   loadFangTangDefaults,
+  type FangTangAccountConfig,
   type FangTangDefaultsFile,
 } from './factory-defaults'
+export {
+  getAccountManagedDefaults,
+  setAccountManagedDefaultsPending,
+  waitForAccountManagedDefaults,
+  setAccountManagedDefaults,
+  getAccountManagedToken,
+  setAccountManagedTokenProvider,
+  type AccountManagedDefaults,
+} from './account-defaults'
 export { readAiFeatures, writeAiFeatures, type AiFeaturesFile } from './ai-features'
 export {
   bundledPresetsDir,

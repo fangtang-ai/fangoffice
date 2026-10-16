@@ -1,5 +1,6 @@
 import type { AgentSkill } from './skill'
 import type { AgentToolCall, AgentToolDef, ToolExecution } from './types'
+import type { McpCallContext } from './billing'
 
 /**
  * A built-in generation skill (技能): a curated prompt playbook the user can
@@ -32,13 +33,19 @@ export interface ActivePreset {
 }
 
 export interface PresetSkillHooks {
+  /** Complete discovery for the selected and always-available servers before model execution. */
+  prepareTools?(servers: string[], signal?: AbortSignal): Promise<void>
   /**
    * Tool defs offered for the active preset's MCP servers (cached upstream).
    * Called before every model turn; return [] when no server answers.
    */
   getTools?(servers: string[]): AgentToolDef[]
   /** Executor for the tools produced by getTools (routed by tool name). */
-  executeTool?(call: AgentToolCall, signal?: AbortSignal): ToolExecution | Promise<ToolExecution>
+  executeTool?(
+    call: AgentToolCall,
+    signal?: AbortSignal,
+    context?: McpCallContext,
+  ): ToolExecution | Promise<ToolExecution>
   /**
    * Prompt section describing the current MCP tools (appended after the
    * playbook so the model knows when to reach for them).
@@ -55,6 +62,9 @@ export interface PresetSkillHooks {
 export function createPresetSkill(active: ActivePreset, hooks?: PresetSkillHooks): AgentSkill {
   return {
     id: 'preset',
+    prepareTools: async (signal) => {
+      await hooks?.prepareTools?.(active.current?.mcpServers ?? [], signal)
+    },
     get systemPrompt() {
       const preset = active.current
       if (!preset) return ''
@@ -70,11 +80,10 @@ export function createPresetSkill(active: ActivePreset, hooks?: PresetSkillHooks
     },
     get tools() {
       const preset = active.current
-      if (!preset?.mcpServers?.length || !hooks?.getTools) return []
-      return hooks.getTools(preset.mcpServers)
+      return hooks?.getTools?.(preset?.mcpServers ?? []) ?? []
     },
-    executeTool: (call, signal) => {
-      if (hooks?.executeTool) return hooks.executeTool(call, signal)
+    executeTool: (call, signal, context) => {
+      if (hooks?.executeTool) return hooks.executeTool(call, signal, context)
       return { output: `Unknown tool: ${call.name}`, isError: true, summary: call.name }
     },
   }

@@ -109,7 +109,10 @@ export const pl = {
   aiOverloadedError: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
   aiNetworkError:
     'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
-  aiCreditsExhausted: 'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+  aiCreditsExhausted:
+    'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+  aiRechargePrompt: 'Kredyty AI zostały wyczerpane. Doładuj konto, aby kontynuować',
+  aiRechargeAction: 'Doładuj konto',
   aiSumReadAttachment: 'Odczyt załącznika',
   aiSumImageAttachment: 'Załącznik graficzny {name}',
   aiSumRead: 'Odczyt {name}',
@@ -156,4 +159,10 @@ export const pl = {
   aiCmdImages: 'Zaktualizowano obrazów: {count}',
   aiCmdToc: 'Wstawiono spis treści (pozycji: {count})',
   aiCmdSkipped: ' (pominięto chronione bloki: {count})',
+  aiPaidCallLimitPrompt:
+    'To zadanie wykonało {used} płatnych wywołań MCP (limit: {max}). Kontynuować?',
+  aiPaidCallLimitContinue: 'Kontynuuj',
+  aiPaidCallDisclosurePrompt:
+    'To zadanie będzie wywoływać płatne narzędzia MCP (0,5 ¥ za wywołanie). Kontynuować?',
+  aiPaidCallLimitStop: 'Zatrzymaj',
 } satisfies Record<keyof typeof zh, string>

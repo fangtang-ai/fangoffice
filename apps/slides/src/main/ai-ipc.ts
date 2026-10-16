@@ -21,10 +21,8 @@ import {
   AiTimeoutError,
   isAiNetworkError,
   isAiOverloadedError,
-  defaultAiSettings,
-  activeProvider,
+  mainAiSettings,
   maxOutputTokensOf,
-  resolveAiSettings,
   setAiUserAgent,
   setRescueFetch,
   streamForProvider,
@@ -37,6 +35,9 @@ import {
   applySearchProviderEnv,
   bundledPresetsDir,
   fetchRemoteImage,
+  getAccountManagedDefaults,
+  getAccountManagedToken,
+  loadFangTangAccountConfig,
   loadPresetFiles,
   loadFangTangDefaults,
   readAiFeatures,
@@ -109,18 +110,14 @@ export function registerAiIpc(): void {
   ipcMain.handle('ai:get-settings', (): AiSettings => {
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
-    const defaults = defaultAiSettings({
-      ...(factory.provider ? { provider: factory.provider as AiSettings['provider'] } : {}),
-      ...(factory.baseUrl ? { baseUrl: factory.baseUrl } : {}),
-      ...(factory.apiKey ? { apiKey: factory.apiKey } : {}),
-      ...(factory.model ? { model: factory.model } : {}),
-      ...(factory.maxOutputTokens ? { maxOutputTokens: factory.maxOutputTokens } : {}),
-    })
-    const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {})
-    const settings = resolveAiSettings(stored, defaults)
-    // a stored BYOK provider is honored when usable; half-filled configs fall back to the factory default
-    settings.provider = activeProvider(settings, defaults.provider)
-    return settings
+    const settings = mainAiSettings(
+      readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {}),
+      factory,
+      getAccountManagedDefaults(),
+    )
+    // deployment's top-up page for the credits-exhausted recharge prompt
+    const rechargeUrl = loadFangTangAccountConfig().rechargeUrl
+    return rechargeUrl ? { ...settings, rechargeUrl } : settings
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
@@ -159,7 +156,11 @@ export function registerAiIpc(): void {
     const tools = request.tools ?? []
     const maxTokens = request.maxTokens ?? maxOutputTokensOf(settings)
     const provider = settings.provider
-    const config = settings.providers?.[provider]
+    // account-managed fangtang billing carries no static key — each request
+    // rides the shell's latest Logto access token (account-defaults hook)
+    const stored = settings.providers?.[provider]
+    const liveToken = provider === 'fangtang' ? getAccountManagedToken() : null
+    const config = stored && { ...stored, ...(liveToken ? { apiKey: liveToken } : {}) }
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }
@@ -184,18 +185,27 @@ export function registerAiIpc(): void {
     }
     try {
       let stopReason: string | undefined
-      await streamForProvider(provider, config, system, messages, tools, maxTokens, {
-        signal: controller.signal,
-        onDelta: (text) => send({ requestId, type: 'delta', text }),
-        onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
-        onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
-        onThoughtSignature: (signature) =>
-          send({ requestId, type: 'signature', text: signature }),
-        onActivity: ping,
-        onStopReason: (reason) => {
-          stopReason = reason
+      await streamForProvider(
+        provider,
+        config,
+        system,
+        messages,
+        tools,
+        maxTokens,
+        {
+          signal: controller.signal,
+          onDelta: (text) => send({ requestId, type: 'delta', text }),
+          onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
+          onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
+          onThoughtSignature: (signature) =>
+            send({ requestId, type: 'signature', text: signature }),
+          onActivity: ping,
+          onStopReason: (reason) => {
+            stopReason = reason
+          },
         },
-      })
+        request.aiRunId,
+      )
       send(
         stopReason === undefined
           ? { requestId, type: 'done' }

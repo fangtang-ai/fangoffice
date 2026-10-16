@@ -7,17 +7,22 @@ import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+const isWin = process.platform === 'win32'
+const cargoName = isWin ? 'cargo.exe' : 'cargo'
+
 const FALLBACKS = [
-  join(homedir(), '.cargo', 'bin', 'cargo'),
+  join(homedir(), '.cargo', 'bin', cargoName),
+  // rustup custom installs set CARGO_HOME (e.g. D:\rust\cargo)
+  ...(process.env.CARGO_HOME ? [join(process.env.CARGO_HOME, 'bin', cargoName)] : []),
   '/opt/homebrew/bin/cargo',
   '/usr/local/bin/cargo',
 ]
 
 /** @returns {string | null} absolute path to a usable cargo, or null when no Rust toolchain exists */
 export function findCargo() {
-  const pathDirs = (process.env.PATH ?? '').split(':').filter(Boolean)
+  const pathDirs = (process.env.PATH ?? '').split(isWin ? ';' : ':').filter(Boolean)
   for (const dir of pathDirs) {
-    const candidate = join(dir, 'cargo')
+    const candidate = join(dir, cargoName)
     if (existsSync(candidate)) return candidate
   }
   for (const candidate of FALLBACKS) {

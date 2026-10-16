@@ -116,7 +116,10 @@ export const ja = {
   aiErrOverloaded: 'AI サービスが混み合っています。しばらくしてからもう一度お試しください',
   aiErrNetwork:
     'ネットワークに問題があり、AI サービスに接続できません。接続を確認して再試行してください',
-  aiCreditsExhausted: 'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
+  aiCreditsExhausted:
+    'モデルサービスの利用上限に達しました。管理者に問い合わせるか、設定で別のモデルに切り替えてから再試行してください',
+  aiRechargePrompt: 'AIの利用枠を使い切りました。チャージすると続きを利用できます',
+  aiRechargeAction: 'チャージする',
   aiErrRequestFailed: 'リクエストの送信に失敗しました: {msg}',
   aiErrGenerateFailed: '生成に失敗しました',
   aiErrRegenFailed: 'ページの再生成に失敗しました',
@@ -226,4 +229,10 @@ export const ja = {
   aiSumSaveTemplate: 'スタイル テンプレート「{name}」を保存',
   aiSumTemplatesEmpty: 'スタイル テンプレート一覧（空）',
   aiSumListTemplates: '{count} 個のスタイル テンプレートを一覧表示',
+  aiPaidCallLimitPrompt:
+    'このタスクは有料MCP呼び出しを{used}回実行しました（上限{max}回）。続けますか？',
+  aiPaidCallLimitContinue: '続ける',
+  aiPaidCallDisclosurePrompt:
+    'このタスクは有料MCPツールを呼び出します（1回あたり0.5元）。続けますか？',
+  aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

@@ -64,7 +64,10 @@ export const pl = {
   aiOverloadedError: 'Usługa AI jest obecnie przeciążona — spróbuj ponownie za chwilę',
   aiNetworkError:
     'Problem z siecią: nie można połączyć się z usługą AI. Sprawdź połączenie i spróbuj ponownie',
-  aiCreditsExhausted: 'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+  aiCreditsExhausted:
+    'Limit usługi modeli został wyczerpany. Skontaktuj się z administratorem lub przełącz na inny model w ustawieniach i spróbuj ponownie',
+  aiRechargePrompt: 'Kredyty AI zostały wyczerpane. Doładuj konto, aby kontynuować',
+  aiRechargeAction: 'Doładuj konto',
   aiToolWorkbookContext: 'Odczyt informacji o skoroszycie',
   aiToolReadRange: 'Odczyt zakresu',
   aiToolReadRangeOf: 'Odczyt zakresu {range}',
@@ -105,4 +108,10 @@ export const pl = {
   aiScopeRangeTip:
     'AI rozumie „tę kolumnę / te wiersze / zaznaczoną część” jako ten zakres; po wysłaniu pozostaje on stały przez cały przebieg',
   aiScopeClearTitle: 'Usuń zakres zaznaczenia i obejmij cały arkusz',
+  aiPaidCallLimitPrompt:
+    'To zadanie wykonało {used} płatnych wywołań MCP (limit: {max}). Kontynuować?',
+  aiPaidCallLimitContinue: 'Kontynuuj',
+  aiPaidCallDisclosurePrompt:
+    'To zadanie będzie wywoływać płatne narzędzia MCP (0,5 ¥ za wywołanie). Kontynuować?',
+  aiPaidCallLimitStop: 'Zatrzymaj',
 } satisfies Record<keyof typeof zh, string>

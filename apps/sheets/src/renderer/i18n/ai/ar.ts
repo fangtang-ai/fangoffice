@@ -64,7 +64,10 @@ export const ar = {
   aiOverloadedError: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
   aiNetworkError:
     'مشكلة في الشبكة: تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقق من الاتصال وحاول مجددًا',
-  aiCreditsExhausted: 'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
+  aiCreditsExhausted:
+    'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
+  aiRechargePrompt: 'لقد نفدت أرصدة الذكاء الاصطناعي. أعد الشحن لمتابعة الاستخدام',
+  aiRechargeAction: 'إعادة الشحن',
   aiToolWorkbookContext: 'قراءة معلومات المصنف',
   aiToolReadRange: 'قراءة النطاق',
   aiToolReadRangeOf: 'قراءة النطاق {range}',
@@ -105,4 +108,10 @@ export const ar = {
   aiScopeRangeTip:
     'يفهم الذكاء الاصطناعي "هذا العمود / هذه الصفوف / الجزء المحدد" على أنه هذا النطاق، ويُثبَّت طوال التشغيل بعد الإرسال',
   aiScopeClearTitle: 'إلغاء نطاق التحديد واستهداف الورقة بأكملها',
+  aiPaidCallLimitPrompt:
+    'نفّذت هذه المهمة {used} استدعاءات MCP مدفوعة (الحد {max}). هل تريد المتابعة؟',
+  aiPaidCallLimitContinue: 'متابعة',
+  aiPaidCallDisclosurePrompt:
+    'ستستدعي هذه المهمة أدوات MCP مدفوعة (0.5 يوان لكل استدعاء). هل تريد المتابعة؟',
+  aiPaidCallLimitStop: 'إيقاف',
 } satisfies Record<keyof typeof zh, string>

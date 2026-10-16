@@ -67,7 +67,10 @@ export const es = {
     'El servicio de IA está saturado en este momento; inténtalo de nuevo en unos instantes',
   aiNetworkError:
     'Problema de red: no se pudo conectar con el servicio de IA. Comprueba tu conexión e inténtalo de nuevo',
-  aiCreditsExhausted: 'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
+  aiCreditsExhausted:
+    'La cuota del servicio de modelos se ha agotado. Contacte con su administrador o cambie a otro modelo en Configuración e inténtelo de nuevo',
+  aiRechargePrompt: 'Sus créditos de IA se han agotado. Recargue para continuar',
+  aiRechargeAction: 'Recargar',
   aiToolWorkbookContext: 'Leer información del libro',
   aiToolReadRange: 'Leer rango',
   aiToolReadRangeOf: 'Leer rango {range}',
@@ -108,4 +111,10 @@ export const es = {
   aiScopeRangeTip:
     'La IA interpreta «esta columna / estas filas / la parte seleccionada» como este rango, y al enviar queda fijo durante toda la ejecución',
   aiScopeClearTitle: 'Quitar el ámbito del rango y usar toda la hoja',
+  aiPaidCallLimitPrompt:
+    'Esta tarea ha realizado {used} llamadas MCP de pago (límite: {max}). ¿Continuar?',
+  aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallDisclosurePrompt:
+    'Esta tarea va a llamar a herramientas MCP de pago (0,5 ¥ por llamada). ¿Continuar?',
+  aiPaidCallLimitStop: 'Detener',
 } satisfies Record<keyof typeof zh, string>

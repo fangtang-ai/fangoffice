@@ -1,10 +1,12 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { AI_PROVIDERS, getProviderAdapter } from '@genoffice/ai-provider'
 import type { AiSettings } from '@genoffice/ai-provider'
 import { installDropOpenBridge } from '@genoffice/electron-utils/drop-open'
 import type {
+  AccountUsage,
+  AccountView,
   HomeApi,
   RecentEntry,
   RecentPage,
@@ -180,6 +182,31 @@ const homeApi: HomeApi = {
   async openCompanySite() {
     await ipcRenderer.invoke(HOME_CHANNELS.openCompanySite)
   },
+  async getAccountSession() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAccountSession)
+    return (result && typeof result === 'object' ? result : { loggedIn: false }) as AccountView
+  },
+  async loginAccount() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.loginAccount)
+    return (result && typeof result === 'object' ? result : { loggedIn: false }) as AccountView
+  },
+  async logoutAccount() {
+    await ipcRenderer.invoke(HOME_CHANNELS.logoutAccount)
+  },
+  async getAccountUsage() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAccountUsage)
+    return result && typeof result === 'object' ? (result as AccountUsage) : null
+  },
+  async openRecharge(product) {
+    await ipcRenderer.invoke(HOME_CHANNELS.openRecharge, product)
+  },
+  onAccountSessionChanged(handler) {
+    const listener = (_event: IpcRendererEvent, session: unknown) => {
+      if (session && typeof session === 'object') handler(session as AccountView)
+    }
+    ipcRenderer.on('account:session-changed', listener)
+    return () => ipcRenderer.removeListener('account:session-changed', listener)
+  },
   // built-in skill visibility + AI settings channels are registered once by the shell's aggregated docs handlers
   async getAiFeatures() {
     const result: unknown = await ipcRenderer.invoke('ai:get-features')
@@ -189,6 +216,22 @@ const homeApi: HomeApi = {
     const result: unknown = await ipcRenderer.invoke('ai:preset-catalog')
     return Array.isArray(result) ? (result as PresetSkillDef[]) : []
   },
+  async getFangtangMcpEnabled() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getFangtangMcpEnabled)
+    return result !== false
+  },
+  async setFangtangMcpEnabled(enabled) {
+    if (typeof enabled !== 'boolean') throw new Error('Invalid Fangtang MCP preference.')
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.setFangtangMcpEnabled, enabled)
+    return result === true
+  },
+  onFangtangMcpEnabledChanged(handler) {
+    const listener = (_event: IpcRendererEvent, enabled: unknown) => {
+      if (typeof enabled === 'boolean') handler(enabled)
+    }
+    ipcRenderer.on('mcp:account-enabled-changed', listener)
+    return () => ipcRenderer.removeListener('mcp:account-enabled-changed', listener)
+  },
   async mcpStatus() {
     return (await ipcRenderer.invoke('mcp:status')) as Awaited<ReturnType<HomeApi['mcpStatus']>>
   },
@@ -197,8 +240,13 @@ const homeApi: HomeApi = {
       ReturnType<HomeApi['mcpListTools']>
     >
   },
-  async mcpCallTool(server: string, tool: string, args: Record<string, unknown>) {
-    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as Awaited<
+  async mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ) {
+    return (await ipcRenderer.invoke('mcp:call-tool', server, tool, args, context)) as Awaited<
       ReturnType<HomeApi['mcpCallTool']>
     >
   },
@@ -212,7 +260,11 @@ const homeApi: HomeApi = {
     await ipcRenderer.invoke('ai:set-settings', settings)
   },
   getAiProviders() {
-    return AI_PROVIDERS.map((meta) => {
+    // consumer mode: only the FangTang billing proxy is selectable. Other
+    // providers stay in the registry (existing BYOK settings keep working,
+    // and hand-edited ai-settings.json can still use them) but stay out of
+    // the settings UI until BYOK gets productized.
+    return AI_PROVIDERS.filter((meta) => meta.id === 'fangtang').map((meta) => {
       let defaultBaseUrl = ''
       // custom has no fixed default endpoint — it stays ''
       if (!meta.needsBaseUrl) {

@@ -1761,11 +1761,13 @@ body.vib .slide-list {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
-/* User pill: gray, fully rounded (no tail) */
+/* User pill: blue-tinted, fully rounded (no tail) */
 .ai-msg-user {
   align-self: flex-end;
-  background: var(--color-bg-subtle);
+  background: var(--color-ai-user-bg);
+  border: 1px solid var(--color-ai-user-border);
   color: var(--color-text-primary);
+  font-weight: 500;
   padding: 8px 16px;
   border-radius: 14px;
   max-width: 80%;
@@ -8883,4 +8885,69 @@ body.show-curtain::after {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+/* credits-exhausted recharge prompt: modal over the whole window, one 充值 action */
+.ai-recharge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.ai-recharge-modal {
+  width: 360px;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+.ai-recharge-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text, #1f2329);
+  white-space: pre-line;
+}
+
+.ai-recharge-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  height: 34px;
+  border: none;
+  border-radius: 12px;
+  background: #232425;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ai-recharge-btn:hover {
+  filter: brightness(1.15);
+}
+
+.ai-recharge-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ai-recharge-actions .ai-recharge-btn {
+  margin-top: 0;
+}
+
+.ai-recharge-btn-ghost {
+  background: transparent;
+  border: 1px solid #d0d0d2;
+  color: #232425;
+}
+.ai-recharge-btn-ghost:hover {
+  filter: none;
+  opacity: 0.85;
 }

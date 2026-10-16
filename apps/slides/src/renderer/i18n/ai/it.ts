@@ -119,7 +119,10 @@ export const it = {
   aiErrOverloaded: 'Il servizio IA è momentaneamente sovraccarico — riprova tra poco',
   aiErrNetwork:
     'Problema di rete: impossibile raggiungere il servizio IA. Controlla la connessione e riprova',
-  aiCreditsExhausted: 'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
+  aiCreditsExhausted:
+    'La quota del servizio di modelli è esaurita. Contattare gli amministratori oppure passare a un altro modello nelle impostazioni e riprovare',
+  aiRechargePrompt: 'I crediti IA sono esauriti. Ricarica per continuare',
+  aiRechargeAction: 'Ricarica',
   aiErrRequestFailed: 'Invio della richiesta non riuscito: {msg}',
   aiErrGenerateFailed: 'Generazione non riuscita',
   aiErrRegenFailed: 'Rigenerazione della diapositiva non riuscita',
@@ -229,4 +232,10 @@ export const it = {
   aiSumSaveTemplate: 'Modello di stile "{name}" salvato',
   aiSumTemplatesEmpty: 'Modelli di stile (vuoto)',
   aiSumListTemplates: '{count} modelli di stile elencati',
+  aiPaidCallLimitPrompt:
+    'Questa attività ha effettuato {used} chiamate MCP a pagamento (limite: {max}). Continuare?',
+  aiPaidCallLimitContinue: 'Continua',
+  aiPaidCallDisclosurePrompt:
+    'Questa attività chiamerà strumenti MCP a pagamento (0,5 ¥ per chiamata). Continuare?',
+  aiPaidCallLimitStop: 'Ferma',
 } satisfies Record<keyof typeof zh, string>

@@ -15,6 +15,7 @@ export type AiProviderId =
   | 'openrouter'
   | 'opencode-zen'
   | 'opencode-go'
+  | 'fangtang'
   | 'custom'
 
 export interface AiProviderConfig {
@@ -44,6 +45,8 @@ export interface AiSettings {
    * (absent = the default, so pre-existing settings files keep working).
    */
   maxOutputTokens?: number | undefined
+  /** deployment's top-up page (FangTang account config); shown by the credits-exhausted recharge prompt when present */
+  rechargeUrl?: string | undefined
 }
 
 /** pre-provider settings shape (single OpenAI-compatible endpoint); migrated into "custom" */
@@ -67,6 +70,7 @@ export interface AiChatResponse {
 
 export interface AiStreamRequest {
   requestId: string
+  aiRunId?: string
   settings: AiSettings
   system: string
   messages: AgentMessage[]

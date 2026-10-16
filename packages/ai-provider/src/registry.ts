@@ -3,8 +3,8 @@ import { GEMINI_BASE_URL } from './protocols/gemini'
 import { AI_PROVIDERS } from './providers'
 import type { AiProviderConfig, AiProviderId, AiProviderMeta } from './types'
 
-/** The three wire protocols every provider maps onto. */
-export type AiProtocol = 'anthropic' | 'gemini' | 'openai-compatible'
+/** The wire protocols every provider maps onto. */
+export type AiProtocol = 'anthropic' | 'gemini' | 'openai-compatible' | 'fangtang'
 
 export interface ProviderCapabilities {
   /** chat models accept image input (declarative; for custom endpoints it is assumed, not known) */
@@ -219,6 +219,18 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     resolveEndpoint: opencodeEndpoint(OPENCODE_GATEWAY_ROOTS.go, {
       anthropic: /^(minimax-|qwen3\.8-flash$)/,
     }),
+  },
+  fangtang: {
+    meta: metaOf('fangtang'),
+    // the proxy forwards OpenAI-style function tools as of the tool_call SSE frame;
+    // images are not part of its contract
+    capabilities: { vision: false },
+    resolveEndpoint(config) {
+      // the account layer registers the FULL chat URL (…/api/office/ai/chat),
+      // not a /v1-style API root — it is posted to as-is
+      if (!config.baseUrl) throw new Error('The FangTang provider requires a Base URL')
+      return { protocol: 'fangtang', baseUrl: config.baseUrl }
+    },
   },
   custom: {
     meta: metaOf('custom'),

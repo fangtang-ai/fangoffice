@@ -33,7 +33,6 @@ export function AiSkillPicker({
   /** ScreenTip for the trigger */
   readonly tip?: string
 }): React.JSX.Element {
-  const active = presets.find((p) => p.id === activeId)
   return (
     <Dropdown
       className="ai-skill-dd"
@@ -48,7 +47,6 @@ export function AiSkillPicker({
     />
   )
 }
-
 
 export const aiSkillStorageKey = (app: string): string => `ft-ai-skill-${app}`
 

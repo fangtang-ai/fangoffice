@@ -40,6 +40,7 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'jsdom',
+    setupFiles: [resolve(here, '../../tools/vitest-browser-setup.ts')],
     testTimeout: 20000,
   },
 })

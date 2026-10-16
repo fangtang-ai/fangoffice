@@ -1,4 +1,5 @@
 import type { AgentToolCall, AgentToolDef, ToolExecution } from './types'
+import type { McpCallContext } from './billing'
 
 /** One tool call actually executed during a run, as seen by verifyResponse. */
 export interface ExecutedToolCall {
@@ -17,6 +18,8 @@ export interface AgentSkill {
   /** system prompt section describing this skill's rules and tools */
   systemPrompt: string
   tools: AgentToolDef[]
+  /** Await remote tool discovery before a run's first model request. */
+  prepareTools?(signal?: AbortSignal): Promise<void>
   /**
    * Fresh context sections attached to every user turn (e.g. document
    * skeleton + selection). Return '' when there is nothing to attach.
@@ -27,7 +30,11 @@ export interface AgentSkill {
    * generate_deck with internal LLM calls) should check signal.aborted in
    * their loops and stop promptly.
    */
-  executeTool(call: AgentToolCall, signal?: AbortSignal): ToolExecution | Promise<ToolExecution>
+  executeTool(
+    call: AgentToolCall,
+    signal?: AbortSignal,
+    context?: McpCallContext,
+  ): ToolExecution | Promise<ToolExecution>
   /**
    * Claimed-action guard: inspect the run's final assistant text against the
    * tools that actually executed during the run. Return a corrective
@@ -51,6 +58,9 @@ export function composeSkills(id: string, intro: string, skills: AgentSkill[]): 
     skills.find((skill) => skill.tools.some((tool) => tool.name === name))
   return {
     id,
+    prepareTools: async (signal) => {
+      await Promise.all(skills.map((skill) => skill.prepareTools?.(signal)))
+    },
     // live like tools: a sub-skill's prompt may vary with the same capability its tools key on
     get systemPrompt() {
       return [intro, ...skills.map((s) => s.systemPrompt)].filter(Boolean).join('\n\n')
@@ -69,12 +79,12 @@ export function composeSkills(id: string, intro: string, skills: AgentSkill[]): 
         .map((s) => s.buildContext?.() ?? '')
         .filter(Boolean)
         .join('\n\n'),
-    executeTool: (call, signal) => {
+    executeTool: (call, signal, context) => {
       const skill = ownerOf(call.name)
       if (!skill) {
         return { output: `Unknown tool: ${call.name}`, isError: true, summary: call.name }
       }
-      return skill.executeTool(call, signal)
+      return skill.executeTool(call, signal, context)
     },
     verifyResponse: (finalText, executed) => {
       for (const skill of skills) {

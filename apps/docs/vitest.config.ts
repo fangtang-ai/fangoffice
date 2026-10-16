@@ -20,6 +20,8 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'jsdom',
+    setupFiles: [local('../../tools/vitest-browser-setup.ts')],
+    maxWorkers: 4,
     testTimeout: 20000,
   },
 })

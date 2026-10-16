@@ -33,6 +33,7 @@ electron-builder.env
 __pycache__/
 /notes/
 /MEMORY.md
+/AGENTS.md
 
 # Local fidelity-run scratch space: production repro documents and pack caches.
 # Never committable — a stray `git add -A` would push user files public.
@@ -47,3 +48,16 @@ _scratch-*
 
 # Local deployment secrets (never commit; see resources/*.json $comment)
 apps/shell/resources/*.local.json
+
+tmp/
+
+# Local planning/context notes (per-session, never commit)
+CONTEXT.md
+findings.md
+progress.md
+task_plan.md
+.planning/
+.local/
+
+# E2E probe live tokens (never commit)
+scripts/.e2e-*

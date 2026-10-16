@@ -857,6 +857,31 @@ describe('AgentLoop', () => {
     expect(loop.messages.length).toBeLessThanOrEqual(2)
     expect(loop.messages[0]).toEqual({ role: 'user', text: 'q2' })
   })
+
+  it('每个 run 生成新 aiRunId：恢复的历史不复活旧任务标识', async () => {
+    const transport = scriptedTransport([(cb) => cb.onDone(), (cb) => cb.onDone()])
+    const started: string[] = []
+    const loop = new AgentLoop({
+      transport,
+      skill: makeSkill(),
+      events: { onRunStart: (id) => started.push(id) },
+    })
+    loop.run('first')
+    await flush()
+    // 换账号/重启后恢复旧会话历史：下一个 run 必须以新任务标识重新开始，
+    // 计费/预占全部落在当前账号的新任务上，而不是继续旧任务
+    loop.restore([{ role: 'user', text: 'old task' }])
+    loop.run('second')
+    await flush()
+    expect(started).toHaveLength(2)
+    expect(started[0]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
+    expect(started[1]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
+    expect(started[1]).not.toBe(started[0])
+  })
 })
 
 describe('AgentLoop compaction', () => {

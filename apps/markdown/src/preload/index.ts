@@ -1,4 +1,4 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Lang } from '@genoffice/i18n'
 import type { AiStreamChunk } from '@genoffice/ai-provider'
@@ -70,7 +70,9 @@ const api: MarkdownApi = {
     return () => ipcRenderer.removeListener(AI_CHANNELS.streamChunk, listener)
   },
   mcpStatus: async () =>
-    (await ipcRenderer.invoke('mcp:status')) as MarkdownApi['mcpStatus'] extends () => Promise<infer T>
+    (await ipcRenderer.invoke('mcp:status')) as MarkdownApi['mcpStatus'] extends () => Promise<
+      infer T
+    >
       ? T
       : never,
   mcpListTools: async (server: string) =>
@@ -79,14 +81,15 @@ const api: MarkdownApi = {
     ) => Promise<infer T>
       ? T
       : never,
-  mcpCallTool: async (server: string, tool: string, args: Record<string, unknown>) =>
-    (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as MarkdownApi['mcpCallTool'] extends (
-      s: string,
-      t: string,
-      a: Record<string, unknown>,
-    ) => Promise<infer T>
-      ? T
-      : never,
+  mcpCallTool: async (
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ) =>
+    (await ipcRenderer.invoke('mcp:call-tool', server, tool, args, context)) as Awaited<
+      ReturnType<MarkdownApi['mcpCallTool']>
+    >,
   getAiFeatures: async () => {
     const result: unknown = await ipcRenderer.invoke('ai:get-features')
     return result && typeof result === 'object' ? (result as { disabledPresets?: string[] }) : {}

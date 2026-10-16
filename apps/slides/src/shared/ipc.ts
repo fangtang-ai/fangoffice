@@ -10,11 +10,7 @@
 import type { PresetSkillDef } from '@genoffice/agent-core'
 import type { RenderSlide } from '@genoffice/pptx-render'
 import type { SlideComment, SectionInfo } from '@genoffice/pptx-engine'
-import type {
-  AiSettings,
-  AiStreamChunk,
-  AiStreamRequest,
-} from '@genoffice/ai-provider'
+import type { AiSettings, AiStreamChunk, AiStreamRequest } from '@genoffice/ai-provider'
 
 export type { SlideComment, SectionInfo } from '@genoffice/pptx-engine'
 
@@ -29,7 +25,12 @@ export type {
 } from '@genoffice/ai-provider'
 export { AI_PROVIDERS } from '@genoffice/ai-provider'
 export type { AgentToolCall, AgentToolDef } from '@genoffice/agent-core'
-import type { McpCallResult, McpServerInfo, McpToolInfo } from '@genoffice/agent-core'
+import type {
+  McpCallContext,
+  McpCallResult,
+  McpServerInfo,
+  McpToolInfo,
+} from '@genoffice/agent-core'
 
 export type UiTheme = 'light' | 'dark' | 'system'
 
@@ -1557,7 +1558,12 @@ export interface SlidesApi {
   /** built-in MCP servers (fangtang-mcp.json): status, tools, tool calls */
   mcpStatus(): Promise<McpServerInfo[]>
   mcpListTools(server: string): Promise<McpToolInfo[]>
-  mcpCallTool(server: string, tool: string, args: Record<string, unknown>): Promise<McpCallResult>
+  mcpCallTool(
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ): Promise<McpCallResult>
 
   setAiFeatures: (features: { disabledPresets?: string[] }) => Promise<void>
   webSearch: (

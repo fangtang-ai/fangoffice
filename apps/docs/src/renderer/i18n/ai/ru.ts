@@ -109,7 +109,10 @@ export const ru = {
   aiOverloadedError: 'Сервис ИИ сейчас перегружен — повторите попытку чуть позже',
   aiNetworkError:
     'Проблема с сетью: не удалось подключиться к сервису ИИ. Проверьте подключение и повторите попытку',
-  aiCreditsExhausted: 'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
+  aiCreditsExhausted:
+    'Квота сервиса моделей исчерпана. Обратитесь к администратору или выберите другую модель в настройках и повторите попытку',
+  aiRechargePrompt: 'Кредиты ИИ исчерпаны. Пополните счёт, чтобы продолжить',
+  aiRechargeAction: 'Пополнить',
   aiSumReadAttachment: 'Чтение вложения',
   aiSumImageAttachment: 'Вложенное изображение {name}',
   aiSumRead: 'Чтение {name}',
@@ -156,4 +159,10 @@ export const ru = {
   aiCmdImages: 'Обновлено изображений: {count}',
   aiCmdToc: 'Вставлено оглавление (элементов: {count})',
   aiCmdSkipped: ' (пропущено защищенных блоков: {count})',
+  aiPaidCallLimitPrompt:
+    'Эта задача выполнила {used} платных вызовов MCP (лимит: {max}). Продолжить?',
+  aiPaidCallLimitContinue: 'Продолжить',
+  aiPaidCallDisclosurePrompt:
+    'Эта задача будет вызывать платные инструменты MCP (0,5 ¥ за вызов). Продолжить?',
+  aiPaidCallLimitStop: 'Остановить',
 } satisfies Record<keyof typeof zh, string>

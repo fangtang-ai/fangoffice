@@ -119,7 +119,10 @@ export const fr = {
   aiErrOverloaded: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
   aiErrNetwork:
     'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
-  aiCreditsExhausted: 'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+  aiCreditsExhausted:
+    'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+  aiRechargePrompt: 'Vos crédits IA sont épuisés. Rechargez pour continuer',
+  aiRechargeAction: 'Recharger',
   aiErrRequestFailed: "Échec de l'envoi de la requête : {msg}",
   aiErrGenerateFailed: 'Échec de la génération',
   aiErrRegenFailed: 'Échec de la régénération de la diapositive',
@@ -229,4 +232,10 @@ export const fr = {
   aiSumSaveTemplate: 'Modèle de style « {name} » enregistré',
   aiSumTemplatesEmpty: 'Modèles de style (vide)',
   aiSumListTemplates: '{count} modèles de style listés',
+  aiPaidCallLimitPrompt:
+    'Cette tâche a effectué {used} appels MCP payants (limite : {max}). Continuer ?',
+  aiPaidCallLimitContinue: 'Continuer',
+  aiPaidCallDisclosurePrompt:
+    'Cette tâche va appeler des outils MCP payants (0,5 ¥ par appel). Continuer ?',
+  aiPaidCallLimitStop: 'Arrêter',
 } satisfies Record<keyof typeof zh, string>

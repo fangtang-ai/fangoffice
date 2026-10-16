@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { uniqueGeneratedPdfPath } from '../src/main/generated-output'
 
 describe('uniqueGeneratedPdfPath', () => {
-  it('keeps generated PDFs inside the configured directory', () => {
-    expect(uniqueGeneratedPdfPath('/save', '../report-merged.pdf', () => false)).toBe(
-      join('/save', 'report-merged.pdf'),
-    )
-  })
+  it.each(['../report-merged.pdf', '..\\report-merged.pdf'])(
+    'keeps generated PDFs inside the configured directory for %s',
+    (suggestedName) => {
+      expect(uniqueGeneratedPdfPath('/save', suggestedName, () => false)).toBe(
+        join('/save', 'report-merged.pdf'),
+      )
+    },
+  )
 
   it('adds a PDF extension and skips existing names', () => {
     const occupied = new Set([join('/save', 'report.pdf'), join('/save', 'report-2.pdf')])

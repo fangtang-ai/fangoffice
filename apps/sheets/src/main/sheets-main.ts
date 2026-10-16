@@ -41,11 +41,13 @@ import {
   configuredDefaultSaveDir,
   applySearchProviderEnv,
   bundledPresetsDir,
+  loadFangTangAccountConfig,
   loadFangTangDefaults,
   loadPresetFiles,
   readAiFeatures,
   contextMenuLabels,
   fetchRemoteImage,
+  getAccountManagedDefaults,
   installContextMenu,
   installNavigationGuard,
   printHtmlToPdf,
@@ -66,10 +68,8 @@ import {
   isAiNetworkError,
   isAiOverloadedError,
   chatForProvider,
-  defaultAiSettings,
-  activeProvider,
+  mainAiSettings,
   maxOutputTokensOf,
-  resolveAiSettings,
   setAiUserAgent,
   setRescueFetch,
   streamForProvider,
@@ -2081,7 +2081,6 @@ export function registerSheetsIpc(): void {
   if (coreIpcRegistered) return
   coreIpcRegistered = true
 
-
   ipcMain.on(IPC_CHANNELS.recoveryPromptReply, (event, restore: unknown) => {
     recoveryPromptWaiters.get(event.sender.id)?.(restore === true ? 'restore' : 'discard')
   })
@@ -2968,18 +2967,14 @@ export function registerSheetsAiIpc(): void {
     sessionFor(event)
     const factory = loadFangTangDefaults()
     applySearchProviderEnv(factory)
-    const defaults = defaultAiSettings({
-      ...(factory.provider ? { provider: factory.provider as AiSettings['provider'] } : {}),
-      ...(factory.baseUrl ? { baseUrl: factory.baseUrl } : {}),
-      ...(factory.apiKey ? { apiKey: factory.apiKey } : {}),
-      ...(factory.model ? { model: factory.model } : {}),
-      ...(factory.maxOutputTokens ? { maxOutputTokens: factory.maxOutputTokens } : {}),
-    })
-    const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {})
-    const settings = resolveAiSettings(stored, defaults)
-    // a stored BYOK provider is honored when usable; half-filled configs fall back to the factory default
-    settings.provider = activeProvider(settings, defaults.provider)
-    return settings
+    const settings = mainAiSettings(
+      readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {}),
+      factory,
+      getAccountManagedDefaults(),
+    )
+    // deployment's top-up page for the credits-exhausted recharge prompt
+    const rechargeUrl = loadFangTangAccountConfig().rechargeUrl
+    return rechargeUrl ? { ...settings, rechargeUrl } : settings
   })
 
   ipcMain.handle(IPC_CHANNELS.aiSetSettings, (event, input: unknown) => {
@@ -3061,18 +3056,27 @@ export function registerSheetsAiIpc(): void {
     }
     try {
       let stopReason: string | undefined
-      await streamForProvider(provider, config, system, messages, tools, maxTokens, {
-        signal: controller.signal,
-        onDelta: (text) => send({ requestId, type: 'delta', text }),
-        onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
-        onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
-        onThoughtSignature: (signature) =>
-          send({ requestId, type: 'signature', text: signature }),
-        onActivity: ping,
-        onStopReason: (reason) => {
-          stopReason = reason
+      await streamForProvider(
+        provider,
+        config,
+        system,
+        messages,
+        tools,
+        maxTokens,
+        {
+          signal: controller.signal,
+          onDelta: (text) => send({ requestId, type: 'delta', text }),
+          onReasoningDelta: (text) => send({ requestId, type: 'reasoning', text }),
+          onToolCall: (toolCall) => send({ requestId, type: 'tool-call', toolCall }),
+          onThoughtSignature: (signature) =>
+            send({ requestId, type: 'signature', text: signature }),
+          onActivity: ping,
+          onStopReason: (reason) => {
+            stopReason = reason
+          },
         },
-      })
+        request.aiRunId,
+      )
       // sheets tsconfig sets exactOptionalPropertyTypes: an explicit
       // `stopReason: undefined` is not assignable to AiStreamChunk, so only
       // include the property when a reason was actually reported.
@@ -3114,7 +3118,10 @@ export function registerSheetsAiIpc(): void {
   // (same source as slides/docs)
   ipcMain.handle('ai:web-search', async (_event, query: unknown, maxResults?: unknown) => {
     try {
-      return await webSearch(z.string().parse(query), typeof maxResults === 'number' ? maxResults : 6)
+      return await webSearch(
+        z.string().parse(query),
+        typeof maxResults === 'number' ? maxResults : 6,
+      )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }
     }

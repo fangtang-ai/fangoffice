@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { join, posix } from 'node:path'
 
 /** Pick a safe, unused PDF path inside the configured 方塘Office save directory. */
 export function uniqueGeneratedPdfPath(
@@ -10,7 +10,9 @@ export function uniqueGeneratedPdfPath(
   // Control characters are intentionally rejected from generated file names.
   // eslint-disable-next-line no-control-regex
   const invalidFileNameCharacters = /[/\\:*?"<>|\u0000-\u001f]/g
-  let fileName = basename(String(suggestedName || 'merged.pdf'))
+  // Suggested titles may contain colons; only separators denote paths, not Windows drive prefixes.
+  let fileName = posix
+    .basename(String(suggestedName || 'merged.pdf').replace(/\\/g, '/'))
     .replace(invalidFileNameCharacters, '_')
     .trim()
   if (!fileName || fileName === '.' || fileName === '..') fileName = 'merged.pdf'

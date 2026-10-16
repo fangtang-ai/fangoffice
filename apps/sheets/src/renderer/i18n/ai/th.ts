@@ -64,7 +64,10 @@ export const th = {
   aiOverloadedError: 'บริการ AI มีผู้ใช้งานจำนวนมากในขณะนี้ โปรดลองอีกครั้งในอีกสักครู่',
   aiNetworkError:
     'เครือข่ายมีปัญหา ไม่สามารถเชื่อมต่อบริการ AI ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองใหม่',
-  aiCreditsExhausted: 'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
+  aiCreditsExhausted:
+    'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
+  aiRechargePrompt: 'เครดิต AI ของคุณหมดแล้ว เติมเงินเพื่อใช้งานต่อ',
+  aiRechargeAction: 'เติมเงิน',
   aiToolWorkbookContext: 'อ่านข้อมูลเวิร์กบุ๊ก',
   aiToolReadRange: 'อ่านช่วง',
   aiToolReadRangeOf: 'อ่านช่วง {range}',
@@ -105,4 +108,10 @@ export const th = {
   aiScopeRangeTip:
     'AI จะตีความ "คอลัมน์นี้ / แถวเหล่านี้ / ส่วนที่เลือก" เป็นช่วงนี้ และจะถูกตรึงไว้ตลอดการทำงานเมื่อคุณส่ง',
   aiScopeClearTitle: 'ยกเลิกขอบเขตช่วงนี้และใช้ทั้งแผ่นงาน',
+  aiPaidCallLimitPrompt:
+    'งานนี้ได้เรียก MCP แบบชำระเงินไปแล้ว {used} ครั้ง (จำกัด {max} ครั้ง) ต้องการดำเนินการต่อหรือไม่',
+  aiPaidCallLimitContinue: 'ดำเนินการต่อ',
+  aiPaidCallDisclosurePrompt:
+    'งานนี้กำลังจะเรียกเครื่องมือ MCP แบบชำระเงิน (ครั้งละ 0.5 หยวน) ต้องการดำเนินการต่อหรือไม่',
+  aiPaidCallLimitStop: 'หยุด',
 } satisfies Record<keyof typeof zh, string>

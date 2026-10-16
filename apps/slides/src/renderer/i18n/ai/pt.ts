@@ -118,7 +118,10 @@ export const pt = {
   aiErrOverloaded: 'O serviço de IA está sobrecarregado no momento — tente novamente em instantes',
   aiErrNetwork:
     'Problema de rede: não foi possível conectar ao serviço de IA. Verifique sua conexão e tente novamente',
-  aiCreditsExhausted: 'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
+  aiCreditsExhausted:
+    'A cota do serviço de modelos esgotou-se. Contacte o administrador ou mude para outro modelo nas configurações e tente novamente',
+  aiRechargePrompt: 'Seus créditos de IA acabaram. Recarregue para continuar',
+  aiRechargeAction: 'Recarregar',
   aiErrRequestFailed: 'Falha ao enviar a solicitação: {msg}',
   aiErrGenerateFailed: 'Falha na geração',
   aiErrRegenFailed: 'Falha ao refazer o slide',
@@ -228,4 +231,9 @@ export const pt = {
   aiSumSaveTemplate: 'Modelo de estilo "{name}" salvo',
   aiSumTemplatesEmpty: 'Modelos de estilo (vazio)',
   aiSumListTemplates: '{count} modelos de estilo listados',
+  aiPaidCallLimitPrompt: 'Esta tarefa fez {used} chamadas MCP pagas (limite: {max}). Continuar?',
+  aiPaidCallLimitContinue: 'Continuar',
+  aiPaidCallDisclosurePrompt:
+    'Esta tarefa vai chamar ferramentas MCP pagas (¥0,5 por chamada). Continuar?',
+  aiPaidCallLimitStop: 'Parar',
 } satisfies Record<keyof typeof zh, string>

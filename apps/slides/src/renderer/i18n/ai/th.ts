@@ -115,7 +115,10 @@ export const th = {
   aiErrOverloaded: 'บริการ AI มีผู้ใช้งานจำนวนมากในขณะนี้ โปรดลองอีกครั้งในอีกสักครู่',
   aiErrNetwork:
     'เครือข่ายมีปัญหา ไม่สามารถเชื่อมต่อบริการ AI ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองใหม่',
-  aiCreditsExhausted: 'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
+  aiCreditsExhausted:
+    'โควตาบริการโมเดลหมดแล้ว กรุณาติดต่อผู้ดูแลระบบหรือเปลี่ยนไปใช้โมเดลอื่นในการตั้งค่าแล้วลองอีกครั้ง',
+  aiRechargePrompt: 'เครดิต AI ของคุณหมดแล้ว เติมเงินเพื่อใช้งานต่อ',
+  aiRechargeAction: 'เติมเงิน',
   aiErrRequestFailed: 'ส่งคำขอไม่สำเร็จ: {msg}',
   aiErrGenerateFailed: 'สร้างไม่สำเร็จ',
   aiErrRegenFailed: 'ทำหน้าใหม่ไม่สำเร็จ',
@@ -225,4 +228,10 @@ export const th = {
   aiSumSaveTemplate: 'บันทึกเทมเพลตสไตล์ "{name}"',
   aiSumTemplatesEmpty: 'รายการเทมเพลตสไตล์ (ว่าง)',
   aiSumListTemplates: 'แสดงเทมเพลตสไตล์ {count} รายการ',
+  aiPaidCallLimitPrompt:
+    'งานนี้ได้เรียก MCP แบบชำระเงินไปแล้ว {used} ครั้ง (จำกัด {max} ครั้ง) ต้องการดำเนินการต่อหรือไม่',
+  aiPaidCallLimitContinue: 'ดำเนินการต่อ',
+  aiPaidCallDisclosurePrompt:
+    'งานนี้กำลังจะเรียกเครื่องมือ MCP แบบชำระเงิน (ครั้งละ 0.5 หยวน) ต้องการดำเนินการต่อหรือไม่',
+  aiPaidCallLimitStop: 'หยุด',
 } satisfies Record<keyof typeof zh, string>

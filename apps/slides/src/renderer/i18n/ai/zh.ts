@@ -111,6 +111,8 @@ export const zh = {
   aiErrOverloaded: 'AI 服务当前繁忙，请稍后重试',
   aiErrNetwork: '网络有问题，无法连接 AI 服务。请检查网络后重试',
   aiCreditsExhausted: '模型服务额度已用尽，请联系管理员或在设置中切换其他模型后重试',
+  aiRechargePrompt: 'AI 额度已用尽，充值后即可继续使用',
+  aiRechargeAction: '立即充值',
   aiErrRequestFailed: '请求发送失败: {msg}',
   aiErrGenerateFailed: '生成失败',
   aiErrRegenFailed: '重做页面失败',
@@ -220,4 +222,8 @@ export const zh = {
   aiSumSaveTemplate: '保存风格模板"{name}"',
   aiSumTemplatesEmpty: '风格模板列表（空）',
   aiSumListTemplates: '列出 {count} 个风格模板',
+  aiPaidCallLimitPrompt: '此任务已发起 {used} 次付费 MCP 调用（上限 {max} 次），是否继续？',
+  aiPaidCallLimitContinue: '继续调用',
+  aiPaidCallDisclosurePrompt: '本任务将开始调用付费 MCP 工具：每次收费 0.5 元。是否继续？',
+  aiPaidCallLimitStop: '停止',
 }

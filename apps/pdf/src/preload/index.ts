@@ -1,4 +1,4 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Lang } from '@genoffice/i18n'
 import type { AiStreamChunk } from '@genoffice/ai-provider'
@@ -37,11 +37,25 @@ const api: PdfApi = {
   imageSearch: (query, maxResults) =>
     ipcRenderer.invoke(AI_CHANNELS.imageSearch, query, maxResults),
   fetchImage: (url) => ipcRenderer.invoke(AI_CHANNELS.fetchImage, url),
-  mcpStatus: async () => (await ipcRenderer.invoke('mcp:status')) as PdfApi['mcpStatus'] extends () => Promise<infer T> ? T : never,
+  mcpStatus: async () =>
+    (await ipcRenderer.invoke('mcp:status')) as PdfApi['mcpStatus'] extends () => Promise<infer T>
+      ? T
+      : never,
   mcpListTools: async (server: string) =>
-    (await ipcRenderer.invoke('mcp:list-tools', server)) as PdfApi['mcpListTools'] extends (s: string) => Promise<infer T> ? T : never,
-  mcpCallTool: async (server: string, tool: string, args: Record<string, unknown>) =>
-    (await ipcRenderer.invoke('mcp:call-tool', server, tool, args)) as PdfApi['mcpCallTool'] extends (s: string, t: string, a: Record<string, unknown>) => Promise<infer T> ? T : never,
+    (await ipcRenderer.invoke('mcp:list-tools', server)) as PdfApi['mcpListTools'] extends (
+      s: string,
+    ) => Promise<infer T>
+      ? T
+      : never,
+  mcpCallTool: async (
+    server: string,
+    tool: string,
+    args: Record<string, unknown>,
+    context?: McpCallContext,
+  ) =>
+    (await ipcRenderer.invoke('mcp:call-tool', server, tool, args, context)) as Awaited<
+      ReturnType<PdfApi['mcpCallTool']>
+    >,
   getAiFeatures: async () => {
     const result: unknown = await ipcRenderer.invoke('ai:get-features')
     return result && typeof result === 'object' ? (result as { disabledPresets?: string[] }) : {}

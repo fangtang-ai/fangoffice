@@ -29,9 +29,32 @@ import '../src/preload/index'
 
 const homeApi = electronMocks.exposed.get('aiOffice') as HomeApi
 
+describe('product-specific recharge preload API', () => {
+  it('forwards the selected wallet to the main process', async () => {
+    await homeApi.openRecharge('policy_mcp')
+    expect(electronMocks.invoke).toHaveBeenLastCalledWith(HOME_CHANNELS.openRecharge, 'policy_mcp')
+  })
+})
+
 beforeEach(() => {
   electronMocks.invoke.mockReset()
   electronMocks.send.mockReset()
+})
+
+describe('Fangtang MCP preference preload API', () => {
+  it('reads the default and forwards explicit opt-out booleans', async () => {
+    electronMocks.invoke.mockResolvedValue(true)
+    expect(await homeApi.getFangtangMcpEnabled()).toBe(true)
+    expect(electronMocks.invoke).toHaveBeenLastCalledWith(HOME_CHANNELS.getFangtangMcpEnabled)
+    electronMocks.invoke.mockResolvedValue(false)
+    expect(await homeApi.setFangtangMcpEnabled(false)).toBe(false)
+    expect(electronMocks.invoke).toHaveBeenLastCalledWith(
+      HOME_CHANNELS.setFangtangMcpEnabled,
+      false,
+    )
+    const setEnabled = homeApi.setFangtangMcpEnabled as (enabled: unknown) => Promise<boolean>
+    await expect(setEnabled('false')).rejects.toThrow('Invalid Fangtang MCP preference')
+  })
 })
 
 describe('analytics consent preload API', () => {

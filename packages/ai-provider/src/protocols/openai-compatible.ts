@@ -7,9 +7,9 @@ import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
 import {
   jsonBodyInsteadOfSse,
   parseToolInput,
-  sseErrorText,
   sseLines,
   throwIfCreditsNotice,
+  throwSseError,
   type StreamCallbacks,
 } from './shared'
 
@@ -80,7 +80,7 @@ function emitOpenAiJsonMessage(bodyText: string, cb: StreamCallbacks): void {
   } catch {
     throw new Error(`The model returned an unparseable JSON body: ${httpBodyDetail(bodyText)}`)
   }
-  if (msg.error) throw new Error(sseErrorText(msg.error, 'Model error'))
+  if (msg.error) throwSseError(msg.error, 'Model error')
   const choice = msg.choices?.[0]
   let emitted = false
   if (choice?.message?.reasoning_content) cb.onReasoningDelta?.(choice.message.reasoning_content)
@@ -177,7 +177,10 @@ async function openAiCompatibleTurn(
   // headers arrived: ping the renderer watchdog too, or a slow first chunk could trip it
   onBytes()
   if (!response.ok || !response.body) {
-    throw new Error(`HTTP ${response.status}: ${httpBodyDetail(await response.text())}`)
+    const bodyText = await response.text()
+    // New API-style gateways reject an exhausted quota with a non-2xx JSON error body
+    throwIfCreditsNotice(bodyText)
+    throw new Error(`HTTP ${response.status}: ${httpBodyDetail(bodyText)}`)
   }
   const jsonBody = await jsonBodyInsteadOfSse(response)
   if (jsonBody !== null) {
@@ -238,7 +241,7 @@ async function openAiCompatibleTurn(
     } catch {
       continue
     }
-    if (event.error) throw new Error(sseErrorText(event.error, 'Model stream error'))
+    if (event.error) throwSseError(event.error, 'Model stream error')
     const choice = event.choices?.[0]
     if (!choice) continue
     const reasoning = choice.delta?.reasoning_content ?? choice.delta?.reasoning

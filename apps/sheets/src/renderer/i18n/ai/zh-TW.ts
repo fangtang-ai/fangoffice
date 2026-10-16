@@ -62,6 +62,8 @@ export const zhTW = {
   aiOverloadedError: 'AI 服務目前繁忙，請稍後重試',
   aiNetworkError: '網路有問題，無法連接 AI 服務。請檢查網路後重試',
   aiCreditsExhausted: '模型服務額度已用盡，請聯絡管理員或在設定中切換其他模型後重試',
+  aiRechargePrompt: 'AI 額度已用盡，儲值後即可繼續使用',
+  aiRechargeAction: '立即儲值',
   aiToolWorkbookContext: '讀取工作表資訊',
   aiToolReadRange: '讀取範圍',
   aiToolReadRangeOf: '讀取範圍 {range}',
@@ -101,4 +103,8 @@ export const zhTW = {
   aiScopeColumns: '已選取 {names} 共 {count} 欄',
   aiScopeRangeTip: 'AI 會把「這一欄 / 這些列 / 選取部分」理解為該範圍；送出後本輪固定不變',
   aiScopeClearTitle: '取消該範圍，本次針對整張工作表',
+  aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
+  aiPaidCallLimitContinue: '繼續呼叫',
+  aiPaidCallDisclosurePrompt: '此任務將開始呼叫付費 MCP 工具（每次收費 0.5 元）。是否繼續？',
+  aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>

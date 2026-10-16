@@ -11,8 +11,20 @@ import type { AiSettings } from '@genoffice/ai-provider'
 import { BUILTIN_PRESETS, type AiFeatures, type PresetSkillDef } from '@genoffice/agent-core'
 import { useI18n } from './locale'
 import type { StringKey, TFunc } from './locale'
+import {
+  useAccount,
+  accountBalanceText,
+  accountMonthUsedText,
+  accountAiPendingText,
+  accountMcpUsage,
+  accountMcpWalletOpened,
+  accountMcpBalanceText,
+  accountMcpUsedText,
+  accountMcpPendingText,
+} from './use-account'
 import type { AiCatalogEntry, UiTheme } from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
+import { AccountMcpSettings } from './AccountMcpSettings'
 import './settings.css'
 
 // ── Settings modal (opened from the account menu) ─────────
@@ -57,9 +69,10 @@ const CHANNEL_OPTIONS = [
 
 /** GitHub-style abbreviated stargazer count (2591 → "2.6k") — the number is
  * social proof, not a metric; the cached/exact value would only look stale */
-type SectionId = 'aiModel' | 'skills' | 'general' | 'about'
+type SectionId = 'account' | 'aiModel' | 'skills' | 'general' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
+  { id: 'account', labelKey: 'accountSection' },
   { id: 'aiModel', labelKey: 'setSecAiModel' },
   { id: 'skills', labelKey: 'setSecSkills' },
   { id: 'general', labelKey: 'setSecGeneral' },
@@ -67,6 +80,19 @@ const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
 ]
 
 function SectionIcon({ id }: { id: SectionId }) {
+  if (id === 'account') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
+        <path
+          d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
+          stroke="currentColor"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
   if (id === 'aiModel') {
     return (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -174,6 +200,10 @@ function AiModelPane({ t }: { t: TFunc }) {
   if (!settings) return null
   const provider = settings.provider
   const meta = catalog.find((c) => c.id === provider)
+  /** managed (FangTang billing) build: sign-in configures everything, so the
+   * raw provider internals (model / key / base URL / output cap) stay out of
+   * the settings UI — deployment overrides still work via ai-settings.json */
+  const managed = catalog.length === 1 && catalog[0]?.id === 'fangtang'
   const config = settings.providers[provider] ?? {
     apiKey: '',
     model: meta?.defaultModel ?? '',
@@ -229,13 +259,14 @@ function AiModelPane({ t }: { t: TFunc }) {
   return (
     <>
       <h3 className="set-pane-title">{t('setSecAiModel')}</h3>
+      <ManagedAiNote />
       <div className="set-field">
         <div className="set-field-text">
           <label className="set-field-label">{t('setAiProvider')}</label>
         </div>
         <Dropdown
           className="set-dd"
-          value={provider}
+          value={managed ? 'fangtang' : provider}
           ariaLabel={t('setAiProvider')}
           options={catalog.map((c) => ({
             value: c.id,
@@ -250,32 +281,35 @@ function AiModelPane({ t }: { t: TFunc }) {
           onPick={(v) => selectProvider(v as AiSettings['provider'])}
         />
       </div>
-      <div className="set-field-desc set-ai-note">{t('setAiByokNote')}</div>
-      <div className="set-field">
-        <div className="set-field-text">
-          <label className="set-field-label">{t('setAiModelId')}</label>
+
+      {!managed && (
+        <div className="set-field">
+          <div className="set-field-text">
+            <label className="set-field-label">{t('setAiModelId')}</label>
+          </div>
+          {meta && meta.models.length > 0 ? (
+            <Dropdown
+              className="set-dd"
+              value={config.model || meta.defaultModel}
+              ariaLabel={t('setAiModelId')}
+              options={meta.models.map((m) => ({ value: m, label: m }))}
+              onPick={(m) => updateConfig({ model: m })}
+            />
+          ) : (
+            <input
+              id="set-ai-model"
+              className="set-input"
+              type="text"
+              value={config.model}
+              placeholder="model-id"
+              spellCheck={false}
+              onChange={(e) => updateConfig({ model: e.target.value })}
+            />
+          )}
         </div>
-        {meta && meta.models.length > 0 ? (
-          <Dropdown
-            className="set-dd"
-            value={config.model || meta.defaultModel}
-            ariaLabel={t('setAiModelId')}
-            options={meta.models.map((m) => ({ value: m, label: m }))}
-            onPick={(m) => updateConfig({ model: m })}
-          />
-        ) : (
-          <input
-            id="set-ai-model"
-            className="set-input"
-            type="text"
-            value={config.model}
-            placeholder="model-id"
-            spellCheck={false}
-            onChange={(e) => updateConfig({ model: e.target.value })}
-          />
-        )}
-      </div>
-      <>
+      )}
+      {!managed && (
+        <>
           <div className="set-field">
             <div className="set-field-text">
               <div className="set-field-stack">
@@ -317,28 +351,31 @@ function AiModelPane({ t }: { t: TFunc }) {
               onChange={(e) => updateConfig({ baseUrl: e.target.value.trim() })}
             />
           </div>
-      </>
-      <div className="set-field">
-        <div className="set-field-text">
-          <div className="set-field-stack">
-            <label className="set-field-label" htmlFor="set-ai-max-tokens">
-              {t('setAiMaxTokens')}
-            </label>
-            <div className="set-field-desc">{t('setAiMaxTokensDesc')}</div>
+        </>
+      )}
+      {!managed && (
+        <div className="set-field">
+          <div className="set-field-text">
+            <div className="set-field-stack">
+              <label className="set-field-label" htmlFor="set-ai-max-tokens">
+                {t('setAiMaxTokens')}
+              </label>
+              <div className="set-field-desc">{t('setAiMaxTokensDesc')}</div>
+            </div>
           </div>
+          <input
+            id="set-ai-max-tokens"
+            className="set-input"
+            type="number"
+            min={MIN_MAX_OUTPUT_TOKENS}
+            max={MAX_MAX_OUTPUT_TOKENS}
+            step={1024}
+            value={maxTokensDraft ?? String(settings.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)}
+            onChange={(e) => setMaxTokensDraft(e.target.value)}
+            onBlur={commitMaxTokens}
+          />
         </div>
-        <input
-          id="set-ai-max-tokens"
-          className="set-input"
-          type="number"
-          min={MIN_MAX_OUTPUT_TOKENS}
-          max={MAX_MAX_OUTPUT_TOKENS}
-          step={1024}
-          value={maxTokensDraft ?? String(settings.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)}
-          onChange={(e) => setMaxTokensDraft(e.target.value)}
-          onBlur={commitMaxTokens}
-        />
-      </div>
+      )}
       <div className="set-pane-footer">
         <AiStatusPill
           status={
@@ -353,12 +390,16 @@ function AiModelPane({ t }: { t: TFunc }) {
                   : null
           }
         />
-        <button className="set-btn" disabled={testing} onClick={test}>
-          {t('setAiTest')}
-        </button>
-        <button className="set-btn primary" disabled={!dirty} onClick={save}>
-          {t('setAiSave')}
-        </button>
+        {!managed && (
+          <button className="set-btn" disabled={testing} onClick={test}>
+            {t('setAiTest')}
+          </button>
+        )}
+        {!managed && (
+          <button className="set-btn primary" disabled={!dirty} onClick={save}>
+            {t('setAiSave')}
+          </button>
+        )}
       </div>
     </>
   )
@@ -417,7 +458,6 @@ function AiStatusPill({ status }: { status: AiStatus | null }) {
   )
 }
 
-
 const APP_LABELS: Record<string, string> = {
   docs: 'Docs',
   sheets: 'Sheets',
@@ -473,27 +513,117 @@ function SkillsPane({ t }: { t: TFunc }) {
       {apps.map((app) => (
         <div key={app} className="set-skills-group">
           <div className="set-skills-app">{APP_LABELS[app] ?? app}</div>
-          {catalog.filter((p) => p.app === app).map((preset) => (
-            <div key={preset.id} className="set-field set-skill-row">
-              <div className="set-field-text">
-                <div className="set-field-stack">
-                  <div className="set-field-label">
-                    {preset.nameEn ? `${preset.name} · ${preset.nameEn}` : preset.name}
+          {catalog
+            .filter((p) => p.app === app)
+            .map((preset) => (
+              <div key={preset.id} className="set-field set-skill-row">
+                <div className="set-field-text">
+                  <div className="set-field-stack">
+                    <div className="set-field-label">
+                      {preset.nameEn ? `${preset.name} · ${preset.nameEn}` : preset.name}
+                    </div>
+                    <div className="set-field-desc">{preset.description}</div>
                   </div>
-                  <div className="set-field-desc">{preset.description}</div>
                 </div>
+                <button
+                  className="set-switch"
+                  role="switch"
+                  aria-checked={!disabled.has(preset.id)}
+                  aria-label={`${preset.name} (${APP_LABELS[app] ?? app})`}
+                  onClick={() => toggle(preset.id)}
+                />
               </div>
-              <button
-                className="set-switch"
-                role="switch"
-                aria-checked={!disabled.has(preset.id)}
-                aria-label={`${preset.name} (${APP_LABELS[app] ?? app})`}
-                onClick={() => toggle(preset.id)}
-              />
-            </div>
-          ))}
+            ))}
         </div>
       ))}
+    </>
+  )
+}
+
+/** one-line note on the AI pane: signed-in users are billed from the 方塘 balance */
+function ManagedAiNote() {
+  const { t } = useI18n()
+  const account = useAccount()
+  if (!account.loggedIn) return <p className="set-ai-note">{t('setAiByokNote')}</p>
+  return <p className="set-ai-note">{t('accountManagedNote')}</p>
+}
+
+/** Account pane: 方塘 sign-in state, balance, recharge and sign-out */
+function AccountPane() {
+  const { t } = useI18n()
+  const account = useAccount()
+  if (!account.loggedIn) {
+    return (
+      <>
+        <h3 className="set-pane-title">{t('accountSection')}</h3>
+        <Field
+          label={t('accountSection')}
+          value={account.errorText ?? t('accountSignedOut')}
+          action={
+            <button
+              className="set-btn primary"
+              onClick={() => void account.login()}
+              disabled={account.busy}
+            >
+              {t('accountSignIn')}
+            </button>
+          }
+        />
+        <AccountMcpSettings account={account} />
+      </>
+    )
+  }
+  return (
+    <>
+      <h3 className="set-pane-title">{t('accountSection')}</h3>
+      {account.session?.rechargeAccountChanged && (
+        <p className="set-ai-note">{t('accountRechargeChanged')}</p>
+      )}
+      <Field
+        label={t('accountSection')}
+        value={account.name}
+        action={
+          <button className="set-btn danger" onClick={account.logout}>
+            {t('accountSignOut')}
+          </button>
+        }
+      />
+      <Field
+        label={t('accountBalance')}
+        value={accountBalanceText(account.usage) ?? '—'}
+        action={
+          <button className="set-btn" onClick={() => account.recharge('office_ai')}>
+            {t('accountRecharge')}
+          </button>
+        }
+      />
+      <Field label={t('accountMonthUsed')} value={accountMonthUsedText(account.usage) ?? '—'} />
+      {accountAiPendingText(account.usage) && (
+        <Field label={t('accountAiPending')} value={accountAiPendingText(account.usage)!} />
+      )}
+      <AccountMcpSettings account={account} />
+      {accountMcpUsage(account.usage) && (
+        <>
+          <Field
+            label={t('accountMcpBalance')}
+            value={
+              accountMcpWalletOpened(account.usage) === false
+                ? t('accountMcpNotOpened')
+                : (accountMcpBalanceText(account.usage) ?? '—')
+            }
+            action={
+              <button className="set-btn" onClick={() => account.recharge('policy_mcp')}>
+                {t('accountRecharge')}
+              </button>
+            }
+          />
+          <Field label={t('accountMcpUsed')} value={accountMcpUsedText(account.usage) ?? '—'} />
+          <Field
+            label={t('accountMcpPending')}
+            value={accountMcpPendingText(account.usage) ?? '—'}
+          />
+        </>
+      )}
     </>
   )
 }
@@ -591,6 +721,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             ))}
           </nav>
           <div className="set-pane">
+            {section === 'account' && <AccountPane />}
             {section === 'aiModel' && <AiModelPane t={t} />}
             {section === 'skills' && <SkillsPane t={t} />}
             {section === 'general' && (

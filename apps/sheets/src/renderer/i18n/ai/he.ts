@@ -62,6 +62,8 @@ export const he = {
   aiOverloadedError: 'שירות ה-AI עמוס כרגע — נסו שוב בעוד רגע',
   aiNetworkError: 'בעיית רשת: לא ניתן להתחבר לשירות ה-AI. בדוק את החיבור ונסה שוב',
   aiCreditsExhausted: 'מכסת שירות המודל אזלה. פנו למנהל המערכת או עברו למודל אחר בהגדרות ונסו שוב',
+  aiRechargePrompt: 'יתרת קרדיט ה-AI אזלה. טענו כדי להמשיך להשתמש',
+  aiRechargeAction: 'טעינה',
   aiToolWorkbookContext: 'קריאת פרטי חוברת העבודה',
   aiToolReadRange: 'קריאת טווח',
   aiToolReadRangeOf: 'קריאת הטווח {range}',
@@ -102,4 +104,8 @@ export const he = {
   aiScopeRangeTip:
     'ה-AI מפרש "העמודה הזו / השורות האלה / החלק הנבחר" כטווח הזה, והוא מקובע לכל ההרצה עם השליחה',
   aiScopeClearTitle: 'ביטול טווח הבחירה ומיקוד בגיליון כולו',
+  aiPaidCallLimitPrompt: 'משימה זו ביצעה {used} קריאות MCP בתשלום (מגבלה {max}). להמשיך?',
+  aiPaidCallLimitContinue: 'המשך',
+  aiPaidCallDisclosurePrompt: 'משימה זו תקרא לכלי MCP בתשלום (0.5 ¥ לכל קריאה). להמשיך?',
+  aiPaidCallLimitStop: 'עצור',
 } satisfies Record<keyof typeof zh, string>

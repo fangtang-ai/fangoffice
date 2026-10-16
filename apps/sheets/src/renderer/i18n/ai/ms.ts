@@ -65,7 +65,10 @@ export const ms = {
   aiOverloadedError: 'Perkhidmatan AI sedang sibuk — sila cuba lagi sebentar lagi',
   aiNetworkError:
     'Masalah rangkaian: tidak dapat menghubungi perkhidmatan AI. Semak sambungan anda dan cuba lagi',
-  aiCreditsExhausted: 'Kuota perkhidmatan model telah habis. Hubungi pentadbir anda atau tukar ke model lain dalam Tetapan, kemudian cuba lagi',
+  aiCreditsExhausted:
+    'Kuota perkhidmatan model telah habis. Hubungi pentadbir anda atau tukar ke model lain dalam Tetapan, kemudian cuba lagi',
+  aiRechargePrompt: 'Kredit AI anda telah habis. Tambah nilai untuk terus menggunakannya',
+  aiRechargeAction: 'Tambah nilai',
   aiToolWorkbookContext: 'Baca maklumat buku kerja',
   aiToolReadRange: 'Baca julat',
   aiToolReadRangeOf: 'Baca julat {range}',
@@ -106,4 +109,10 @@ export const ms = {
   aiScopeRangeTip:
     'AI membaca "lajur ini / baris ini / bahagian yang dipilih" sebagai julat ini, dan ia dikunci sepanjang larian selepas anda hantar',
   aiScopeClearTitle: 'Buang skop julat dan gunakan seluruh helaian',
+  aiPaidCallLimitPrompt:
+    'Tugas ini telah membuat {used} panggilan MCP berbayar (had {max}). Teruskan?',
+  aiPaidCallLimitContinue: 'Teruskan',
+  aiPaidCallDisclosurePrompt:
+    'Tugas ini akan memanggil alat MCP berbayar (¥0.5 setiap panggilan). Teruskan?',
+  aiPaidCallLimitStop: 'Berhenti',
 } satisfies Record<keyof typeof zh, string>

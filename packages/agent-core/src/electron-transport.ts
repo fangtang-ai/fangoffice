@@ -28,6 +28,7 @@ export interface IpcStreamChunk {
 /** The request forwarded to the main process to start one streaming turn. */
 export interface IpcStreamStart<S> {
   requestId: string
+  aiRunId?: string
   settings: S
   system: string
   messages: AgentMessage[]
@@ -56,6 +57,8 @@ export interface IpcTransportOptions<S> {
   timeoutErrorText?(): string
   /** localized message for exhausted credits (errorCode 'credits') */
   creditsErrorText?(): string
+  /** raw credits-error notice (errorCode 'credits'), fired before the localized bubble text — panels use it to open the recharge prompt */
+  creditsKind?(error: string): void
   /** localized message for network connectivity failures (errorCode 'network') */
   networkErrorText?(): string
   /** localized message for capacity/rate-limit failures (errorCode 'overloaded') */
@@ -112,6 +115,7 @@ export function createIpcTransport<S>(options: IpcTransportOptions<S>): AgentTra
           cb.onDone()
         } else {
           settle()
+          if (chunk.errorCode === 'credits') options.creditsKind?.(chunk.error ?? '')
           cb.onError(
             chunk.errorCode === 'timeout'
               ? timeoutText()
@@ -131,6 +135,7 @@ export function createIpcTransport<S>(options: IpcTransportOptions<S>): AgentTra
         Promise.resolve(
           options.start({
             requestId,
+            ...(request.aiRunId ? { aiRunId: request.aiRunId } : {}),
             settings: options.getSettings(),
             system: request.system,
             messages: request.messages,

@@ -106,7 +106,10 @@ export const ar = {
   aiOverloadedError: 'خدمة الذكاء الاصطناعي مشغولة حاليًا — يرجى المحاولة مرة أخرى بعد قليل',
   aiNetworkError:
     'مشكلة في الشبكة: تعذّر الوصول إلى خدمة الذكاء الاصطناعي. تحقق من الاتصال وحاول مجددًا',
-  aiCreditsExhausted: 'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
+  aiCreditsExhausted:
+    'تم استهلاك حصة خدمة النموذج. تواصل مع المسؤول أو بدّل إلى نموذج آخر في الإعدادات ثم أعد المحاولة',
+  aiRechargePrompt: 'لقد نفدت أرصدة الذكاء الاصطناعي. أعد الشحن لمتابعة الاستخدام',
+  aiRechargeAction: 'إعادة الشحن',
   aiSumReadAttachment: 'قراءة المرفق',
   aiSumImageAttachment: 'مرفق صورة {name}',
   aiSumRead: 'قراءة {name}',
@@ -153,4 +156,10 @@ export const ar = {
   aiCmdImages: 'تم تحديث {count} صورة',
   aiCmdToc: 'تم إدراج جدول محتويات ({count} إدخالًا)',
   aiCmdSkipped: ' (تم تخطي {count} كتلة محمية)',
+  aiPaidCallLimitPrompt:
+    'نفّذت هذه المهمة {used} استدعاءات MCP مدفوعة (الحد {max}). هل تريد المتابعة؟',
+  aiPaidCallLimitContinue: 'متابعة',
+  aiPaidCallDisclosurePrompt:
+    'ستستدعي هذه المهمة أدوات MCP مدفوعة (0.5 يوان لكل استدعاء). هل تريد المتابعة؟',
+  aiPaidCallLimitStop: 'إيقاف',
 } satisfies Record<keyof typeof zh, string>

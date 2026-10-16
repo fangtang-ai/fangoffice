@@ -6,9 +6,9 @@ import { createStreamWatchdog, type StreamWatchdog } from '../watchdog'
 import {
   jsonBodyInsteadOfSse,
   parseToolInput,
-  sseErrorText,
   sseLines,
   throwIfCreditsNotice,
+  throwSseError,
   type StreamCallbacks,
 } from './shared'
 
@@ -72,7 +72,7 @@ function emitAnthropicJsonMessage(bodyText: string, cb: StreamCallbacks): void {
   } catch {
     throw new Error(`Claude returned an unparseable JSON body: ${httpBodyDetail(bodyText)}`)
   }
-  if (msg.error) throw new Error(sseErrorText(msg.error, 'Claude error'))
+  if (msg.error) throwSseError(msg.error, 'Claude error')
   let emitted = false
   const toolCalls: AgentToolCall[] = []
   for (const block of msg.content ?? []) {
@@ -165,7 +165,10 @@ async function anthropicTurn(
   // headers arrived: ping the renderer watchdog too, or a slow first chunk could trip it
   onBytes()
   if (!response.ok || !response.body) {
-    throw new Error(`Claude HTTP ${response.status}: ${httpBodyDetail(await response.text())}`)
+    const bodyText = await response.text()
+    // New API-style gateways reject an exhausted quota with a non-2xx JSON error body
+    throwIfCreditsNotice(bodyText)
+    throw new Error(`Claude HTTP ${response.status}: ${httpBodyDetail(bodyText)}`)
   }
   const jsonBody = await jsonBodyInsteadOfSse(response)
   if (jsonBody !== null) {
@@ -222,7 +225,7 @@ async function anthropicTurn(
       if (event.delta?.stop_reason) stopReason = event.delta.stop_reason
     } else if (event.type === 'error' || event.error) {
       // also catches gateway errors delivered in a non-Anthropic shape (no `type` field)
-      throw new Error(sseErrorText(event.error, 'Claude stream error'))
+      throwSseError(event.error, 'Claude stream error')
     }
   }
   const lastTool = completedTools.at(-1)

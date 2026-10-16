@@ -65,7 +65,10 @@ export const en = {
   aiOverloadedError: 'The AI service is busy right now — please try again in a moment',
   aiNetworkError:
     'Network problem: could not reach the AI service. Check your connection and try again',
-  aiCreditsExhausted: 'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
+  aiCreditsExhausted:
+    'The model service quota has run out. Contact your administrator or switch to another model in Settings, then try again',
+  aiRechargePrompt: 'Your AI credits have run out. Top up to keep using AI features',
+  aiRechargeAction: 'Top up',
   aiToolWorkbookContext: 'Read workbook info',
   aiToolReadRange: 'Read range',
   aiToolReadRangeOf: 'Read range {range}',
@@ -106,4 +109,9 @@ export const en = {
   aiScopeRangeTip:
     'AI reads "this column / these rows / the selected part" as this range, and it stays fixed for the run once you send',
   aiScopeClearTitle: 'Drop the range scope and target the whole sheet',
+  aiPaidCallLimitPrompt: 'This task has made {used} paid MCP calls (limit {max}). Continue?',
+  aiPaidCallLimitContinue: 'Continue',
+  aiPaidCallDisclosurePrompt:
+    'This task is about to call paid MCP tools: each call costs ¥0.5. Continue?',
+  aiPaidCallLimitStop: 'Stop',
 } satisfies Record<keyof typeof zh, string>

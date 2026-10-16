@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import brandLogo from './assets/fangtang-logo.png'
 import iconDocx from './assets/file-docx.svg'
@@ -16,7 +16,15 @@ import { useDismissablePopover } from '@genoffice/ui'
 import { fileCountKey, visiblePageCount } from './counts'
 import { useI18n } from './locale'
 import type { I18n, StringKey } from './locale'
+import {
+  useAccount,
+  accountAiPendingText,
+  accountMcpBalanceText,
+  accountMcpWalletOpened,
+  type AccountApi,
+} from './use-account'
 import { SettingsModal } from './SettingsModal'
+import { AccountMcpBalanceBanner } from './AccountMcpSettings'
 
 declare global {
   interface Window {
@@ -441,41 +449,221 @@ function ProjectPanel({ projects, selectedId, onSelect, onRefresh }: ProjectPane
   )
 }
 
-// ── Settings entry (bottom-left) ─────────────────────────
-// Opens the settings modal directly (AI model, language, theme, save location).
+// ── Bottom-left account entry ────────────────────────────
+// Logged out: one-click sign-in through the system browser. Logged in: a small
+// popover with the balance, recharge, settings and sign-out. When the account
+// service is unconfigured (no fangtang-defaults.json), sign-in falls back to
+// opening the settings modal so the button always does something useful.
 
-function SettingsEntry() {
+function AccountEntry({ account }: { account: AccountApi }) {
   const { t } = useI18n()
+  const [menuOpen, setMenuOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const menuWrapRef = useRef<HTMLDivElement>(null)
+  const { busy, errorText, errorCode, loggedIn, name, balanceCny, usage, login, logout, recharge } =
+    account
+  const aiPending = accountAiPendingText(usage)
+  const mcpOpened = accountMcpWalletOpened(usage)
+  const mcpBalance = accountMcpBalanceText(usage)
+
+  // unified dismissal: outside press, window blur, chrome press (tab strip / window drag)
+  useDismissablePopover(menuOpen, () => setMenuOpen(false), {
+    inside: () => [menuWrapRef.current],
+  })
+
+  // unconfigured account service → settings modal (where AI providers can be set)
+  const loginOrConfigure = () => {
+    if (errorCode === 'account:not-configured') {
+      setSettingsOpen(true)
+      return
+    }
+    void login()
+  }
+
   return (
-    <div className="account-entry">
+    <div className="account-entry" ref={menuWrapRef}>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
-      <button
-        className="account-btn"
-        onClick={() => setSettingsOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={settingsOpen}
-        aria-label={t('settings')}
-      >
-        <span className="account-avatar">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
-            <path
-              d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
-              stroke="currentColor"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-        <span className="account-text">
-          <span className="account-name">{t('settings')}</span>
-        </span>
-      </button>
+      {loggedIn ? (
+        <>
+          <button
+            className="account-btn"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label={name}
+          >
+            <span className="account-avatar logged-in">{(name[0] ?? '·').toUpperCase()}</span>
+            <span className="account-text">
+              <span className="account-name">{name}</span>
+              {balanceCny !== null && <span className="account-sub">¥{balanceCny.toFixed(2)}</span>}
+            </span>
+            <svg
+              className="account-chevron"
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M2.5 4.5L6 8l3.5-3.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="row-menu account-menu" role="menu">
+              {balanceCny !== null && (
+                <div className="account-menu-balance">¥{balanceCny.toFixed(2)}</div>
+              )}
+              {aiPending && (
+                <div className="account-menu-sub">
+                  {t('accountAiPending')} · {aiPending}
+                </div>
+              )}
+              {(mcpOpened === false || mcpBalance !== null) && (
+                <div className="account-menu-sub">
+                  {mcpOpened === false
+                    ? t('accountMcpNotOpened')
+                    : `${t('accountMcpBalance')} · ${mcpBalance}`}
+                </div>
+              )}
+              {account.session?.rechargeAccountChanged && (
+                <div className="account-menu-sub">{t('accountRechargeChanged')}</div>
+              )}
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  recharge('office_ai')
+                }}
+              >
+                {t('accountRecharge')}
+              </button>
+              <div className="row-menu-divider" />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  setSettingsOpen(true)
+                }}
+              >
+                {t('settings')}
+              </button>
+              <div className="row-menu-divider" />
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false)
+                  logout()
+                }}
+              >
+                {t('accountSignOut')}
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <button
+          className="account-btn"
+          onClick={loginOrConfigure}
+          disabled={busy}
+          aria-label={t('accountSignIn')}
+        >
+          <span className={`account-avatar${busy ? ' waiting' : ''}`}>
+            {busy ? (
+              <svg
+                className="account-spinner"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="8"
+                  cy="8"
+                  r="6.5"
+                  stroke="currentColor"
+                  strokeOpacity="0.25"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M14.5 8A6.5 6.5 0 0 0 8 1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="5.2" r="2.9" stroke="currentColor" strokeWidth="1.3" />
+                <path
+                  d="M2.7 13.6a5.5 5.5 0 0 1 10.6 0"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
+          </span>
+          <span className="account-text">
+            <span className="account-name">{t('accountSignIn')}</span>
+            {errorText && <span className="account-sub error">{errorText}</span>}
+          </span>
+        </button>
+      )}
+      {!loggedIn && (
+        <button className="account-btn account-settings-btn" onClick={() => setSettingsOpen(true)}>
+          {t('settings')}
+        </button>
+      )}
     </div>
   )
 }
 
+/** below this balance the soft banner nags (a constant, not a setting —
+ * tune once real consumption data exists) */
+const LOW_BALANCE_CNY = 6
+
+/** soft low-balance reminder above the home content; dismissal lasts for the
+ * session (persisting it would hide the banner forever after one dismiss) */
+function LowBalanceBanner({
+  balanceCny,
+  onRecharge,
+}: {
+  balanceCny: number
+  onRecharge: () => void
+}) {
+  const { t } = useI18n()
+  const [hidden, setHidden] = useState(false)
+  if (hidden || balanceCny >= LOW_BALANCE_CNY) return null
+  return (
+    <div className="low-balance-banner" role="status">
+      <span className="low-balance-text">{t('accountLowBalance')}</span>
+      <button className="low-balance-btn" onClick={onRecharge}>
+        {t('accountRecharge')}
+      </button>
+      <button
+        className="low-balance-dismiss"
+        onClick={() => setHidden(true)}
+        aria-label={t('cancel')}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path
+            d="M2 2l8 8M10 2l-8 8"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+    </div>
+  )
+}
 
 function DropToOpenOverlay(): ReactElement | null {
   const [visible, setVisible] = useState(false)
@@ -541,9 +729,17 @@ function DropToOpenOverlay(): ReactElement | null {
 
 // ── Main component ──────────────────────────────────────
 
-export function Home() {
+export function Home({ active = true }: { active?: boolean }) {
   const i18n = useI18n()
   const { t, lang } = i18n
+  // one account instance for the whole home (entry menu + low-balance banner);
+  // balance re-pulls when the home tab becomes visible again after editor work
+  const account = useAccount()
+  // only these two flips matter; account is a fresh object each render
+  const { refreshUsage } = account
+  useEffect(() => {
+    if (active) refreshUsage()
+  }, [active, refreshUsage, account.session?.loggedIn])
   // ── Paged list state (rows loaded for the current view + filter) ──
   const [entries, setEntries] = useState<RecentEntry[]>([])
   /** total count under the current view + filter (not just the loaded rows) */
@@ -1572,10 +1768,19 @@ export function Home() {
           </>
         )}
 
-        <SettingsEntry />
+        <AccountEntry account={account} />
       </aside>
 
-      {selectedProjectId ? renderProjectContent() : renderGlobalContent()}
+      <div className="home-main">
+        <AccountMcpBalanceBanner account={account} />
+        {account.loggedIn && account.balanceCny !== null && (
+          <LowBalanceBanner
+            balanceCny={account.balanceCny}
+            onRecharge={() => account.recharge('office_ai')}
+          />
+        )}
+        {selectedProjectId ? renderProjectContent() : renderGlobalContent()}
+      </div>
 
       {confirmDelete && (
         <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>

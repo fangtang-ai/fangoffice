@@ -66,7 +66,10 @@ export const fr = {
   aiOverloadedError: "Le service d'IA est actuellement surchargé — réessayez dans un instant",
   aiNetworkError:
     'Problème réseau : impossible de joindre le service IA. Vérifiez votre connexion et réessayez',
-  aiCreditsExhausted: 'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+  aiCreditsExhausted:
+    'Le quota du service de modèles est épuisé. Contactez votre administrateur ou choisissez un autre modèle dans les paramètres, puis réessayez',
+  aiRechargePrompt: 'Vos crédits IA sont épuisés. Rechargez pour continuer',
+  aiRechargeAction: 'Recharger',
   aiToolWorkbookContext: 'Lire les informations du classeur',
   aiToolReadRange: 'Lire la plage',
   aiToolReadRangeOf: 'Lire la plage {range}',
@@ -107,4 +110,10 @@ export const fr = {
   aiScopeRangeTip:
     "L'IA interprète « cette colonne / ces lignes / la partie sélectionnée » comme cette plage, figée pendant toute l'exécution dès l'envoi",
   aiScopeClearTitle: 'Retirer la portée de la plage et viser toute la feuille',
+  aiPaidCallLimitPrompt:
+    'Cette tâche a effectué {used} appels MCP payants (limite : {max}). Continuer ?',
+  aiPaidCallLimitContinue: 'Continuer',
+  aiPaidCallDisclosurePrompt:
+    'Cette tâche va appeler des outils MCP payants (0,5 ¥ par appel). Continuer ?',
+  aiPaidCallLimitStop: 'Arrêter',
 } satisfies Record<keyof typeof zh, string>

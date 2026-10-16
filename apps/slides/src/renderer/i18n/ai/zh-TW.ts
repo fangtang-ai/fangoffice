@@ -112,6 +112,8 @@ export const zhTW = {
   aiErrOverloaded: 'AI 服務目前繁忙，請稍後重試',
   aiErrNetwork: '網路有問題，無法連接 AI 服務。請檢查網路後重試',
   aiCreditsExhausted: '模型服務額度已用盡，請聯絡管理員或在設定中切換其他模型後重試',
+  aiRechargePrompt: 'AI 額度已用盡，儲值後即可繼續使用',
+  aiRechargeAction: '立即儲值',
   aiErrRequestFailed: '要求傳送失敗: {msg}',
   aiErrGenerateFailed: '產生失敗',
   aiErrRegenFailed: '重做頁面失敗',
@@ -221,4 +223,8 @@ export const zhTW = {
   aiSumSaveTemplate: '儲存風格範本"{name}"',
   aiSumTemplatesEmpty: '風格範本清單（空）',
   aiSumListTemplates: '列出 {count} 個風格範本',
+  aiPaidCallLimitPrompt: '此任務已發起 {used} 次付費 MCP 呼叫（上限 {max} 次），是否繼續？',
+  aiPaidCallLimitContinue: '繼續呼叫',
+  aiPaidCallDisclosurePrompt: '此任務將開始呼叫付費 MCP 工具（每次收費 0.5 元）。是否繼續？',
+  aiPaidCallLimitStop: '停止',
 } satisfies Record<keyof typeof zh, string>
