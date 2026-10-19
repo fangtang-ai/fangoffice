@@ -342,10 +342,66 @@ and flipping the pointer within the same transaction. Invalid SQL shapes fail
 with 23514; forbidden columns fail with 42501.
 
 Real pg-boss delivery covers claim/write/seal/publication. The recovery
-fingerprint checks 13 triggers and 6 functions. These tests are local-only;
-desired pointers are still supplied by a bootstrap fixture, not a production
-admission endpoint. Persistent capacity reservation/conversion/release,
+fingerprint now checks 13 triggers and 8 functions. These tests are local-only;
+the earlier publication fixtures still supply desired pointers through bootstrap,
+while the B5 slice below exercises restricted initial-upload admission separately.
+Full capacity reservation/conversion/release,
 quota/metering atomicity, full seal validation, retention/GC state transitions
 and independent deletion intent remain open. The standalone worker does not
 consume hosted jobs. See `../ACCEPTANCE.md` for the current task mapping and
 checkpoint validation; no migration or role grant is run on service startup.
+
+## B5 initial-capacity local slice — 2026-10-16
+
+`security/capacity-reserve.sql`, applied only by `db:apply:capacity:local`, chains
+the accepted immutable/content/lifecycle/publication receipts. It adds one narrow
+SECURITY DEFINER function owned by `knowledge_migrator`, which remains subject to
+FORCE RLS, non-superuser and non-BYPASSRLS. The fixed search path is
+`pg_catalog, pg_temp`, row security stays on, objects are schema-qualified and
+PUBLIC EXECUTE is revoked. Only API receives EXECUTE; worker/GC do not. No runtime
+role receives direct quota, reservation or desired-pointer writes.
+
+The function derives owner and original bytes from trusted facts, locks
+Quota → Space → Document → Operation → Reservation, checks initial-upload state
+and active/reserved/physical limits, then atomically reserves counters and admits
+the desired pair. Numeric sums avoid bigint overflow before denial. Replay must
+match the held reservation exactly; expiry/closure never silently clears debt.
+Real API connections cover last-capacity competition, rollback and duplicate
+operation convergence using observed lock waits rather than timing guesses.
+The native restore check also calls this function through a restored API login.
+
+Chunk/physical projections remain trusted service inputs. Conversion/release,
+expired-reservation recovery, authorized GC, website money,
+and atomic publication/metering are not implemented. The function is not an
+HTTP admission endpoint and does not complete original B5 or B6.
+
+## B5 replacement-capacity local slice — 2026-10-16
+
+`db:apply:replacement:local` verifies the entire accepted initial-admission chain
+and atomically applies generated `drizzle/0001_capacity_projection.sql` plus
+`security/replacement-reserve.sql`. Its receipt records both exact hashes;
+previous SQL and receipts are not rewritten. The new full projected chunk field
+is CHECK-protected for base-bound reservations, including when their positive
+delta is zero. Schema regeneration starts from the accepted previous snapshot.
+
+`knowledge.reserve_replacement_capacity` is API-only EXECUTE with the same
+non-bypass FORCE-RLS migrator, fixed search path, row security and PUBLIC revoke
+as initial admission. No direct write grant is added. Locking follows Quota →
+Space → Document → Operation/Reservation → base Build, with originals held FOR
+SHARE. It derives current base/bytes from locked facts, verifies generation and
+queued replacement state and reserves positive bytes/chunks plus full physical
+cost. Another held reservation for the document blocks a second base credit even
+if its operation is terminal or its deadline expired.
+
+Non-growth remediation may pass reduced logical limits, never the physical hard
+limit. Numeric sums reject bigint overflow; exact replay compares the full chunk
+projection, base, generation, physical amount, expiry and desired pair. Actual
+lock waits cover duplicate convergence, rollback, changed projection, committed
+quota debt, base invalidation and deadline expiry. The native restored API login
+also exercises both capacity entries and the new projection column.
+
+This is not the conversion/release protocol. No active bytes are reduced, no
+physical debt is cleared and no metering or website settlement is invented.
+Publication still needs same-transaction base/generation/attempt/budget checks,
+reservation conversion and metering intent. Cancellation/expiry release must
+first fence old intent and writers; it is not a standalone decrement endpoint.

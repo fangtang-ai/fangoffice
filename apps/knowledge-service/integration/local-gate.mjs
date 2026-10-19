@@ -8,7 +8,7 @@ import {
   tenantTables,
 } from './local-database.ts'
 
-export async function applyLocalGate(label, guard, prerequisites = []) {
+export async function applyLocalGate(label, guard, prerequisites = [], schemaFiles = []) {
   const { pool: admin, settings } = await openLocalDatabase('bootstrap')
   try {
     const receipt = JSON.parse(
@@ -47,8 +47,11 @@ export async function applyLocalGate(label, guard, prerequisites = []) {
     )
     if (
       receipt.instanceId !== settings.instanceId ||
-      receipt.artifacts.length !== 1 ||
-      receipt.artifacts[0]?.name !== `security/${prerequisite}.sql` ||
+      receipt.artifacts.length < 1 ||
+      receipt.artifacts.at(-1)?.name !== `security/${prerequisite}.sql` ||
+      receipt.artifacts
+        .slice(0, -1)
+        .some((artifact) => !/^drizzle\/[0-9]{4}_[a-z0-9_]+\.sql$/.test(artifact.name)) ||
       JSON.stringify(receipt.baseline) !== JSON.stringify(artifacts)
     )
       throw new Error('Refusing an unrecognized prerequisite gate receipt')
@@ -61,9 +64,14 @@ export async function applyLocalGate(label, guard, prerequisites = []) {
     if (artifact.sha256 !== sha256) throw new Error('Refusing a changed migration baseline')
   }
 
-  const name = `security/${label}.sql`
-  const sql = await readFile(resolve(serviceDirectory, name), 'utf8')
-  const sha256 = createHash('sha256').update(sql).digest('hex')
+  if (schemaFiles.some((name) => !/^drizzle\/[0-9]{4}_[a-z0-9_]+\.sql$/.test(name)))
+    throw new Error('Refusing an unexpected schema increment path')
+  const supplements = await Promise.all(
+    [...schemaFiles, `security/${label}.sql`].map(async (name) => {
+      const sql = await readFile(resolve(serviceDirectory, name), 'utf8')
+      return { name, sql, sha256: createHash('sha256').update(sql).digest('hex') }
+    }),
+  )
   const { pool } = await openLocalDatabase('migrator')
   try {
     const client = await pool.connect()
@@ -91,7 +99,8 @@ export async function applyLocalGate(label, guard, prerequisites = []) {
         )
       )
         throw new Error('Refusing an unexpected schema security baseline')
-      await client.query(sql)
+      // 生成的列/约束增量和依赖它的窄函数必须一起提交，避免半套准入协议。
+      for (const supplement of supplements) await client.query(supplement.sql)
       await client.query('COMMIT')
     } catch (error) {
       await client.query('ROLLBACK')
@@ -110,11 +119,11 @@ export async function applyLocalGate(label, guard, prerequisites = []) {
         instanceId: settings.instanceId,
         appliedAt: new Date().toISOString(),
         baseline: artifacts,
-        artifacts: [{ name, sha256 }],
+        artifacts: supplements.map(({ name, sha256 }) => ({ name, sha256 })),
       },
       null,
       2,
     ),
   )
-  console.log(`Applied ${label} gates atomically without changing runtime grants.`)
+  console.log(`Applied ${label} local supplement atomically.`)
 }

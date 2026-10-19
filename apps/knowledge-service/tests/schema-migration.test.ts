@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -63,9 +63,11 @@ it('generates identical offline SQL and snapshot metadata without credentials or
   const source = await readFile(join(directory, 'drizzle.config.ts'), 'utf8')
   expect(source).not.toMatch(/dotenv|process\.env|dbCredentials|DB_|runtime|provider/)
   const generated = await readdir(join(directory, 'drizzle'))
-  const sqlFile = generated.find((name) => name.endsWith('.sql'))
-  expect(sqlFile).toBe('0000_knowledge_base.sql')
-  if (!sqlFile) throw new Error('Missing generated SQL')
+  const sqlFile = '0000_knowledge_base.sql'
+  expect(generated.filter((name) => name.endsWith('.sql')).sort()).toEqual([
+    sqlFile,
+    '0001_capacity_projection.sql',
+  ])
   const sql = await readFile(join(directory, 'drizzle', sqlFile), 'utf8')
   expect(
     [...sql.matchAll(/CREATE TABLE "knowledge"\."([^"]+)"/g)].map((match) => match[1]).sort(),
@@ -81,6 +83,20 @@ it('generates identical offline SQL and snapshot metadata without credentials or
     await rm(target, { recursive: true, force: true })
   })
   const output = join(temporary, 'generated')
+  const journal = JSON.parse(
+    await readFile(join(directory, 'drizzle/meta/_journal.json'), 'utf8'),
+  ) as { entries: { idx: number; tag: string; breakpoints: boolean }[] }
+  expect(journal.entries).toEqual([
+    expect.objectContaining({ idx: 0, tag: '0000_knowledge_base', breakpoints: true }),
+    expect.objectContaining({ idx: 1, tag: '0001_capacity_projection', breakpoints: true }),
+  ])
+  await mkdir(join(output, 'meta'), { recursive: true })
+  for (const name of ['0000_knowledge_base.sql', 'meta/0000_snapshot.json'])
+    await writeFile(join(output, name), await readFile(join(directory, 'drizzle', name)))
+  await writeFile(
+    join(output, 'meta/_journal.json'),
+    JSON.stringify({ ...journal, entries: journal.entries.slice(0, 1) }),
+  )
   const config = join(temporary, 'drizzle.config.json')
   await writeFile(
     config,
@@ -94,7 +110,7 @@ it('generates identical offline SQL and snapshot metadata without credentials or
   const cli = fileURLToPath(new URL('../../../node_modules/drizzle-kit/bin.cjs', import.meta.url))
   const result = await execute(
     process.execPath,
-    [cli, 'generate', '--config', config, '--name', 'knowledge_base'],
+    [cli, 'generate', '--config', config, '--name', 'capacity_projection'],
     { cwd: temporary, timeout: 20000 },
   ).catch((error: unknown) => {
     if (error instanceof Error && 'stdout' in error && 'stderr' in error)
@@ -102,24 +118,21 @@ it('generates identical offline SQL and snapshot metadata without credentials or
     throw error
   })
   expect(result.stdout).toContain('16 tables')
-  expect(await readFile(join(output, sqlFile), 'utf8')).toBe(sql)
+  const increment = '0001_capacity_projection.sql'
+  expect(await readFile(join(output, increment), 'utf8')).toBe(
+    await readFile(join(directory, 'drizzle', increment), 'utf8'),
+  )
   const snapshot = JSON.parse(
-    await readFile(join(directory, 'drizzle/meta/0000_snapshot.json'), 'utf8'),
+    await readFile(join(directory, 'drizzle/meta/0001_snapshot.json'), 'utf8'),
   ) as Record<string, unknown>
   const regenerated = JSON.parse(
-    await readFile(join(output, 'meta/0000_snapshot.json'), 'utf8'),
+    await readFile(join(output, 'meta/0001_snapshot.json'), 'utf8'),
   ) as Record<string, unknown>
   const { id: snapshotId, ...snapshotBody } = snapshot
   const { id: regeneratedId, ...regeneratedBody } = regenerated
   expect(snapshotId).toEqual(expect.any(String))
   expect(regeneratedId).toEqual(expect.any(String))
   expect(regeneratedBody).toEqual(snapshotBody)
-  const journal = JSON.parse(
-    await readFile(join(directory, 'drizzle/meta/_journal.json'), 'utf8'),
-  ) as { entries: { idx: number; tag: string; breakpoints: boolean }[] }
-  expect(journal.entries).toEqual([
-    expect.objectContaining({ idx: 0, tag: '0000_knowledge_base', breakpoints: true }),
-  ])
   await execute(process.execPath, [cli, 'check', '--config', config], {
     cwd: temporary,
     timeout: 20000,

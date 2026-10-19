@@ -2,23 +2,23 @@
 
 ## Accepted scope
 
-| Tasks | Local deliverable                                                                                | Status                                               |
-| ----- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| A1–A4 | Shared runtime contracts, locators, quantities and commercial snapshots                          | Locally accepted                                     |
-| A5–A7 | Account-bound desktop client, pure authorization/admission policies and workspace wiring         | Locally accepted                                     |
-| B1    | Independent API/worker entries, explicit configuration, JWT/JWKS and read-only connection probes | Synthetic/local acceptance only                      |
-| B2    | 16-table schema, generated artifacts and real local constraints                                  | Locally accepted on the marked isolated cluster      |
-| B3    | Restricted local roles, RLS/FORCE and trusted pool transactions                                  | Local security slice accepted; lifecycle gates open  |
-| B4    | Fixed pg-boss protocol, role statement surface and worker reference envelope                     | Local slices accepted; hosted consumer not connected |
-| B5    | Persistent capacity/physical-budget reservation, conversion and release                          | Not implemented; next task                           |
-| B6    | Claim, controlled content writes, seal and active-pointer publication                            | Local slices accepted; budget/metering gates open    |
-| B7    | Independent deletion intent, tombstones and recovery replay                                      | Not implemented                                      |
-| E3    | Strict UTF-8 TXT DocIR and bounded worker execution                                              | Locally accepted                                     |
-| F3–F4 | Markdown and DOCX DocIR                                                                          | Locally accepted                                     |
-| F5    | Text PDF DocIR                                                                                   | Locally accepted                                     |
-| F6    | XLSX workbook inspection and source-bound selection snapshots                                    | Locally accepted                                     |
-| F7    | Simple XLSX DocIR consuming the confirmed F6 snapshot                                            | Locally accepted                                     |
-| J1    | Pinned CI candidate, hashed installable artifact and repository-external clean installation      | In progress; hosted CI not executed                  |
+| Tasks | Local deliverable                                                                                | Status                                                  |
+| ----- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| A1–A4 | Shared runtime contracts, locators, quantities and commercial snapshots                          | Locally accepted                                        |
+| A5–A7 | Account-bound desktop client, pure authorization/admission policies and workspace wiring         | Locally accepted                                        |
+| B1    | Independent API/worker entries, explicit configuration, JWT/JWKS and read-only connection probes | Synthetic/local acceptance only                         |
+| B2    | 16-table schema, generated artifacts and real local constraints                                  | Locally accepted on the marked isolated cluster         |
+| B3    | Restricted local roles, RLS/FORCE and trusted pool transactions                                  | Local security slice accepted; lifecycle gates open     |
+| B4    | Fixed pg-boss protocol, role statement surface and worker reference envelope                     | Local slices accepted; hosted consumer not connected    |
+| B5    | Persistent capacity/physical-budget reservation, conversion and release                          | In progress; initial/replacement admission local slices |
+| B6    | Claim, controlled content writes, seal and active-pointer publication                            | Local slices accepted; budget/metering gates open       |
+| B7    | Independent deletion intent, tombstones and recovery replay                                      | Not implemented                                         |
+| E3    | Strict UTF-8 TXT DocIR and bounded worker execution                                              | Locally accepted                                        |
+| F3–F4 | Markdown and DOCX DocIR                                                                          | Locally accepted                                        |
+| F5    | Text PDF DocIR                                                                                   | Locally accepted                                        |
+| F6    | XLSX workbook inspection and source-bound selection snapshots                                    | Locally accepted                                        |
+| F7    | Simple XLSX DocIR consuming the confirmed F6 snapshot                                            | Locally accepted                                        |
+| J1    | Pinned CI candidate, hashed installable artifact and repository-external clean installation      | In progress; hosted CI not executed                     |
 
 F6 exposes `inspectKnowledgeXlsxWorkbook` and `freezeKnowledgeXlsxSelection`.
 Inspection reports visibility, declared/observed dimensions, hidden rows/columns,
@@ -377,9 +377,9 @@ The real queue-driven test covers claim → write → seal → publish. Lifecycl
 and security cases cover duplicate/stale publication, missing desired pair,
 unsealed build, frozen owner, retired profile and role/shape denials. Native
 backup/restore fingerprints include 13 triggers and 6 functions. Tests still
-set desired pointers through an explicit bootstrap fixture: persistent budget
-admission, quota conversion, storage events and settlement intent atomicity
-remain unimplemented.
+set desired pointers through an explicit bootstrap fixture. The initial-capacity
+slice below tests restricted admission separately; full budget admission, quota
+conversion, storage events and settlement intent atomicity remain unimplemented.
 
 ## Checkpoint verification — 2026-10-16
 
@@ -400,10 +400,93 @@ replay. Earlier local notes called the queue-envelope slice B5 and publication
 B7. Those labels are historical slice names, not completion of the original
 tasks; applied SQL and receipt hashes are deliberately not rewritten.
 
-Next comes original B5's persistent capacity/admission slice. Original B6's
+Original B5 now has initial and replacement capacity/admission slices below;
+conversion/release and physical-debt confirmation remain open. Original B6's
 budget/metering integration and original B7's deletion/recovery contract remain
 open. No hosted consumer, cloud resource, object upload, paid model, billing or
 release is accepted by these local tests.
+
+## B5 initial-capacity/admission local slice — 2026-10-16
+
+`src/runtime/capacity.ts`, exported through the public runtime entry, calls the
+narrow API-only `knowledge.reserve_initial_capacity` function inside a trusted
+transaction. `security/capacity-reserve.sql` is a separate increment applied via
+`db:apply:capacity:local`; accepted baseline SQL and receipt hashes are preserved.
+The definer is the non-superuser/non-BYPASSRLS FORCE-RLS migrator with a fixed
+`pg_catalog, pg_temp` search path, row security on and no PUBLIC EXECUTE. Worker/GC
+cannot invoke it and API gains no direct quota/reservation/desired-pointer writes.
+
+Only queued initial uploads with verified live originals, generation zero and
+no active build are accepted. Owner and original bytes come from database facts;
+chunk and physical-byte projections must be trusted service inputs. Quota →
+Space → Document → Operation → Reservation locking serializes capacity decisions.
+File/byte/chunk and independent physical limits include outstanding debt; sums
+use numeric before comparison to avoid bigint overflow. Counters, a held
+reservation and desired version/operation are written atomically.
+
+Forty-seven new real-database cases cover atomic admission, exact/changed replay,
+transaction rollback, last-capacity competition, rollback unblocking, concurrent
+duplicate convergence, active/physical debt, all limits, bigint overflow, frozen
+or deleted state, stale generation, original retention/GC state, cross-owner
+hiding, invalid inputs, expired/closed reservations, privilege restrictions,
+accepted SQL hashes and migration replay refusal. Races observe actual blocking
+PIDs, not timing guesses. Recovery now compares 13 triggers and 7 functions and
+executes capacity admission with a real restored API login.
+
+Actual Node 25.8.1 and minimum Node 22.13.0 each pass 804 offline knowledge tests
+and 382 real-database tests across 21 files (1,186 checks per runtime). Both pass
+all three knowledge typechecks, service build and Drizzle offline check. Strict
+no-explicit-any lint, formatting and diff checks also pass. The existing SQL and
+accepted receipts remain unchanged; only the new capacity increment is added.
+
+This initial-upload checkpoint is not complete original B5/B6 acceptance: exactly-once
+conversion/release, expiry recovery, physical GC acknowledgement and atomic
+publication/metering intent remain open. There is no HTTP upload/admission route,
+hosted consumer, cloud access, real document upload, paid model or website money
+in this slice. Original B7's independent deletion protocol remains unimplemented.
+
+## B5 replacement-capacity/admission local slice — 2026-10-16
+
+The first real API test failed with missing `reserve_replacement_capacity` before
+the SQL implementation; the public runtime transaction likewise failed before
+its export/implementation. The schema consistency test failed before the new
+increment was generated. All three seams pass after their minimal implementations.
+
+The generator adds `drizzle/0001_capacity_projection.sql`, its snapshot and one
+journal entry. Existing applied SQL and the original snapshot remain unchanged.
+The full projected chunks are persisted separately from positive-delta chunks,
+with a CHECK requiring a nonnegative projection for base-bound reservations.
+This rejects changed requests even when both normalize to zero incremental chunks.
+`db:apply:replacement:local` atomically applies the generated ALTER and the narrow
+`security/replacement-reserve.sql` function, hashing both in one new receipt.
+
+The public `reserveReplacementCapacity` shares bounded request validation with
+initial admission. The API-only definer remains a non-superuser/non-BYPASSRLS
+FORCE-RLS migrator. Quota → Space → Document → Operation/Reservation → Build locks
+bind credit to the current sealed/live base and document generation. A second
+held reservation for the document cannot reuse that credit, even if the old
+operation is terminal or its held reservation expired. Quota admission reserves
+only positive byte/chunk deltas and full new physical cost; active debt stays put.
+All-dimension non-growth remediation may pass downgraded logical limits, but never
+physical limits or corrupted active-base counters.
+
+Fifty-seven real replacement tests cover normalized/full projection replay,
+transaction rollback, limits/debt/overflow, downgrade remediation, stale/frozen/
+GC facts, repeated base credit, privilege restrictions, CHECK/hash/replay guards
+and six actual lock-wait cases. Restore compares 13 triggers and 8 functions and
+calls both admission functions with a real restored API login. Actual Node
+25.8.1 and minimum Node 22.13.0 each pass 804 offline knowledge tests plus 439
+real-database tests across 26 files (1,243 per runtime). Both pass all three
+knowledge typechecks, service build and Drizzle check. Strict no-explicit-any
+lint, formatting and diff checks pass; the original applied SQL, snapshot and
+receipt hashes are unchanged.
+
+This is not complete B5/B6: reservation conversion must share publication's
+base/generation/attempt/budget/metering transaction; logical release must revoke
+intent and fence writers before capacity is reused; physical debt waits for GC
+acknowledgement. No standalone counter adjustment, public upload route, hosted
+consumer, real document, paid model, website billing, deployment or commit is
+part of this slice. Independent B7 deletion intent remains open.
 
 ## Unverified boundaries
 

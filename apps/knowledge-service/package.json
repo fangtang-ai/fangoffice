@@ -25,6 +25,8 @@
     "db:apply:queue:local": "node --experimental-strip-types integration/apply-queue-local.mjs",
     "db:apply:build-lifecycle:local": "node --experimental-strip-types integration/apply-build-lifecycle-local.mjs",
     "db:apply:publish:local": "node --experimental-strip-types integration/apply-build-publish-local.mjs",
+    "db:apply:capacity:local": "node --experimental-strip-types integration/apply-capacity-local.mjs",
+    "db:apply:replacement:local": "node --experimental-strip-types integration/apply-replacement-local.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:database": "vitest run --config vitest.database.config.ts"

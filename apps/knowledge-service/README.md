@@ -6,7 +6,8 @@ real, disposable Windows PostgreSQL 18.2 / pgvector 0.8.7 acceptance slice.
 Four-table immutable facts and building-content/frozen-build gates also pass local
 SQL, real lock-race and restore checks. The queue-driven claim/content/seal
 lifecycle and the active-pointer publication gate are executed on the same
-cluster. Retention/GC state-transition gates, budget admission, uploads,
+cluster. Initial-upload and replacement capacity admission are separate local slices.
+Retention/GC state-transition gates, monetary-budget admission, uploads,
 model calls and billing remain unfinished. No existing business database, private
 document, Docker instance or
 cloud deployment is used. Default tests remain offline; real database tests have
@@ -26,6 +27,8 @@ npm run db:apply:content:local -w @genoffice/knowledge-service
 npm run db:apply:queue:local -w @genoffice/knowledge-service
 npm run db:apply:build-lifecycle:local -w @genoffice/knowledge-service
 npm run db:apply:publish:local -w @genoffice/knowledge-service
+npm run db:apply:capacity:local -w @genoffice/knowledge-service
+npm run db:apply:replacement:local -w @genoffice/knowledge-service
 npm run test:database -w @genoffice/knowledge-service
 ```
 
@@ -38,7 +41,7 @@ cluster, baseline hashes and table security, then atomically applies the separat
 commands refuse replay. The third command chains both accepted hash receipts and
 applies `security/build-content.sql` in a separate atomic transaction; it likewise
 refuses replay. None is a production migration runner or startup action.
-The later queue, lifecycle and publication entries are likewise explicit local
+The later queue, lifecycle, publication and capacity entries are likewise explicit local
 increments with chained hash receipts; none is a startup action. Real tests cover
 schema constraints, all 15 populated tenant tables, role
 restrictions, pool identity/failure paths, four-table immutable facts and native
@@ -48,8 +51,10 @@ refuses an existing target and removes it only after checking its task marker.
 
 The baseline grants keep worker/GC read-only; later supplements grant worker
 only controlled content INSERT, seal columns, operation phase and active-pointer
-publication columns. API writes remain limited to space metadata. Desired-pointer
-admission, original writes, GC, metering and receipt mutations are not enabled.
+publication columns. Direct API writes remain limited to space metadata; a narrow
+capacity functions admit initial uploads/replacements without granting direct quota,
+reservation or desired-pointer writes. Original writes, GC, metering and receipt
+mutations are not enabled.
 Local acceptance does not unlock cloud resources or R1/R3–R6.
 
 The fact gate freezes all profile fields, verified-original facts, metering facts
@@ -64,10 +69,60 @@ closed builds cannot reopen. Build identity is immutable; once sealed, its
 manifest/hash/counts/seal time remain frozen even after invalidation. Fourteen
 real multi-session races verify state changes wait for writers and waiting writers
 recheck committed state. Later B4/B6 slices add queue identity and publication
-guards, but complete sealing validation, persistent quota admission, atomic
+guards, but complete sealing validation, full quota lifecycle, atomic
 metering and authorized GC remain open. Original B5 is capacity reservation;
 original B7 is independent deletion intent, not the publication slice. See
 [ACCEPTANCE.md](ACCEPTANCE.md) for the stable task mapping and remaining gates.
+
+## B5: initial-upload capacity reservation
+
+`reserveInitialCapacity(transaction, input)` is exported from the runtime entry
+and runs inside `withKnowledgeTransaction`. Its database entry
+`knowledge.reserve_initial_capacity` accepts only a queued initial upload for a
+generation-zero document without an active build. Owner and verified-original
+bytes come from transaction/database facts; chunk and physical-byte projections
+must come from trusted service planning, not an HTTP request body.
+
+The owner quota row serializes admission before Space, Document, Operation and
+Reservation locks. File/byte/chunk and separate physical limits include existing
+active/reserved debt, with numeric sums to reject bigint overflow safely.
+Quota counters, a held reservation and the desired version/operation pair are
+written atomically. Exact replay does not reserve again; changed replay conflicts,
+closed/expired reservations do not reopen, and later transaction failure rolls
+all three writes back. Expiry alone never releases physical or logical debt.
+
+The separate `security/capacity-reserve.sql` supplement grants API EXECUTE only;
+its definer remains the non-superuser/non-BYPASSRLS FORCE-RLS migrator with a
+fixed search path. Worker/GC cannot call it and no direct write grant is added.
+The existing baseline SQL and receipts remain unchanged. There is no public
+upload route yet, no reservation conversion/release, GC
+acknowledgement or publication/metering atomicity in this slice.
+
+### Replacement positive-delta admission
+
+`reserveReplacementCapacity(transaction, input)` uses the same bounded
+`CapacityReservationRequest`, but requires a queued replace operation with a
+sealed/live active base at the expected document generation. The database derives
+the base version/build and original bytes; callers supply the complete trusted
+next chunk projection, not an incremental amount or client-supplied base credit.
+Only `max(next - base, 0)` bytes/chunks are reserved; file delta is zero. Old
+active capacity and physical debt are never subtracted during admission.
+
+`drizzle/0001_capacity_projection.sql` adds a full `projected_chunks` snapshot and
+requires it for reservations with a base. This distinguishes changed requests
+whose chunk deltas both normalize to zero. The generated SQL and
+`security/replacement-reserve.sql` apply atomically through
+`db:apply:replacement:local`, with one receipt covering both artifacts; the
+original baseline and applied SQL remain unchanged. Schema, snapshot and journal
+are generated/reviewed together rather than editing an applied migration.
+
+One held reservation per document may borrow base credit, including when an old
+operation is terminal or its held reservation expired. Exact replay is idempotent;
+different projections/base/desired facts conflict. All-dimension non-growth
+remediation may pass downgraded logical limits but must still reserve full new
+physical cost within the physical hard limit. Actual publication must recheck
+base, generation, quota/budget and attempt and convert the reservation together
+with metering; this entry does not implement that future transaction or release.
 
 ## B2: offline schema candidate
 

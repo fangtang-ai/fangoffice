@@ -6,6 +6,7 @@ import { promisify } from 'node:util'
 import type { Pool } from 'pg'
 import { expect, it } from 'vitest'
 import { localDirectory, openLocalDatabase, tenantTables } from './local-database'
+import { verifyRestoredCapacity } from './recovery-capacity'
 import { removeTenants, seedTenants } from './tenant-fixtures'
 
 const run = promisify(execFile)
@@ -105,7 +106,7 @@ it('restores a real custom-format backup into a new marked local database with d
     expect(await fingerprint(restored)).toEqual(expected)
     expect(await fingerprint(source)).toEqual(expected)
     expect(expected.triggers).toHaveLength(13)
-    expect(expected.functions).toHaveLength(6)
+    expect(expected.functions).toHaveLength(8)
     await restored.query('BEGIN')
     await expect(
       restored.query(
@@ -139,6 +140,7 @@ it('restores a real custom-format backup into a new marked local database with d
       { owner_id: fixture.owners[0] },
     ])
     await runtime.query('ROLLBACK')
+    await verifyRestoredCapacity(restored, runtime, fixture)
     await writeFile(
       resolve(localDirectory, 'recovery-receipt.json'),
       JSON.stringify(
@@ -158,6 +160,8 @@ it('restores a real custom-format backup into a new marked local database with d
           functions: expected.functions,
           immutableFacts: true,
           buildContentGates: true,
+          capacityAdmission: true,
+          replacementAdmission: true,
         },
         null,
         2,

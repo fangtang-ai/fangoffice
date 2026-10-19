@@ -18,6 +18,7 @@ export const kbReservations = knowledge
       reservedFiles: counter('reserved_files').notNull(),
       reservedBytes: counter('reserved_bytes').notNull(),
       reservedChunks: counter('reserved_chunks').notNull(),
+      projectedChunks: counter('projected_chunks'),
       physicalReservedBytes: counter('physical_reserved_bytes').notNull(),
       state: text('state').notNull().default('held'),
       expiresAt: instant('expires_at').notNull(),
@@ -44,6 +45,10 @@ export const kbReservations = knowledge
       check(
         'kb_reservations_state_check',
         sql`${table.state} IN ('held', 'applied', 'released') AND ((${table.state} = 'held') = (${table.closedAt} IS NULL))`,
+      ),
+      check(
+        'kb_reservations_projection_check',
+        sql`(${table.baseBuildId} IS NULL OR ${table.projectedChunks} IS NOT NULL) AND (${table.projectedChunks} IS NULL OR ${table.projectedChunks} >= 0)`,
       ),
       nonnegative(
         'kb_reservations_counts_check',
