@@ -1,24 +1,24 @@
-# Local knowledge acceptance — 2026-10-16
+# Local knowledge acceptance — 2026-10-19
 
 ## Accepted scope
 
-| Tasks | Local deliverable                                                                                | Status                                                  |
-| ----- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| A1–A4 | Shared runtime contracts, locators, quantities and commercial snapshots                          | Locally accepted                                        |
-| A5–A7 | Account-bound desktop client, pure authorization/admission policies and workspace wiring         | Locally accepted                                        |
-| B1    | Independent API/worker entries, explicit configuration, JWT/JWKS and read-only connection probes | Synthetic/local acceptance only                         |
-| B2    | 16-table schema, generated artifacts and real local constraints                                  | Locally accepted on the marked isolated cluster         |
-| B3    | Restricted local roles, RLS/FORCE and trusted pool transactions                                  | Local security slice accepted; lifecycle gates open     |
-| B4    | Fixed pg-boss protocol, role statement surface and worker reference envelope                     | Local slices accepted; hosted consumer not connected    |
-| B5    | Persistent capacity/physical-budget reservation, conversion and release                          | In progress; initial/replacement admission local slices |
-| B6    | Claim, controlled content writes, seal and active-pointer publication                            | Local slices accepted; budget/metering gates open       |
-| B7    | Independent deletion intent, tombstones and recovery replay                                      | Not implemented                                         |
-| E3    | Strict UTF-8 TXT DocIR and bounded worker execution                                              | Locally accepted                                        |
-| F3–F4 | Markdown and DOCX DocIR                                                                          | Locally accepted                                        |
-| F5    | Text PDF DocIR                                                                                   | Locally accepted                                        |
-| F6    | XLSX workbook inspection and source-bound selection snapshots                                    | Locally accepted                                        |
-| F7    | Simple XLSX DocIR consuming the confirmed F6 snapshot                                            | Locally accepted                                        |
-| J1    | Pinned CI candidate, hashed installable artifact and repository-external clean installation      | In progress; hosted CI not executed                     |
+| Tasks | Local deliverable                                                                                | Status                                                    |
+| ----- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| A1–A4 | Shared runtime contracts, locators, quantities and commercial snapshots                          | Locally accepted                                          |
+| A5–A7 | Account-bound desktop client, pure authorization/admission policies and workspace wiring         | Locally accepted                                          |
+| B1    | Independent API/worker entries, explicit configuration, JWT/JWKS and read-only connection probes | Synthetic/local acceptance only                           |
+| B2    | 16-table schema, generated artifacts and real local constraints                                  | Locally accepted on the marked isolated cluster           |
+| B3    | Restricted local roles, RLS/FORCE and trusted pool transactions                                  | Local security slice accepted; lifecycle gates open       |
+| B4    | Fixed pg-boss protocol, role statement surface and worker reference envelope                     | Local slices accepted; hosted consumer not connected      |
+| B5    | Persistent capacity/physical-budget reservation, conversion and release                          | In progress; admission and controlled cancellation slices |
+| B6    | Claim, controlled content writes, seal and active-pointer publication                            | Local slices accepted; budget/metering gates open         |
+| B7    | Independent deletion intent, tombstones and recovery replay                                      | Not implemented                                           |
+| E3    | Strict UTF-8 TXT DocIR and bounded worker execution                                              | Locally accepted                                          |
+| F3–F4 | Markdown and DOCX DocIR                                                                          | Locally accepted                                          |
+| F5    | Text PDF DocIR                                                                                   | Locally accepted                                          |
+| F6    | XLSX workbook inspection and source-bound selection snapshots                                    | Locally accepted                                          |
+| F7    | Simple XLSX DocIR consuming the confirmed F6 snapshot                                            | Locally accepted                                          |
+| J1    | Pinned CI candidate, hashed installable artifact and repository-external clean installation      | In progress; hosted CI not executed                       |
 
 F6 exposes `inspectKnowledgeXlsxWorkbook` and `freezeKnowledgeXlsxSelection`.
 Inspection reports visibility, declared/observed dimensions, hidden rows/columns,
@@ -487,6 +487,78 @@ intent and fence writers before capacity is reused; physical debt waits for GC
 acknowledgement. No standalone counter adjustment, public upload route, hosted
 consumer, real document, paid model, website billing, deployment or commit is
 part of this slice. Independent B7 deletion intent remains open.
+
+## B5 controlled cancellation local slice — 2026-10-19
+
+Checkpoint `ba94306` commits the initial/replacement admission work after this
+session independently passes its 804 offline and 439 real-database checks. No
+local configuration, credentials, receipts, backups or planning files enter Git.
+
+The first real API cancellation test fails before the SQL entry exists; the
+public runtime likewise fails before its export/implementation. The new
+`cancelCapacityReservation(transaction, operationId)` invokes an API-only
+FORCE-RLS definer. Quota → Space → Document → Operation/Reservation → ordered
+Build locks bind cancellation to the current desired pair, generation and base.
+It atomically invalidates all existing attempts, closes the held logical
+reservation, cancels the operation, clears desired and advances generation once.
+Logical counters subtract exact held amounts, never clamp underflow. Old active
+version/build and active capacity remain unchanged. Full physical reserved and
+accounted debt remain until a separately authorized GC acknowledgement.
+
+Expired held debt and frozen owner/space state do not prevent explicit cleanup.
+An exact repeated cancellation returns replay without decrementing counters or
+clearing a newer intent. Stale generation/base, withdrawn intent, already applied
+reservation, insufficient counters and publishing/ready operations fail closed.
+A cancelled operation cannot reopen. Claim INSERT now holds an operation SHARE
+lock and rechecks phase after waits; content writers retain their existing Build
+SHARE lock, so cancellation waits for committed writers and invalidates their
+attempts before freed logical capacity becomes visible.
+
+Apply all three explicit local-only increments in order:
+
+```sh
+npm run db:apply:cancellation:local -w @genoffice/knowledge-service
+npm run db:apply:cancellation-publish:local -w @genoffice/knowledge-service
+npm run db:apply:cancellation-worker:local -w @genoffice/knowledge-service
+```
+
+Each uses the existing instance/identity/hash/ownership gate and a separate receipt.
+The first increment exposed an ambiguous PL/pgSQL row-variable/table-alias name;
+the second extracts cancellation facts and corrects the publication
+guard without rewriting any applied SQL or receipt. The intermediate state
+denies cancellation rather than committing a partial release. The third grants
+worker EXECUTE on that read-only invoker query because PostgreSQL checks its
+permission even when ordinary publication will not use the cancellation branch.
+It exposes no rows beyond the worker's existing RLS/SELECT view; API/GC remain
+unable to call it. All three increments are required. Original publication
+conditions remain enforced; generation-only
+cancellation is restricted to the narrow definer with released reservation and
+closed writers, not a caller-set GUC. No new runtime table-write grant is added.
+
+Coverage includes API/runtime cancellation and replay, replacement preservation,
+transaction rollback, expired/frozen debt, stale and terminal denials, cross-owner
+hiding, direct-write and EXECUTE restrictions, four late content surfaces, and
+actual lock waits for duplicate commit/rollback, both claim directions, a content
+writer and physical-budget competition. Restore must preserve 15 triggers and
+12 functions and exercise both initial/replacement cancellation with a restored
+API login, retaining physical debt.
+
+Actual Node 25.8.1 and minimum Node 22.13.0 each pass 818 offline knowledge cases
+and all 479 real-database cases across 30 files (1,297 checks per runtime). The
+cancellation slice adds 14 offline and 40 real-database cases, including seven
+observed lock-wait races. Both runtimes pass the three knowledge typechecks,
+service build and Drizzle check. Strict no-explicit-any lint, changed-file
+formatting and diff checks pass. Every accepted SQL/receipt hash stays intact;
+only the three new cancellation supplements extend the chain. The local cluster
+is stopped again at handoff, matching its initial state. No full-repository,
+hosted CI, deployment or real-user acceptance is claimed.
+
+This is still not complete B5/B6/F1 acceptance. Conversion and successful
+publication must share base/generation/attempt/budget/metering intent. Failed or
+superseded operations, queued-job settlement, GC accounting and HTTP cancellation
+remain outside this slice. Initial admission still requires generation zero;
+explicit re-upload/retry after cancellation needs its own admission protocol.
+Independent B7 deletion/recovery and cloud/website billing remain unimplemented.
 
 ## Unverified boundaries
 

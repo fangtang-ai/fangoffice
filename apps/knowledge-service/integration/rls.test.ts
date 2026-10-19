@@ -86,9 +86,9 @@ for (const table of tenantTables) {
       ].includes(table)
         ? { code: '23514', constraint: 'kb_build_writable' }
         : table === 'kb_builds'
-          ? // B6 认领门在 RLS 之上先拦：跨 owner 视界内 operation 不可见，
+          ? // B5 取消/认领门在 RLS 之上先拦：跨 owner 视界内 operation 不可见，
             // 门按未知操作盲拒（23514），仍是“拒绝”——RLS 是最后防线。
-            { code: '23514', constraint: 'kb_build_claim_gate' }
+            { code: '23514', constraint: 'kb_build_cancel_fence' }
           : { code: '42501' }
       for (const [statement, values, expectedError] of [
         [

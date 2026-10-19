@@ -1,6 +1,8 @@
 import { deny } from '../errors'
 import type { KnowledgeTransaction } from './transaction'
 
+const operationIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export interface CapacityReservationRequest {
   operationId: string
   chunks: bigint
@@ -22,6 +24,19 @@ export async function reserveReplacementCapacity(
   return reserveCapacity(transaction, input, 'replacement')
 }
 
+export async function cancelCapacityReservation(
+  transaction: KnowledgeTransaction,
+  operationId: string,
+) {
+  if (typeof operationId !== 'string' || !operationIdPattern.test(operationId))
+    deny('INVALID_REQUEST')
+  const { rows } = await transaction.query(
+    'SELECT knowledge.cancel_capacity_reservation($1) AS status',
+    [operationId],
+  )
+  return capacityResult(rows)
+}
+
 async function reserveCapacity(
   transaction: KnowledgeTransaction,
   input: CapacityReservationRequest,
@@ -29,7 +44,7 @@ async function reserveCapacity(
 ) {
   if (
     typeof input.operationId !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.operationId) ||
+    !operationIdPattern.test(input.operationId) ||
     [input.chunks, input.physicalBytes].some(
       (value) => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n,
     ) ||
@@ -47,9 +62,14 @@ async function reserveCapacity(
       input.expiresAt.toISOString(),
     ],
   )
+  return capacityResult(rows)
+}
+
+function capacityResult(rows: unknown[]) {
   const status = (rows[0] as { status?: unknown } | undefined)?.status
   switch (status) {
     case 'RESERVED':
+    case 'CANCELLED':
     case 'REPLAY':
       return { replayed: status === 'REPLAY' }
     case 'INVALID_REQUEST':

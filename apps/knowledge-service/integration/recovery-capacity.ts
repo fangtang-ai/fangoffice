@@ -34,6 +34,11 @@ export async function verifyRestoredCapacity(bootstrap: Pool, api: Pool, fixture
       )
     ).rows,
   ).toEqual([{ files: '1', bytes: '4', chunks: '1', physical: '16' }])
+  await verifyRestoredCancellation(api, fixture, fixture.id, {
+    generation: '1',
+    physical: '16',
+    activeBuild: null,
+  })
   await api.query('ROLLBACK')
 
   const replacement = await prepareReplacement(
@@ -60,5 +65,52 @@ export async function verifyRestoredCapacity(bootstrap: Pool, api: Pool, fixture
       )
     ).rows,
   ).toEqual([{ bytes: '2', chunks: '2', projected: '3', base: fixture.id }])
+  await verifyRestoredCancellation(api, fixture, replacement.replacementId, {
+    generation: '2',
+    physical: '32',
+    activeBuild: fixture.id,
+  })
   await api.query('ROLLBACK')
+}
+
+async function verifyRestoredCancellation(
+  api: Pool,
+  fixture: BuildFixture,
+  operationId: string,
+  expected: { generation: string; physical: string; activeBuild: string | null },
+) {
+  for (const status of ['CANCELLED', 'REPLAY'])
+    expect(
+      (await api.query('SELECT knowledge.cancel_capacity_reservation($1) AS status', [operationId]))
+        .rows,
+    ).toEqual([{ status }])
+  expect(
+    (
+      await api.query(
+        `SELECT quota.reserved_files::text AS files,
+    quota.reserved_bytes::text AS bytes, quota.reserved_chunks::text AS chunks,
+    quota.physical_reserved_bytes::text AS physical, document.generation::text AS generation,
+    document.active_build_id::text AS active_build, document.desired_operation_id AS desired,
+    operation.phase, reservation.state
+    FROM knowledge.kb_quotas quota
+    JOIN knowledge.kb_documents document ON document.owner_id = quota.owner_id AND document.id = $2
+    JOIN knowledge.kb_operations operation ON operation.owner_id = quota.owner_id AND operation.id = $3
+    JOIN knowledge.kb_reservations reservation ON reservation.owner_id = quota.owner_id AND reservation.operation_id = operation.id
+    WHERE quota.owner_id = $1`,
+        [fixture.owners[0], fixture.id, operationId],
+      )
+    ).rows,
+  ).toEqual([
+    {
+      files: '0',
+      bytes: '0',
+      chunks: '0',
+      physical: expected.physical,
+      generation: expected.generation,
+      active_build: expected.activeBuild,
+      desired: null,
+      phase: 'cancelled',
+      state: 'released',
+    },
+  ])
 }

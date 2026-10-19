@@ -69,9 +69,8 @@ export async function claimBuild(
   envelope: QueueEnvelope,
   options: BuildClaimOptions,
 ): Promise<QueueBuildContext> {
-  // 不加锁子句：FOR SHARE 要求 UPDATE 特权（PG 文档 ddl-priv.html），
-  // 运行时角色没有 operation 的写面；认领校验 INSERT 时点事实，
-  // 行间竞争由 sealBuild 的 FOR UPDATE 与后续发布门处理。
+  // 此处只做轻量预检查；INSERT时的取消门持Operation共享锁并复核phase，
+  // 不能把这里的无锁快照或FK存在性当作取消后仍可写入的授权。
   const { rows } = await transaction.query(
     `SELECT phase::text AS phase, document_id::text AS document_id,
             target_version_id::text AS version_id,

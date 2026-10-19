@@ -124,6 +124,37 @@ physical cost within the physical hard limit. Actual publication must recheck
 base, generation, quota/budget and attempt and convert the reservation together
 with metering; this entry does not implement that future transaction or release.
 
+### Controlled cancellation and logical release
+
+`cancelCapacityReservation(transaction, operationId)` uses the same trusted
+transaction boundary. It cancels only the current held upload/replace intent:
+Quota, Space/Document, Operation/Reservation and ordered Build locks serialize
+intent withdrawal, generation advancement, attempt invalidation and exact logical
+counter release in one commit. It preserves the old active version/build, active
+capacity and all physical reserved/accounted bytes. An expired reservation must
+still follow this protocol; frozen owner/space state does not strand cleanup.
+
+Replay returns `{ replayed: true }` and never clears a newer desired pair or
+subtracts a later reservation. Applied/stale/withdrawn intents and inconsistent
+counters are refused. A database claim fence locks/rechecks the operation phase
+after waits, content writers are drained under their parent Build lock, and
+cancelled operations cannot reopen. API receives only narrow EXECUTE, not direct
+quota, reservation, desired-pointer or operation-write permissions.
+
+The local-only apply order is `db:apply:cancellation:local`,
+`db:apply:cancellation-publish:local`, then `db:apply:cancellation-worker:local`;
+each verifies the prior hash chain. The second corrects a PL/pgSQL alias collision.
+The third grants worker EXECUTE on the read-only invoker facts query needed by
+the publication trigger; RLS still restricts its view, with no API/GC EXECUTE or
+new table-write permission. Applied artifacts never change. Apply all three,
+never automatically at service startup.
+
+This is not successful-publication conversion, physical GC acknowledgement,
+external job/model cancellation or a website-funds release. There is no HTTP
+cancellation endpoint yet. Initial admission remains generation-zero-only;
+re-upload/retry after cancellation is still a separate pending protocol. See
+`ACCEPTANCE.md` for verified scope rather than treating this as full B5/B6/F1.
+
 ## B2: offline schema candidate
 
 `src/schema/index.ts` declares 16 tables in `knowledge`, separately from the

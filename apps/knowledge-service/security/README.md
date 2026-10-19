@@ -405,3 +405,45 @@ physical debt is cleared and no metering or website settlement is invented.
 Publication still needs same-transaction base/generation/attempt/budget checks,
 reservation conversion and metering intent. Cancellation/expiry release must
 first fence old intent and writers; it is not a standalone decrement endpoint.
+
+## B5 controlled cancellation — 2026-10-19
+
+Apply `db:apply:cancellation:local`, `db:apply:cancellation-publish:local`, then
+`db:apply:cancellation-worker:local` only on the recognized disposable native
+instance. The three independent SQL increments extend the accepted replacement
+chain. An ambiguous PL/pgSQL alias in the first publication-guard extension makes
+intermediate cancellation fail and roll back, never partially releasing capacity.
+The second fixes the
+alias and the third supplies worker EXECUTE for the invoker fact query so the
+original publication path continues to work. All receipts and older applied
+artifacts retain their original hashes.
+
+`knowledge.cancel_capacity_reservation(uuid)` is API-only EXECUTE with the same
+fixed search path, row security and non-bypass FORCE-RLS migrator as admission.
+There are no new runtime table-write grants. Its current-intent/base/generation
+checks run under Quota → Space/Document → Operation/Reservation → ordered Build
+locks. One commit closes logical held debt, invalidates existing attempts,
+cancels the operation, withdraws desired and advances generation; active pointers
+and every physical reserved/accounted byte stay intact. Frozen/expired state is
+not a reason to retain releasable logical debt indefinitely, but time alone is
+never a release operation. A duplicate cancellation cannot clear a newer intent.
+
+The claim trigger obtains an Operation SHARE lock using the worker's existing
+phase UPDATE privilege, rechecking phase after a cancelling transaction commits.
+The existing content trigger's Build SHARE lock ensures all active appends finish
+before invalidation. Another trigger rejects reopening a cancelled phase. The
+publication guard permits generation-only withdrawal only while running as the
+narrow migrator definer, with a released reservation and no building/sealed
+attempts; ordinary workers cannot emulate that through GUCs or pointer writes.
+The cancellation-facts query is SECURITY INVOKER with worker-only runtime EXECUTE:
+PostgreSQL checks its privilege even before choosing the ordinary publication
+branch. This pure query can only see the same owner facts already visible under
+the worker's RLS/SELECT grants; API/GC cannot execute it. It cannot mutate counters
+or grant workers the cancellation-only generation transition.
+
+Real tests use restricted API/worker/GC sessions, observed blocking PIDs and
+transaction rollback. The native recovery test preserves 15 triggers/12 functions
+and checks initial/replacement cancellation and replay with the restored API
+login. Full conversion/metering/queue settlement, failed/superseded cleanup,
+physical GC confirmation, retry admission after generation advancement and
+independent B7 deletion/recovery remain outstanding.

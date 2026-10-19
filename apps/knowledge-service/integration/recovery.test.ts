@@ -105,8 +105,8 @@ it('restores a real custom-format backup into a new marked local database with d
     restored = (await openLocalDatabase('bootstrap', 'restore')).pool
     expect(await fingerprint(restored)).toEqual(expected)
     expect(await fingerprint(source)).toEqual(expected)
-    expect(expected.triggers).toHaveLength(13)
-    expect(expected.functions).toHaveLength(8)
+    expect(expected.triggers).toHaveLength(15)
+    expect(expected.functions).toHaveLength(12)
     await restored.query('BEGIN')
     await expect(
       restored.query(
@@ -162,6 +162,7 @@ it('restores a real custom-format backup into a new marked local database with d
           buildContentGates: true,
           capacityAdmission: true,
           replacementAdmission: true,
+          capacityCancellation: true,
         },
         null,
         2,

@@ -13,6 +13,7 @@ export {
 export { startKnowledgeApi, type KnowledgeApiOptions } from './api'
 export { startKnowledgeWorker } from './worker'
 export {
+  cancelCapacityReservation,
   reserveInitialCapacity,
   reserveReplacementCapacity,
   type CapacityReservationRequest,
