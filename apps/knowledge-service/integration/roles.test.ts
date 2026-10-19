@@ -95,10 +95,8 @@ for (const role of ['api', 'worker', 'gc'] as const) {
   }
 }
 
-// B7 后 worker 持有 kb_documents 发布三列的列级 UPDATE；清空指针的授权面
-// 只有 api/gc 仍停留在特权拒绝（worker 的指针变更由发布门约束，见
-// build-security.test.ts）。
-for (const role of ['api', 'gc'] as const) {
+// 发布三列已收口到worker-only窄函数；所有运行角色均无直写授权。
+for (const role of ['api', 'worker', 'gc'] as const) {
   it(`${role} rejects UPDATE knowledge.kb_documents SET active_build_id = NULL`, async () => {
     await inRoleTransaction(role, undefined, async (client) => {
       await expect(

@@ -333,13 +333,13 @@ stored units/chunks/embeddings; it requires but does not generate the seal time.
 It does not independently validate complete coverage or content/embedding hashes.
 
 `security/build-publish.sql` (entry `db:apply:publish:local`) installs
-`guard_document_publish`. The worker receives only the three active-pointer
-UPDATE columns and operation phase; desired-pointer and document business
-columns remain ungranted. `publishBuild` in `src/runtime/build-lifecycle.ts`,
-exported through `src/runtime/index.ts`, checks desired pair, generation,
-sealed/live build, current profile and active owner/space before advancing phase
-and flipping the pointer within the same transaction. Invalid SQL shapes fail
-with 23514; forbidden columns fail with 42501.
+`guard_document_publish`. This historical increment granted worker the three
+active-pointer UPDATE columns and operation phase; desired-pointer and document
+business columns remained ungranted. The later capacity-publish and worker-lock
+increments revoke all of those grants. The current `publishBuild` uses only the
+narrow publication function; the current seal also uses a narrow function.
+See the final two sections for the active privilege and lock boundary. Invalid
+SQL shapes fail with 23514; forbidden columns fail with 42501.
 
 Real pg-boss delivery covers claim/write/seal/publication. The recovery
 fingerprint now checks 13 triggers and 8 functions. These tests are local-only;
@@ -428,10 +428,11 @@ and every physical reserved/accounted byte stay intact. Frozen/expired state is
 not a reason to retain releasable logical debt indefinitely, but time alone is
 never a release operation. A duplicate cancellation cannot clear a newer intent.
 
-The claim trigger obtains an Operation SHARE lock using the worker's existing
-phase UPDATE privilege, rechecking phase after a cancelling transaction commits.
-The existing content trigger's Build SHARE lock ensures all active appends finish
-before invalidation. Another trigger rejects reopening a cancelled phase. The
+At this historical checkpoint, the claim trigger obtained an Operation SHARE lock
+using worker phase UPDATE privilege, and the content trigger held Build SHARE.
+The worker-lock increments below supersede both lock paths with Quota-first
+locking and remove that phase privilege, while retaining rechecks after waits.
+Another trigger rejects reopening a cancelled phase. The
 publication guard permits generation-only withdrawal only while running as the
 narrow migrator definer, with a released reservation and no building/sealed
 attempts; ordinary workers cannot emulate that through GUCs or pointer writes.
@@ -442,8 +443,107 @@ the worker's RLS/SELECT grants; API/GC cannot execute it. It cannot mutate count
 or grant workers the cancellation-only generation transition.
 
 Real tests use restricted API/worker/GC sessions, observed blocking PIDs and
-transaction rollback. The native recovery test preserves 15 triggers/12 functions
+transaction rollback. The native recovery test now preserves 15 triggers/13 functions
 and checks initial/replacement cancellation and replay with the restored API
 login. Full conversion/metering/queue settlement, failed/superseded cleanup,
-physical GC confirmation, retry admission after generation advancement and
+physical GC confirmation, HTTP retry/operation creation and
 independent B7 deletion/recovery remain outstanding.
+
+## B5 explicit post-cancellation capacity retry — 2026-10-19
+
+`db:apply:retry:local` adds only `security/capacity-retry.sql`, after all three
+cancellation increments. It checks the full accepted identity/hash/ownership
+chain and writes its own receipt; all prior artifacts stay byte-for-byte intact.
+`knowledge.reserve_retry_capacity(uuid,bigint,bigint,timestamptz)` is API-only
+EXECUTE, owned by the same non-superuser/non-bypass FORCE-RLS migrator, with a
+fixed search path, row security enabled and PUBLIC execution revoked. Worker/GC
+cannot execute it and API receives no new table/column-write privilege.
+
+Under the shared owner Quota lock and subsequent Space/Document/Operation locks,
+the function requires a new queued upload at the current positive generation,
+no active base, and proof of the previous generation's controlled cancellation:
+cancelled operation, closed released reservation and no writable attempts. It
+locks the verified new original FOR SHARE, refuses source reuse, deleted/frozen
+targets, expired sources, stale generations, competing held debt and unrelated
+desired pairs. Replay compares every projection, generation, expiry and desired
+fact; deadline expiry is also checked after waits. Full logical capacity is
+reserved again, while old physical reserved/accounted bytes remain charged.
+Numeric sums cannot overflow before checking the physical hard limit.
+
+Real restricted-role tests cover whole-transaction rollback, cross-owner hiding,
+input/status refusal, physical hard limits, old cancellation replay, repeated
+cancel/retry, new worker claim/content and late-writer fencing. Eight observed
+blocking-PID races cover duplicate commit/rollback, predecessor cancellation
+commit/rollback, retry cancellation, old cancellation replay, expiry and unrelated
+physical-budget contention. Native backup/restore preserves the new function and
+exercises retry/replay/cancel with a restored API login. Retained-active
+replacement retries continue through the existing base-credit entry.
+
+This retry slice is not operation creation, HTTP retry, failed/superseded recovery,
+conversion, queue settlement, metering, physical GC or independent B7 deletion/recovery.
+
+## Atomic capacity publication (B5/B6 local slice)
+
+`security/capacity-publish.sql` and `db:apply:capacity-publish:local` extend the
+accepted identity/ownership/hash chain after capacity-retry. Application is
+atomic, replay is refused, and every previously accepted SQL/receipt stays intact.
+The function owner is the same non-superuser/NOBYPASSRLS migrator, with FORCE RLS,
+`row_security=on`, qualified table names and `search_path=pg_catalog, pg_temp`.
+PUBLIC/API/GC cannot execute it. Worker receives only EXECUTE and loses the
+historical active-version/build/generation UPDATE grants. The existing document
+publication trigger remains an independent check, not an alternative worker entry.
+
+The trusted-owner function uses Quota → Space → Document → Operation/Reservation
+→ sorted Build locks and reads current facts after waits. It requires the same
+desired pair, generation, active base, active profile, retained verified original,
+sealed/live winner and unexpired held reservation. Broken counters, missing
+policy, excess actual chunks, physical debt or event-chain conflicts fail closed.
+There is no caller-controlled quota delta, sequence, event ID or bypass setting.
+
+Publication swaps logical actual-minus-base usage exactly once, consumes the held
+logical reservation, conservatively transfers only its physical projection to
+accounted debt, clears desired and advances generation. Old physical debt and old
+sealed content are not reclaimed. The same transaction appends a platform storage
+fact with an owner-serialized sequence and before/after bytes, and marks the
+operation ready. Rollback restores the whole state. Exact replay binds the winning
+operation/build event and never clears later intent or duplicates a transfer.
+
+The pending storage fact is not a paid embedding event or website authorization.
+Current queue-attempt and durable monetary-budget binding, full writer lifecycle
+lock orchestration, queue settlement, failed/superseded recovery and physical GC
+still require their own B4/B5/B6 acceptance. This local slice does not connect the
+hosted consumer, customer billing or independent B7 deletion/recovery.
+
+## Worker lifecycle lock order (B6 local slice)
+
+Apply `worker-lock-order` and then `worker-phase-lock` after `capacity-publish`.
+Both use the existing local identity, ownership and complete hash-chain gate.
+The first adds owner-bound `lock_build_lifecycle` and `seal_locked_build` definers,
+replaces claim/content locking gates and revokes the historical worker Build
+UPDATE columns. The second revokes worker Operation-phase UPDATE and removes
+the claim trigger's dependence on that privilege. ACL-only replay is checked
+against the prior column privilege; no artificial marker function is added.
+Applied historical SQL, snapshots and receipts remain unchanged.
+
+The worker now takes Quota → Space → Document → Operation → Reservation → sorted
+Build locks before claim/content/seal. Locking the same owner exclusively from the
+start also prevents a SHARE-to-UPDATE upgrade deadlock when publication follows
+in the same transaction. Publication and cancellation already use this parent
+order. A Build UPDATE trigger cannot repair an already-acquired reverse-order
+row lock, so direct Build/phase writes and SELECT FOR UPDATE on those tables
+are no longer a worker statement surface. The narrow seal entry rechecks state
+after waits and uses the existing trusted count/hash trigger.
+
+Both definers are owned by the non-superuser/NOBYPASSRLS migrator, use a fixed
+search path with `row_security=on`, derive identity from the trusted transaction,
+and reject missing/cross-owner identity. Only worker has EXECUTE; API/GC/PUBLIC
+receive neither EXECUTE nor new base-table writes. Historical privileged fixture
+and maintenance paths still enforce their original building/immutable-state gates;
+they are not runtime entrypoints. Parent-lock failure never authorizes a mutation.
+
+Same-owner short writes deliberately serialize; do not parse documents, call
+models or wait on user input inside these transactions. Bounded content batches
+must commit promptly. Different owners lock different quota rows. Current queue
+attempt/Receipt persistence, external consumers and atomic queue settlement,
+website monetary authorization, failure recovery and physical GC remain separate
+acceptance work; this slice does not complete B6 or authorize deployment.

@@ -29,6 +29,11 @@ npm run db:apply:build-lifecycle:local -w @genoffice/knowledge-service
 npm run db:apply:publish:local -w @genoffice/knowledge-service
 npm run db:apply:capacity:local -w @genoffice/knowledge-service
 npm run db:apply:replacement:local -w @genoffice/knowledge-service
+npm run db:apply:cancellation:local -w @genoffice/knowledge-service
+npm run db:apply:cancellation-publish:local -w @genoffice/knowledge-service
+npm run db:apply:cancellation-worker:local -w @genoffice/knowledge-service
+npm run db:apply:retry:local -w @genoffice/knowledge-service
+npm run db:apply:capacity-publish:local -w @genoffice/knowledge-service
 npm run test:database -w @genoffice/knowledge-service
 ```
 
@@ -50,11 +55,13 @@ Recovery creates only `knowledge_isolated_restore` in the same isolated cluster,
 refuses an existing target and removes it only after checking its task marker.
 
 The baseline grants keep worker/GC read-only; later supplements grant worker
-only controlled content INSERT, seal columns, operation phase and active-pointer
-publication columns. Direct API writes remain limited to space metadata; a narrow
+only controlled content INSERT, seal columns, operation phase and narrow
+publication EXECUTE. The capacity-publication increment revokes the historical
+worker active-pointer/generation UPDATE grants. Direct API writes remain limited to space metadata; narrow
 capacity functions admit initial uploads/replacements without granting direct quota,
 reservation or desired-pointer writes. Original writes, GC, metering and receipt
-mutations are not enabled.
+mutations are not directly enabled; the narrow publication function writes its
+own immutable platform storage event in the publication transaction.
 Local acceptance does not unlock cloud resources or R1/R3–R6.
 
 The fact gate freezes all profile fields, verified-original facts, metering facts
@@ -64,7 +71,9 @@ semantics still need separate gates. No runtime write grant is added. See
 [security/README.md](security/README.md) for the exact allowlists and boundaries.
 
 Source units, chunks, mappings and embeddings now accept only INSERT into a
-building/live, unsealed parent locked FOR SHARE. UPDATE/DELETE are denied, and
+building/live, unsealed parent locked against concurrent closure. The original
+content gate uses FOR SHARE; the worker-lock slice below first acquires ordered
+parent locks and the required Build lock. UPDATE/DELETE are denied, and
 closed builds cannot reopen. Build identity is immutable; once sealed, its
 manifest/hash/counts/seal time remain frozen even after invalidation. Fourteen
 real multi-session races verify state changes wait for writers and waiting writers
@@ -152,8 +161,45 @@ never automatically at service startup.
 This is not successful-publication conversion, physical GC acknowledgement,
 external job/model cancellation or a website-funds release. There is no HTTP
 cancellation endpoint yet. Initial admission remains generation-zero-only;
-re-upload/retry after cancellation is still a separate pending protocol. See
-`ACCEPTANCE.md` for verified scope rather than treating this as full B5/B6/F1.
+explicit capacity re-admission after cancellation uses the separate entry below.
+See `ACCEPTANCE.md` for verified scope rather than treating this as full B5/B6/F1.
+
+### Explicit capacity retry after cancellation
+
+`reserveRetryCapacity(transaction, input)` accepts the same capacity request shape
+as initial admission, but requires a **new**, already verified and queued upload
+operation bound to the document's current positive generation. It does not reopen
+the cancelled operation, reuse its original version or repurpose its reservation.
+The immediately preceding generation must retain a cancelled upload, a closed
+released reservation and no building/sealed attempts. Current active pointers,
+another held reservation or an unrelated desired pair block admission.
+
+The API-only `knowledge.reserve_retry_capacity` function takes the same
+Quota → Space → Document → Operation/Reservation locks as admission/cancellation.
+It rechecks facts after waits, reserves the full logical file/bytes/chunks again
+and adds the new physical projection **on top of** all old reserved/accounted
+debt. Expiry is checked again after lock waits. Exact replay changes no counters;
+a changed request conflicts, and later transaction failure rolls back every write.
+Old cancellation replay cannot withdraw the new desired pair. Another cancel and
+fresh retry advances to the next generation without forgiving physical debt.
+
+For a cancelled replacement with a retained active base, create a fresh queued
+replacement at the current generation and use `reserveReplacementCapacity`;
+the retry-upload entry cannot borrow replacement credit or alter active data.
+
+After all three cancellation supplements, apply this independent increment only
+on the recognized disposable local instance:
+
+```sh
+npm run db:apply:retry:local -w @genoffice/knowledge-service
+```
+
+The existing identity/ownership/hash gate verifies the entire cancellation chain,
+adds a separate receipt and refuses replay. No old SQL/receipt or runtime
+table-write privilege changes. This is capacity admission for existing synthetic
+verified/queued operations, **not** an HTTP retry/re-upload flow, an operation
+creation/idempotency endpoint, automatic retry of failed/superseded jobs, successful
+publication conversion, metering, GC or website-funds settlement.
 
 ## B2: offline schema candidate
 
@@ -419,6 +465,58 @@ projection 中被替换容量必须由服务端从当前 base 得到，不能采
 这些函数不构成原子预留、分布式锁、资金扣费、人类动作证明或永久能力令牌。
 实际调用、批次继续和发布前必须重新核验；同旧版并发替换信用、唯一 operation
 预留、generation/base/profile 匹配及跨库资金幂等由 B/C/D 组在真实隔离环境验收。
+
+## Atomic capacity publication (B5/B6 local slice)
+
+`publishBuild(transaction, context)` now calls only the worker-only
+`knowledge.publish_reserved_build` entry and returns `{ replayed }`.
+Apply `db:apply:capacity-publish:local` after the entire accepted cancellation/
+retry chain. The new function and privilege revocation are one atomic supplement;
+accepted historical SQL and receipts are not rewritten. No runtime role can
+directly update the document's active pointers or generation.
+
+The function locks Quota → Space → Document → Operation/Reservation → Build,
+rechecks current base/generation/profile, source retention, the held reservation
+and logical/physical limits, then publishes and closes the reservation together.
+After both worker-lock supplements below, claim/content/seal take the same
+Quota-first locks before touching Build rows. Preparation and publication may
+share one short `withKnowledgeTransaction`; separate short preparation and
+publication transactions remain valid. Queue settlement is not yet atomic with
+publication.
+Logical totals use the sealed build's actual chunk count and verified bytes,
+subtracting the retained active base once; unused projection is not active usage.
+Only this reservation's physical projection moves from reserved to accounted;
+old and cancelled physical debt remains charged until separately confirmed GC.
+
+An immutable, ordered, pending `capacity_change` storage event shares the same
+transaction. Exact winner replay cannot duplicate counters, events or generation
+and cannot withdraw a later desired intent. The platform event is a storage
+fact/outbox intent, not a website budget authorization or customer charge.
+Transaction rollback undoes every change. This does not complete B5/B6:
+persisted monetary-budget/current queue-attempt binding, atomic queue settlement,
+failed/superseded recovery, physical GC and independent B7 deletion remain open.
+
+## Worker lifecycle lock order (B6 local slice)
+
+Apply `db:apply:worker-lock-order:local`, then `db:apply:worker-phase-lock:local`,
+after capacity-publish on the marked disposable cluster. Both increments extend
+the existing identity/hash chain; previously applied SQL and receipts do not change.
+The second increment closes the remaining historical Operation-phase write grant;
+both increments are required for this acceptance boundary.
+
+Worker claim/content triggers and `sealBuild` now lock Quota → Space → Document
+→ Operation → Reservation → sorted Build before mutating build facts.
+`sealBuild` uses only `knowledge.seal_locked_build`; all runtime roles lose direct
+Build UPDATE and Operation-phase UPDATE. Sealed counts/hash still come from the
+existing database seal trigger. API/GC/PUBLIC cannot execute the worker lock/seal
+functions; owner identity remains transaction-bound with FORCE RLS.
+
+Same-owner lifecycle writes serialize for the duration of each short transaction,
+including independent builds. Do parsing, embedding and all external I/O outside
+these transactions; bound content batches rather than keeping an owner lock
+through an entire document. Different owners do not share this row lock. This
+deliberate correctness boundary avoids both reverse-order and lock-upgrade deadlocks;
+it is not a claim of measured throughput or a complete queue/budget protocol.
 
 ## 验证
 

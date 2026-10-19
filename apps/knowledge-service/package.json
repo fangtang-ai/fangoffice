@@ -30,6 +30,10 @@
     "db:apply:cancellation:local": "node --experimental-strip-types integration/apply-cancellation-local.mjs",
     "db:apply:cancellation-publish:local": "node --experimental-strip-types integration/apply-cancellation-publish-local.mjs",
     "db:apply:cancellation-worker:local": "node --experimental-strip-types integration/apply-cancellation-worker-local.mjs",
+    "db:apply:retry:local": "node --experimental-strip-types integration/apply-retry-local.mjs",
+    "db:apply:capacity-publish:local": "node --experimental-strip-types integration/apply-capacity-publish-local.mjs",
+    "db:apply:worker-lock-order:local": "node --experimental-strip-types integration/apply-worker-lock-order-local.mjs",
+    "db:apply:worker-phase-lock:local": "node --experimental-strip-types integration/apply-worker-phase-lock-local.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:database": "vitest run --config vitest.database.config.ts"

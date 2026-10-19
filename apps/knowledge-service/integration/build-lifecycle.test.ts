@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { afterAll, beforeAll, expect, it } from 'vitest'
+import { afterEach, beforeEach, expect, it } from 'vitest'
 import { PgBoss } from 'pg-boss'
 import type { Job } from 'pg-boss'
 import { createKnowledgePrincipal } from '../src/identity'
@@ -13,6 +13,7 @@ import type { BuildContent, QueueBuildContext } from '../src/runtime/build-lifec
 import { parseQueueEnvelope } from '../src/runtime/queue-envelope'
 import { withKnowledgeTransaction } from '../src/runtime/transaction'
 import { openLocalDatabase } from './local-database'
+import { admitPublication } from './publication-fixtures'
 import { inRoleTransaction, removeTenants, seedTenants } from './tenant-fixtures'
 
 // B6 构建生命周期验证：worker 认领（信封 buildId 即身份行 id，触发器校验
@@ -23,10 +24,10 @@ import { inRoleTransaction, removeTenants, seedTenants } from './tenant-fixtures
 const QUEUE = 'b4_validate'
 
 let fixture: Awaited<ReturnType<typeof seedTenants>>
-beforeAll(async () => {
+beforeEach(async () => {
   fixture = await seedTenants('build-lifecycle')
 })
-afterAll(async () => {
+afterEach(async () => {
   if (fixture) await removeTenants(fixture)
 })
 
@@ -320,19 +321,15 @@ it('seals a build with database-computed counts and manifest hash', async () => 
   } finally {
     await worker.pool.end()
   }
-  // 后续场景复用这个已封存构建。
-  sealedContext = context
 })
-
-let sealedContext: QueueBuildContext | undefined
 
 it('forbids sealing outside the building window or twice', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    expect(sealedContext).toBeDefined()
+    const sealedContext = await claimAndSeal(fixture.owners[0])
     await expect(
       withKnowledgeTransaction(worker.pool, principal(fixture.owners[0]), (transaction) =>
-        sealBuild(transaction, sealedContext!, { again: true }),
+        sealBuild(transaction, sealedContext, { again: true }),
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   } finally {
@@ -343,11 +340,11 @@ it('forbids sealing outside the building window or twice', async () => {
 it('rejects content writes and snapshot rewrites after sealing', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    expect(sealedContext).toBeDefined()
+    const sealedContext = await claimAndSeal(fixture.owners[0])
     // append-only 触发器拒绝后续写入；非策略错误按约定映射为 SERVICE_UNAVAILABLE。
     await expect(
       withKnowledgeTransaction(worker.pool, principal(fixture.owners[0]), (transaction) =>
-        writeBuildContent(transaction, sealedContext!, contentFor(randomUUID(), [randomUUID()])),
+        writeBuildContent(transaction, sealedContext, contentFor(randomUUID(), [randomUUID()])),
       ),
     ).rejects.toMatchObject({ code: 'SERVICE_UNAVAILABLE' })
     // 已封存的快照列改写同样被数据库拒绝。
@@ -356,7 +353,7 @@ it('rejects content writes and snapshot rewrites after sealing', async () => {
         transaction.query(
           `UPDATE knowledge.kb_builds SET manifest = $3::jsonb
             WHERE owner_id = $1 AND id = $2`,
-          [fixture.owners[0], sealedContext!.buildId, {}],
+          [fixture.owners[0], sealedContext.buildId, {}],
         ),
       ),
     ).rejects.toMatchObject({ code: 'SERVICE_UNAVAILABLE' })
@@ -422,27 +419,10 @@ async function claimAndSeal(owner: string, { seal = true }: { seal?: boolean } =
   }
 }
 
-// 代数随发布推进，认领的 expected_generation 来自 operation；每次发布实验
-// 前把 operation 重新对齐到当前代数（admission 重新推导语义的最小模拟）。
-async function resetOperation(owner: string) {
-  await bootstrapExec(
-    `UPDATE knowledge.kb_operations o
-        SET phase = 'queued',
-            expected_generation = (SELECT d.generation FROM knowledge.kb_documents d
-                                    WHERE d.owner_id = o.owner_id AND d.id = o.document_id)
-      WHERE o.owner_id = $1 AND o.id = $2`,
-    [owner, fixture.id],
-  )
-}
-
-// admission 模拟：desired 指针由 admission/bootstrap 侧维护（gate 2 未实施），
-// worker 只读取；这是发布前置非写入方授权面的最小夹具路径。
 async function admit(owner: string, context: { operationId: string; versionId: string }) {
-  await bootstrapExec(
-    `UPDATE knowledge.kb_documents SET desired_operation_id = $3, desired_version_id = $4
-      WHERE owner_id = $1 AND id = $2`,
-    [owner, fixture.id, context.operationId, context.versionId],
-  )
+  expect(owner).toBe(fixture.owners[0])
+  expect(context).toMatchObject({ operationId: fixture.id, versionId: fixture.id })
+  await admitPublication({ ...fixture, expiresAt: new Date(Date.now() + 3600000).toISOString() })
 }
 
 it('publishes the sealed build as the active version', async () => {
@@ -474,18 +454,17 @@ it('publishes the sealed build as the active version', async () => {
   }
 })
 
-it('forbids publishing the same build twice', async () => {
+it('replays publishing the same build without advancing the generation twice', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    await resetOperation(fixture.owners[0])
     const context = await claimAndSeal(fixture.owners[0])
     await admit(fixture.owners[0], context)
     const publish = () =>
       withKnowledgeTransaction(worker.pool, principal(fixture.owners[0]), (transaction) =>
         publishBuild(transaction, context),
       )
-    await publish()
-    await expect(publish()).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(publish()).resolves.toEqual({ replayed: false })
+    await expect(publish()).resolves.toEqual({ replayed: true })
   } finally {
     await worker.pool.end()
   }
@@ -494,7 +473,6 @@ it('forbids publishing the same build twice', async () => {
 it('refuses publishing a build claimed at a stale generation', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    await resetOperation(fixture.owners[0])
     // 同代数并发认领的两个尝试：先发布者胜出，后发布者代数已陈旧。
     const winner = await claimAndSeal(fixture.owners[0])
     const stale = await claimAndSeal(fixture.owners[0])
@@ -506,7 +484,7 @@ it('refuses publishing a build claimed at a stale generation', async () => {
       withKnowledgeTransaction(worker.pool, principal(fixture.owners[0]), (transaction) =>
         publishBuild(transaction, stale),
       ),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    ).rejects.toMatchObject({ code: 'VERSION_CONFLICT' })
   } finally {
     await worker.pool.end()
   }
@@ -515,7 +493,6 @@ it('refuses publishing a build claimed at a stale generation', async () => {
 it('refuses publishing without a pending desired operation', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    await resetOperation(fixture.owners[0])
     const context = await claimAndSeal(fixture.owners[0])
     await admit(fixture.owners[0], context)
     await bootstrapExec(
@@ -527,7 +504,7 @@ it('refuses publishing without a pending desired operation', async () => {
       withKnowledgeTransaction(worker.pool, principal(fixture.owners[0]), (transaction) =>
         publishBuild(transaction, context),
       ),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    ).rejects.toMatchObject({ code: 'VERSION_CONFLICT' })
   } finally {
     await worker.pool.end()
   }
@@ -536,7 +513,6 @@ it('refuses publishing without a pending desired operation', async () => {
 it('refuses publishing an unsealed build', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    await resetOperation(fixture.owners[0])
     const context = await claimAndSeal(fixture.owners[0], { seal: false })
     await admit(fixture.owners[0], context)
     await expect(
@@ -552,7 +528,6 @@ it('refuses publishing an unsealed build', async () => {
 it('refuses publishing while the owner is frozen', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    await resetOperation(fixture.owners[0])
     const context = await claimAndSeal(fixture.owners[0])
     await admit(fixture.owners[0], context)
     try {
@@ -580,7 +555,6 @@ it('refuses publishing when the profile is no longer the active one', async () =
   const worker = await openLocalDatabase('worker')
   const secondProfileId = randomUUID()
   try {
-    await resetOperation(fixture.owners[0])
     const context = await claimAndSeal(fixture.owners[0])
     await admit(fixture.owners[0], context)
     try {
@@ -638,14 +612,7 @@ it('drives the full claim-write-seal-publish lifecycle through a real queue deli
     // 已被 removeTenants 删除，永远不可能被认领，只会污染本轮投递）。
     await bootstrapExec('DELETE FROM pgboss.job_common WHERE name = $1', [QUEUE])
     await bootstrapExec('DELETE FROM pgboss.job WHERE name = $1', [QUEUE])
-    await resetOperation(fixture.owners[0])
-    // 发布面：desired 指针在投递前由 admission 侧就位（本测试 envelope 的
-    // operation/version 固定为 fixture.id）。
-    await bootstrapExec(
-      `UPDATE knowledge.kb_documents SET desired_operation_id = $2, desired_version_id = $2
-        WHERE owner_id = $1 AND id = $2`,
-      [fixture.owners[0], fixture.id],
-    )
+    await admit(fixture.owners[0], { operationId: fixture.id, versionId: fixture.id })
     const { rows: beforeRows } = await inRoleTransaction('worker', fixture.owners[0], (client) =>
       client.query(
         'SELECT generation::text AS generation FROM knowledge.kb_documents WHERE owner_id = $1 AND id = $2',
@@ -666,17 +633,24 @@ it('drives the full claim-write-seal-publish lifecycle through a real queue deli
             const parsed = parseQueueEnvelope(job.data)
             const unitId = randomUUID()
             const chunkIds = [randomUUID()]
-            await withKnowledgeTransaction(worker.pool, principal(parsed.ownerId), async (tx) => {
-              const context = await claimBuild(
-                tx,
-                { id: job.id, retryCount: job.retryCount },
-                parsed,
-                claimOptions(),
-              )
-              await writeBuildContent(tx, context, contentFor(unitId, chunkIds))
-              await sealBuild(tx, context, { chunks: chunkIds.length })
-              await publishBuild(tx, context)
-            })
+            const prepared = await withKnowledgeTransaction(
+              worker.pool,
+              principal(parsed.ownerId),
+              async (tx) => {
+                const context = await claimBuild(
+                  tx,
+                  { id: job.id, retryCount: job.retryCount },
+                  parsed,
+                  claimOptions(),
+                )
+                await writeBuildContent(tx, context, contentFor(unitId, chunkIds))
+                await sealBuild(tx, context, { chunks: chunkIds.length })
+                return context
+              },
+            )
+            await withKnowledgeTransaction(worker.pool, principal(parsed.ownerId), (transaction) =>
+              publishBuild(transaction, prepared),
+            )
             resolve()
           } catch (error) {
             console.error(

@@ -2,23 +2,23 @@
 
 ## Accepted scope
 
-| Tasks | Local deliverable                                                                                | Status                                                    |
-| ----- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| A1–A4 | Shared runtime contracts, locators, quantities and commercial snapshots                          | Locally accepted                                          |
-| A5–A7 | Account-bound desktop client, pure authorization/admission policies and workspace wiring         | Locally accepted                                          |
-| B1    | Independent API/worker entries, explicit configuration, JWT/JWKS and read-only connection probes | Synthetic/local acceptance only                           |
-| B2    | 16-table schema, generated artifacts and real local constraints                                  | Locally accepted on the marked isolated cluster           |
-| B3    | Restricted local roles, RLS/FORCE and trusted pool transactions                                  | Local security slice accepted; lifecycle gates open       |
-| B4    | Fixed pg-boss protocol, role statement surface and worker reference envelope                     | Local slices accepted; hosted consumer not connected      |
-| B5    | Persistent capacity/physical-budget reservation, conversion and release                          | In progress; admission and controlled cancellation slices |
-| B6    | Claim, controlled content writes, seal and active-pointer publication                            | Local slices accepted; budget/metering gates open         |
-| B7    | Independent deletion intent, tombstones and recovery replay                                      | Not implemented                                           |
-| E3    | Strict UTF-8 TXT DocIR and bounded worker execution                                              | Locally accepted                                          |
-| F3–F4 | Markdown and DOCX DocIR                                                                          | Locally accepted                                          |
-| F5    | Text PDF DocIR                                                                                   | Locally accepted                                          |
-| F6    | XLSX workbook inspection and source-bound selection snapshots                                    | Locally accepted                                          |
-| F7    | Simple XLSX DocIR consuming the confirmed F6 snapshot                                            | Locally accepted                                          |
-| J1    | Pinned CI candidate, hashed installable artifact and repository-external clean installation      | In progress; hosted CI not executed                       |
+| Tasks | Local deliverable                                                                                | Status                                                             |
+| ----- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| A1–A4 | Shared runtime contracts, locators, quantities and commercial snapshots                          | Locally accepted                                                   |
+| A5–A7 | Account-bound desktop client, pure authorization/admission policies and workspace wiring         | Locally accepted                                                   |
+| B1    | Independent API/worker entries, explicit configuration, JWT/JWKS and read-only connection probes | Synthetic/local acceptance only                                    |
+| B2    | 16-table schema, generated artifacts and real local constraints                                  | Locally accepted on the marked isolated cluster                    |
+| B3    | Restricted local roles, RLS/FORCE and trusted pool transactions                                  | Local security slice accepted; lifecycle gates open                |
+| B4    | Fixed pg-boss protocol, role statement surface and worker reference envelope                     | Local slices accepted; hosted consumer not connected               |
+| B5    | Persistent capacity/physical-budget reservation, conversion and release                          | In progress; admission, cancellation, retry and publication slices |
+| B6    | Claim, controlled content writes, seal and active-pointer publication                            | Local slices accepted; monetary-budget/queue-attempt binding open  |
+| B7    | Independent deletion intent, tombstones and recovery replay                                      | Not implemented                                                    |
+| E3    | Strict UTF-8 TXT DocIR and bounded worker execution                                              | Locally accepted                                                   |
+| F3–F4 | Markdown and DOCX DocIR                                                                          | Locally accepted                                                   |
+| F5    | Text PDF DocIR                                                                                   | Locally accepted                                                   |
+| F6    | XLSX workbook inspection and source-bound selection snapshots                                    | Locally accepted                                                   |
+| F7    | Simple XLSX DocIR consuming the confirmed F6 snapshot                                            | Locally accepted                                                   |
+| J1    | Pinned CI candidate, hashed installable artifact and repository-external clean installation      | In progress; hosted CI not executed                                |
 
 F6 exposes `inspectKnowledgeXlsxWorkbook` and `freezeKnowledgeXlsxSelection`.
 Inspection reports visibility, declared/observed dimensions, hidden rows/columns,
@@ -45,7 +45,12 @@ npm run build -w @genoffice/shell
 npm run format:check
 ```
 
-The checked local environment is Windows with Node 25.8.1 and npm 11.19.1.
+The latest cumulative checkpoint below passes 851 offline and 586 real-database
+cases on each actual Node 25.8.1 and minimum Node 22.13.0 runtime (1,437 per
+runtime). Earlier checkpoint counts in this document are historical, not the
+current total. No full-repository or hosted-CI acceptance is claimed.
+
+The earlier parser/schema checkpoint uses Windows with Node 25.8.1 and npm 11.19.1.
 Knowledge tests: 53 files / 771 cases (contract 409, client 60, service 302).
 Electron utilities: 13 files / 136 cases. Shell: 27 files / 284 cases.
 All five workspace typechecks, changed-file formatting and strict no-explicit-any
@@ -557,8 +562,155 @@ This is still not complete B5/B6/F1 acceptance. Conversion and successful
 publication must share base/generation/attempt/budget/metering intent. Failed or
 superseded operations, queued-job settlement, GC accounting and HTTP cancellation
 remain outside this slice. Initial admission still requires generation zero;
-explicit re-upload/retry after cancellation needs its own admission protocol.
+the separate capacity-retry entry is accepted in the following slice, not as an
+HTTP re-upload or operation-creation protocol.
 Independent B7 deletion/recovery and cloud/website billing remain unimplemented.
+
+## B5 explicit capacity retry after cancellation — 2026-10-19
+
+`reserveRetryCapacity` and API-only `knowledge.reserve_retry_capacity` add a
+separate capacity entry for a new verified/queued upload at the current positive
+document generation. The previous generation must retain a cancelled upload,
+closed released reservation and no building/sealed attempts. The new original
+must belong to the new operation; neither the old operation nor its reservation
+is reopened. Active pointers, competing held debt and unrelated desired intent
+prevent admission. Generation-zero initial admission remains unchanged; retained
+active replacement retries use the existing replacement entry and base credit.
+
+Quota → Space → Document → Operation/Reservation locking serializes retry with
+all previous admission/cancellation paths. Full logical capacity is reserved
+again, with the full chunk projection stored; every old physical reserved or
+accounted byte remains charged. Numeric budget checks, owner/space/policy/source
+checks and post-wait expiry checks fail closed. Exact replay does not charge
+again, changed inputs conflict, and a later transaction failure rolls back all
+new counters, reservation and desired pointers. Old cancellation replay cannot
+erase a new intent. Repeated explicit cancel/retry remains generation-safe, and
+a new worker can claim/write while old or recancelled attempts stay fenced.
+
+Apply `npm run db:apply:retry:local -w @genoffice/knowledge-service` only after
+all three cancellation supplements, only on the recognized disposable local
+instance. The new supplement and receipt extend the complete accepted
+identity/ownership/hash chain without modifying any prior SQL/receipt or adding
+runtime table-write permissions. Migration replay is refused. Native backup and
+restore must preserve 15 triggers and 13 functions and exercise retry, exact
+replay and cancellation through a restored restricted API login.
+
+This slice adds 20 offline and 60 real-database cases, including eight observed
+blocking-PID races: duplicate retry commit/rollback, predecessor cancellation
+commit/rollback, current retry cancellation, old cancellation replay, expiry
+after waiting and physical-budget contention. Actual Node 25.8.1 and minimum
+Node 22.13.0 each pass all 838 offline knowledge cases and 539 real-database cases
+across 36 database files (1,377 checks per runtime). Both runtimes pass the three
+knowledge typechecks, service build and Drizzle check. Service source/tests/
+integration strict no-explicit-any lint, changed-file formatting and diff checks
+pass. Every accepted historical SQL/receipt hash remains intact. The marked local
+cluster is stopped again at handoff, restoring its initial state; no full-repo,
+hosted CI, cloud deployment or real-user acceptance is claimed.
+
+This does not complete B5/B6/F1. Creating/idempotently accepting new operations,
+HTTP retry/re-upload, failed/superseded operation recovery, queue settlement,
+successful-publication conversion with budget/metering intent, physical GC,
+independent B7 deletion/recovery and cloud/website billing remain unimplemented.
+
+## B5/B6 atomic capacity publication — 2026-10-19
+
+`publishBuild` now uses only the worker-only `publish_reserved_build` function.
+The new `capacity-publish` supplement revokes the historical worker UPDATE grants
+on active-version/build/generation; API/GC/PUBLIC cannot call the new function.
+The old document trigger remains enforced but is not a runtime publication bypass.
+This section supersedes the historical direct-worker publication path above.
+
+Quota → Space → Document → Operation/Reservation → sorted Build locking matches
+admission/cancellation. The function checks current desired/base/generation,
+active owner/space/profile, verified retained original, sealed/live winner,
+held reservation, logical projections, physical debt and storage-event continuity.
+Actual-minus-base logical usage, reservation closure, active pointers, cleared
+desired, generation and operation-ready state commit together. A pending immutable
+platform storage event receives the next owner sequence and before/after bytes in
+that same transaction. It is not a website authorization, paid embedding event,
+customer charge or measured disk usage. Only the consumed physical projection
+moves to accounted debt; old and cancelled physical debt remains held/accounted.
+
+Exact winner replay changes nothing, even after another document publishes.
+Changed winner/identity, cancelled/expired intent, stale state, over-limit facts,
+broken history, event collisions and sequence overflow cannot partially publish.
+Later transaction failure rolls all changes back. Tests include grow/shrink
+replacement, projected-versus-actual chunks, retry with cancelled physical debt,
+ordered multi-document publication, restricted-role security, hash-chain integrity
+and migration replay refusal. Seven observed lock-wait races cover duplicate
+publication, cancellation in both directions with commit/rollback, and expiry
+after waiting. Native backup/restore preserves 15 triggers and 14 functions and
+exercises real restored worker publication/replay and direct-write denial.
+
+Apply `npm run db:apply:capacity-publish:local -w @genoffice/knowledge-service`
+only after all accepted cancellation/retry supplements, on the recognized
+disposable local cluster. No applied SQL, migration or historical receipt changes;
+the new supplement and receipt extend the existing chain.
+
+Full B5/B6/F1 remains incomplete. Durable website monetary-budget/current
+queue-attempt binding, atomic queue settlement, full writer lifecycle locking,
+failed/superseded recovery, physical GC and independent B7 deletion/recovery are
+not implemented by this supplement. The local platform event does not authorize
+customer billing or hosted deployment.
+
+This slice adds 13 offline and 47 real-database cases, including seven observed
+lock-wait races. Actual Node 25.8.1 and minimum Node 22.13.0 each pass all 851
+offline knowledge cases and all 586 real-database cases across 40 database files
+(1,437 checks per runtime). Both runtimes pass the three knowledge typechecks,
+service build and Drizzle check. After the real-queue example separates build
+preparation from the fresh publication transaction, that delivery case is
+rechecked on both runtimes; these repeats are not additional unique cases.
+Strict no-explicit-any lint over service source/tests/integration, changed-file
+formatting and diff checks pass. The interrupted synthetic fixture is removed
+only after exact ID/profile/state verification through existing transactional
+cleanup. The marked local cluster is safely stopped: 55432 has no listener and
+its postmaster.pid is absent; the unrelated PostgreSQL Windows service remains
+Running. All historical SQL/migration receipts are intact. Changes remain in the
+working tree, with no commit, push, Docker operation, cloud access or deployment.
+
+## B6 worker lifecycle lock order — 2026-10-19
+
+A real worker claim → seal → publish transaction racing cancellation reproduced
+PostgreSQL `40P01`: the worker held Operation before requesting Quota, while
+cancellation held Quota before requesting Operation. This is now a passing
+restricted-role regression, not a mocked ordering assertion or timing guess.
+
+Two independent increments extend the accepted identity/hash chain in order:
+`worker-lock-order` after `capacity-publish`, then `worker-phase-lock`.
+The first introduces owner-bound lifecycle-lock and seal functions, replaces
+claim/content locking and removes direct worker Build UPDATE. A second Red
+test caught the remaining direct Operation-phase UPDATE bypass; the second
+increment revokes it and adjusts claim validation without changing any already
+applied SQL or receipt. Both increments are required for this acceptance.
+
+Worker claim/content/seal now take Quota → Space → Document → Operation →
+Reservation → sorted Build locks. Preparation and publication can share a short
+transaction without reversing cancellation's parent-lock order. The first owner
+lock uses the strongest required mode, avoiding a later SHARE-to-UPDATE upgrade.
+Same-owner lifecycle writes intentionally serialize; parsing, models and external
+I/O belong outside these transactions, with bounded committed content batches.
+No throughput benchmark or hosted-consumer acceptance is implied.
+
+`sealBuild` calls only `seal_locked_build`; its counts and manifest hash still
+come from the existing seal trigger. The new definers use the non-superuser/
+NOBYPASSRLS migrator, fixed search path, `row_security=on` and transaction-bound
+owner. API/GC/PUBLIC cannot execute either function. No runtime role has direct
+Build UPDATE or Operation-phase UPDATE, and no new base-table write grant is added.
+
+New cases cover claim/content/seal followed by publication while cancellation
+waits, content/seal waiting behind cancellation commit and rollback, two worker
+seals, whole seal/publication rollback, cross-owner hiding, malformed manifests,
+direct-write denial, exact hash chains and replay refusal without changed receipts.
+Eight races observe blocking PIDs. Native restore now preserves 15 triggers and
+16 functions and exercises restricted worker seal → publish → replay together,
+plus direct Build/phase write denial. The slice adds 10 offline and 31 real-DB
+cases; complete dual-runtime verification is recorded after the runs finish.
+
+This closes the verified worker lifecycle lock-order slice, not all B6.
+Durable current queue-attempt/Receipt and website monetary-budget binding,
+atomic queue settlement, external consumers, failed/superseded convergence,
+physical GC and independent B7 deletion/recovery remain open. Existing uncommitted
+retry/publication work is preserved; no commit, push or deployment is authorized.
 
 ## Unverified boundaries
 

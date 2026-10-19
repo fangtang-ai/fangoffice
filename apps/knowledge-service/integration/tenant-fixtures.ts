@@ -24,13 +24,13 @@ export async function inRoleTransaction<Result>(
   }
 }
 
-export async function seedTenants(label: string) {
+export async function seedTenants(label: string, target: 'primary' | 'restore' = 'primary') {
   const id = randomUUID()
   const profileId = randomUUID()
   const otherDocumentId = randomUUID()
   const otherSpaceId = randomUUID()
   const owners = [`synthetic-${label}-a-${id}`, `synthetic-${label}-b-${id}`] as const
-  const { pool } = await openLocalDatabase('bootstrap')
+  const { pool } = await openLocalDatabase('bootstrap', target)
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -224,7 +224,7 @@ export async function removeTenants(fixture: Awaited<ReturnType<typeof seedTenan
         fixture.owners,
       ])
     await client.query(
-      `UPDATE knowledge.kb_operations SET target_version_id = NULL, phase = 'cancelled'
+      `UPDATE knowledge.kb_operations SET target_version_id = NULL, phase = 'cancelled', error_code = NULL
       WHERE owner_id = ANY($1::text[])`,
       [fixture.owners],
     )

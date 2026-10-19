@@ -24,6 +24,13 @@ export async function reserveReplacementCapacity(
   return reserveCapacity(transaction, input, 'replacement')
 }
 
+export async function reserveRetryCapacity(
+  transaction: KnowledgeTransaction,
+  input: CapacityReservationRequest,
+) {
+  return reserveCapacity(transaction, input, 'retry')
+}
+
 export async function cancelCapacityReservation(
   transaction: KnowledgeTransaction,
   operationId: string,
@@ -40,7 +47,7 @@ export async function cancelCapacityReservation(
 async function reserveCapacity(
   transaction: KnowledgeTransaction,
   input: CapacityReservationRequest,
-  kind: 'initial' | 'replacement',
+  kind: 'initial' | 'replacement' | 'retry',
 ) {
   if (
     typeof input.operationId !== 'string' ||

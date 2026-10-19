@@ -124,23 +124,17 @@ function workerInsert() {
     values: [fixture.owners[0], fixture.id],
   }
 }
-it('enforces the worker content gate through build-column privileges', async () => {
+it('enforces the worker content gate without direct build UPDATE privileges', async () => {
   await inRoleTransaction('bootstrap', fixture.owners[0], async (client) => {
     const insert = workerInsert()
-    await client.query('SAVEPOINT worker_gate')
-    // 撤掉 B6 特批的 kb_builds 列特权 → 同一持久 INSERT 被内容门拒绝。
-    await client.query(
-      `REVOKE UPDATE (manifest, source_unit_count, chunk_count, embedding_count, sealed_at, status)
-         ON knowledge.kb_builds FROM ${roleNames.worker}`,
-    )
     await client.query(`SET LOCAL ROLE ${roleNames.worker}`)
-    await expect(client.query(insert.text, insert.values)).rejects.toMatchObject({
-      code: '42501',
-    })
-    await client.query('ROLLBACK TO SAVEPOINT worker_gate')
-    await client.query('RESET ROLE')
-    // 特权恢复后门放行（B6 受控写入路径）。
-    await client.query(`SET LOCAL ROLE ${roleNames.worker}`)
+    expect(
+      (
+        await client.query(
+          "SELECT has_any_column_privilege(current_user, 'knowledge.kb_builds', 'UPDATE') AS writable",
+        )
+      ).rows,
+    ).toEqual([{ writable: false }])
     expect((await client.query(insert.text, insert.values)).rowCount).toBe(1)
     await client.query('RESET ROLE')
     await changeBuild(client, fixture, closedBuildStates.sealed)
@@ -223,11 +217,8 @@ it('rolls back failed content-gate DDL without replacing the accepted trigger id
   })
 })
 
-// B7 发布门：worker 获得 kb_documents 发布三列（指针/代数）的列级 UPDATE，
-// desired 列永远不在写入方手里；门按发布形态复核全部前置事实。
-it('enforces the publication gate through worker column privileges', async () => {
-  // api/gc 无发布列授权 → 特权拒绝（42501），与最小授权面一致。
-  for (const role of ['api', 'gc'] as const)
+it('denies direct runtime publication and retains the underlying publication trigger', async () => {
+  for (const role of ['api', 'worker', 'gc'] as const)
     await inRoleTransaction(role, fixture.owners[0], async (client) => {
       await expect(
         client.query(
@@ -253,7 +244,6 @@ it('enforces the publication gate through worker column privileges', async () =>
 
     const deny = async (text: string, values: unknown[]) => {
       await client.query('SAVEPOINT publish_gate')
-      await client.query(`SET LOCAL ROLE ${roleNames.worker}`)
       await expect(client.query(text, values)).rejects.toMatchObject({
         code: '23514',
         constraint: 'kb_document_publish_gate',
@@ -315,8 +305,7 @@ it('enforces the publication gate through worker column privileges', async () =>
     ).rejects.toMatchObject({ code: '42501' })
     await client.query('ROLLBACK TO SAVEPOINT publish_gate')
     await client.query('RESET ROLE')
-    // 发布形态完整时门放行（B7 受控发布路径）；成功不回滚，供重复发布验证。
-    await client.query(`SET LOCAL ROLE ${roleNames.worker}`)
+    // 仅bootstrap验证底层门；运行角色必须调用带容量转正的发布入口。
     expect(
       (
         await client.query(
@@ -330,7 +319,6 @@ it('enforces the publication gate through worker column privileges', async () =>
     await client.query('RESET ROLE')
     // 重复发布：指针已就位后同列重写 → 形状拒绝。
     await client.query('SAVEPOINT publish_gate')
-    await client.query(`SET LOCAL ROLE ${roleNames.worker}`)
     await expect(
       client.query(
         `UPDATE knowledge.kb_documents

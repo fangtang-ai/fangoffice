@@ -12,12 +12,13 @@ export async function withCapacityRace(
     waiterPid: number
   }) => Promise<void>,
   waiterRole: 'api' | 'worker' = 'api',
+  writerRole: 'api' | 'worker' = 'api',
 ) {
   await withCapacityFixture(async (fixture) => {
     const pools: Pool[] = []
     const clients: PoolClient[] = []
     try {
-      for (const role of ['api', waiterRole, 'bootstrap'] as const) {
+      for (const role of [writerRole, waiterRole, 'bootstrap'] as const) {
         const { pool } = await openLocalDatabase(role)
         pools.push(pool)
         clients.push(await pool.connect())

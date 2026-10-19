@@ -16,6 +16,7 @@ export {
   cancelCapacityReservation,
   reserveInitialCapacity,
   reserveReplacementCapacity,
+  reserveRetryCapacity,
   type CapacityReservationRequest,
 } from './capacity'
 export {

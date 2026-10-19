@@ -210,138 +210,53 @@ export async function sealBuild(
   manifest: unknown,
   { now = new Date() }: { now?: Date } = {},
 ): Promise<void> {
-  // 封存前以 FOR UPDATE 锁定（不是 FOR KEY SHARE），挡住并发封存与
-  // 建立中的内容写入（guard_build_content 持 FOR SHARE）。
+  // 父锁与Build锁由窄入口统一获取，不能先锁Build再倒锁Quota。
   const { rows } = await transaction.query(
-    `SELECT status::text AS status, gc_state::text AS gc_state
-       FROM knowledge.kb_builds
-      WHERE owner_id = $1 AND id = $2 FOR UPDATE`,
-    [context.ownerId, context.buildId],
+    'SELECT knowledge.seal_locked_build($1, $2, $3::jsonb, $4::timestamptz) AS status',
+    [context.ownerId, context.buildId, JSON.stringify(manifest), now.toISOString()],
   )
-  const row = rows[0] as { status: string; gc_state: string } | undefined
-  if (!row) deny('NOT_FOUND')
-  if (row.status !== 'building' || row.gc_state !== 'live') deny('FORBIDDEN')
-  await transaction.query(
-    `UPDATE knowledge.kb_builds SET status = 'sealed', sealed_at = $3, manifest = $4::jsonb
-      WHERE owner_id = $1 AND id = $2`,
-    [context.ownerId, context.buildId, now.toISOString(), JSON.stringify(manifest)],
-  )
+  const status = (rows[0] as { status?: unknown } | undefined)?.status
+  switch (status) {
+    case 'SEALED':
+      return
+    case 'INVALID_REQUEST':
+    case 'UNAUTHENTICATED':
+    case 'NOT_FOUND':
+    case 'FORBIDDEN':
+    case 'VERSION_CONFLICT':
+      return deny(status)
+    default:
+      return deny('SERVICE_UNAVAILABLE')
+  }
 }
 
-// B6 发布切片：把封存构建发布为活跃版本。desired 指针由 admission 维护
-// （写入方无该列授权），发布者只读取；指针翻转是一次受控 UPDATE，
-// guard_document_publish 在数据库端复核全部前置事实（含 profile 与代数）。
-export async function publishBuild(
-  transaction: KnowledgeTransaction,
-  context: QueueBuildContext,
-): Promise<void> {
-  // 锁序：document → build → operation；全部事实检查在窗口推进前完成，
-  // 陈旧代数的拒绝不会被窗口拒绝掩盘。
+// 发布、容量转正与存储事实只能走同一窄入口，锁序由数据库统一维护。
+export async function publishBuild(transaction: KnowledgeTransaction, context: QueueBuildContext) {
   const { rows } = await transaction.query(
-    `SELECT deleted_at, space_id::text AS space_id,
-            desired_operation_id::text AS desired_operation_id,
-            desired_version_id::text AS desired_version_id,
-            active_build_id::text AS active_build_id, generation::text AS generation
-       FROM knowledge.kb_documents
-      WHERE owner_id = $1 AND id = $2 FOR UPDATE`,
-    [context.ownerId, context.documentId],
+    'SELECT knowledge.publish_reserved_build($1, $2, $3, $4, $5, $6) AS status',
+    [
+      context.ownerId,
+      context.documentId,
+      context.operationId,
+      context.versionId,
+      context.buildId,
+      context.indexProfileId,
+    ],
   )
-  const doc = rows[0] as
-    | {
-        deleted_at: string | null
-        space_id: string
-        desired_operation_id: string | null
-        desired_version_id: string | null
-        active_build_id: string | null
-        generation: string
-      }
-    | undefined
-  if (!doc) deny('NOT_FOUND')
-  if (
-    doc.deleted_at !== null ||
-    doc.desired_operation_id === null ||
-    doc.desired_version_id === null ||
-    doc.desired_operation_id !== context.operationId ||
-    doc.desired_version_id !== context.versionId ||
-    doc.active_build_id === context.buildId
-  )
-    deny('FORBIDDEN')
-  const build = await transaction.query(
-    `SELECT document_id::text AS document_id, version_id::text AS version_id,
-            operation_id::text AS operation_id, expected_generation::text AS expected_generation,
-            index_profile_id::text AS index_profile_id, status::text AS status,
-            sealed_at, gc_state::text AS gc_state, purged_at
-       FROM knowledge.kb_builds
-      WHERE owner_id = $1 AND id = $2 FOR UPDATE`,
-    [context.ownerId, context.buildId],
-  )
-  const row = build.rows[0] as
-    | {
-        document_id: string
-        version_id: string
-        operation_id: string
-        expected_generation: string
-        index_profile_id: string
-        status: string
-        sealed_at: string | null
-        gc_state: string
-        purged_at: string | null
-      }
-    | undefined
-  if (
-    !row ||
-    row.document_id !== context.documentId ||
-    row.version_id !== context.versionId ||
-    row.operation_id !== context.operationId ||
-    row.expected_generation !== doc.generation ||
-    row.status !== 'sealed' ||
-    row.sealed_at === null ||
-    row.gc_state !== 'live' ||
-    row.purged_at !== null ||
-    row.index_profile_id !== context.indexProfileId
-  )
-    deny('FORBIDDEN')
-  // owner/space/profile currency：与门同一套事实（拒绝态简洁，门仍会复核）。
-  const states = await transaction.query(
-    `SELECT (SELECT owner_state::text FROM knowledge.kb_quotas WHERE owner_id = $1) AS owner_state,
-            (SELECT active_index_profile_id::text FROM knowledge.kb_quotas WHERE owner_id = $1) AS profile_id,
-            (SELECT state::text FROM knowledge.kb_spaces WHERE owner_id = $1 AND id = $2) AS space_state,
-            (SELECT deleted_at FROM knowledge.kb_spaces WHERE owner_id = $1 AND id = $2) AS space_deleted_at`,
-    [context.ownerId, doc.space_id],
-  )
-  const state = states.rows[0] as
-    | {
-        owner_state: string | null
-        profile_id: string | null
-        space_state: string | null
-        space_deleted_at: string | null
-      }
-    | undefined
-  if (
-    !state ||
-    state.owner_state !== 'active' ||
-    state.profile_id !== context.indexProfileId ||
-    state.space_state !== 'active' ||
-    state.space_deleted_at !== null
-  )
-    deny('FORBIDDEN')
-  // 发布窗口：operation 必须仍可从建立阶段推进到 publishing；推进本身即窗口检查。
-  const window = await transaction.query(
-    `UPDATE knowledge.kb_operations SET phase = 'publishing'
-      WHERE owner_id = $1 AND id = $2 AND phase IN ('queued', 'parsing', 'indexing')`,
-    [context.ownerId, context.operationId],
-  )
-  if (window.rowCount !== 1) deny('FORBIDDEN')
-  // 指针翻转：门失败即 23514，transaction 层按约定映射为 SERVICE_UNAVAILABLE。
-  await transaction.query(
-    `UPDATE knowledge.kb_documents
-        SET active_version_id = $3, active_build_id = $4, generation = generation + 1
-      WHERE owner_id = $1 AND id = $2`,
-    [context.ownerId, context.documentId, context.versionId, context.buildId],
-  )
-  await transaction.query(
-    `UPDATE knowledge.kb_operations SET phase = 'ready'
-      WHERE owner_id = $1 AND id = $2 AND phase = 'publishing'`,
-    [context.ownerId, context.operationId],
-  )
+  const status = (rows[0] as { status?: unknown } | undefined)?.status
+  switch (status) {
+    case 'PUBLISHED':
+    case 'REPLAY':
+      return { replayed: status === 'REPLAY' }
+    case 'INVALID_REQUEST':
+    case 'UNAUTHENTICATED':
+    case 'NOT_FOUND':
+    case 'FORBIDDEN':
+    case 'NOT_CONFIGURED':
+    case 'QUOTA_EXCEEDED':
+    case 'VERSION_CONFLICT':
+      return deny(status)
+    default:
+      return deny('SERVICE_UNAVAILABLE')
+  }
 }

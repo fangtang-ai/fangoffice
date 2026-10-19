@@ -81,18 +81,24 @@ export async function applyLocalGate(label, guard, prerequisites = [], schemaFil
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended('knowledge:local-gates', 0))",
       )
-      // 新建函数按签名防重放；纯ACL增量按目标权限防重放，不另造无业务用途的标记函数。
+      // 新函数按签名防重放；纯ACL授予/撤销按变更前权限防重放，不造标记函数。
       const existing =
         typeof guard === 'string'
           ? await client.query('SELECT to_regprocedure($1) AS existing', [guard])
-          : await client.query("SELECT has_function_privilege($1, $2, 'EXECUTE') AS existing", [
-              guard.role,
-              guard.signature,
-            ])
+          : 'column' in guard
+            ? await client.query("SELECT has_column_privilege($1, $2, $3, 'UPDATE') AS existing", [
+                guard.role,
+                guard.table,
+                guard.column,
+              ])
+            : await client.query("SELECT has_function_privilege($1, $2, 'EXECUTE') AS existing", [
+                guard.role,
+                guard.signature,
+              ])
       if (
         typeof guard === 'string'
           ? existing.rows[0]?.existing !== null
-          : existing.rows[0]?.existing !== false
+          : existing.rows[0]?.existing !== 'column' in guard
       )
         throw new Error(`Refusing to replay the ${label} migration`)
       const tables = await client.query(`SELECT relname::text, relrowsecurity, relforcerowsecurity,

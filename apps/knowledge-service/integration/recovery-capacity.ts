@@ -2,6 +2,7 @@ import type { Pool } from 'pg'
 import { expect } from 'vitest'
 import type { BuildFixture } from './build-fixtures'
 import { prepareReplacement } from './replacement-fixtures'
+import { addFollowupUpload } from './retry-fixtures'
 
 export async function verifyRestoredCapacity(bootstrap: Pool, api: Pool, fixture: BuildFixture) {
   await bootstrap.query('BEGIN')
@@ -71,11 +72,85 @@ export async function verifyRestoredCapacity(bootstrap: Pool, api: Pool, fixture
     activeBuild: fixture.id,
   })
   await api.query('ROLLBACK')
+  await verifyRestoredRetry(bootstrap, api, fixture)
+}
+
+async function verifyRestoredRetry(bootstrap: Pool, api: Pool, fixture: BuildFixture) {
+  const retryFixture = {
+    ...fixture,
+    owners: [fixture.owners[1], fixture.owners[0]] as const,
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+  }
+  const owner = retryFixture.owners[0]
+  await bootstrap.query('DELETE FROM knowledge.kb_reservations WHERE owner_id = $1', [owner])
+  await bootstrap.query(
+    `UPDATE knowledge.kb_quotas SET policy_revision = 'synthetic', limit_files = 1,
+      limit_bytes = 4, limit_chunks = 1 WHERE owner_id = $1`,
+    [owner],
+  )
+  await api.query('BEGIN')
+  await api.query("SELECT set_config('knowledge.owner_id', $1, true)", [owner])
+  expect(
+    (
+      await api.query('SELECT knowledge.reserve_initial_capacity($1, 1, 16, $2) AS status', [
+        fixture.id,
+        retryFixture.expiresAt,
+      ])
+    ).rows,
+  ).toEqual([{ status: 'RESERVED' }])
+  expect(
+    (await api.query('SELECT knowledge.cancel_capacity_reservation($1) AS status', [fixture.id]))
+      .rows,
+  ).toEqual([{ status: 'CANCELLED' }])
+  await api.query('COMMIT')
+  const operationId = await addFollowupUpload(retryFixture, { target: 'restore' })
+  await api.query('BEGIN')
+  await api.query("SELECT set_config('knowledge.owner_id', $1, true)", [owner])
+  for (const status of ['RESERVED', 'REPLAY'])
+    expect(
+      (
+        await api.query('SELECT knowledge.reserve_retry_capacity($1, 1, 16, $2) AS status', [
+          operationId,
+          retryFixture.expiresAt,
+        ])
+      ).rows,
+    ).toEqual([{ status }])
+  expect(
+    (
+      await api.query(
+        `SELECT quota.reserved_files::text AS files,
+      quota.reserved_bytes::text AS bytes, quota.reserved_chunks::text AS chunks,
+      quota.physical_reserved_bytes::text AS physical, document.generation::text AS generation,
+      document.desired_operation_id::text AS desired, reservation.projected_chunks::text AS projected
+    FROM knowledge.kb_quotas quota
+    JOIN knowledge.kb_documents document ON document.owner_id = quota.owner_id AND document.id = $2
+    JOIN knowledge.kb_reservations reservation ON reservation.owner_id = quota.owner_id AND reservation.operation_id = $3
+    WHERE quota.owner_id = $1`,
+        [owner, fixture.id, operationId],
+      )
+    ).rows,
+  ).toEqual([
+    {
+      files: '1',
+      bytes: '4',
+      chunks: '1',
+      physical: '32',
+      generation: '1',
+      desired: operationId,
+      projected: '1',
+    },
+  ])
+  await verifyRestoredCancellation(api, retryFixture, operationId, {
+    generation: '2',
+    physical: '32',
+    activeBuild: null,
+  })
+  await api.query('ROLLBACK')
 }
 
 async function verifyRestoredCancellation(
   api: Pool,
-  fixture: BuildFixture,
+  fixture: { id: string; owners: readonly [string, ...string[]] },
   operationId: string,
   expected: { generation: string; physical: string; activeBuild: string | null },
 ) {

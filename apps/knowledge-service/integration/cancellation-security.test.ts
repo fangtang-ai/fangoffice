@@ -216,7 +216,8 @@ it.each(['queued', 'indexing', 'publishing'] as const)(
       await capacityTransaction(fixture, (transaction) =>
         cancelCapacityReservation(transaction, fixture.id),
       )
-      await inRoleTransaction('worker', fixture.owners[0], async (client) => {
+      // worker已无phase列UPDATE权限(worker-phase-lock.sql)，改由bootstrap验证底层门。
+      await inRoleTransaction('bootstrap', fixture.owners[0], async (client) => {
         await expect(
           client.query(
             'UPDATE knowledge.kb_operations SET phase = $3 WHERE owner_id = $1 AND id = $2',

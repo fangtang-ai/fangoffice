@@ -40,8 +40,9 @@ export async function capacityTransaction<Result>(
   fixture: CapacityFixture,
   work: (transaction: KnowledgeTransaction) => Promise<Result>,
   owner: string = fixture.owners[0],
+  role: 'api' | 'worker' = 'api',
 ) {
-  const { pool } = await openLocalDatabase('api')
+  const { pool } = await openLocalDatabase(role)
   try {
     const now = Date.now()
     const principal = createKnowledgePrincipal(
