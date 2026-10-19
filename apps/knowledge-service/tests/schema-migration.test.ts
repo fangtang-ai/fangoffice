@@ -67,6 +67,7 @@ it('generates identical offline SQL and snapshot metadata without credentials or
   expect(generated.filter((name) => name.endsWith('.sql')).sort()).toEqual([
     sqlFile,
     '0001_capacity_projection.sql',
+    '0002_operation_attempt_binding.sql',
   ])
   const sql = await readFile(join(directory, 'drizzle', sqlFile), 'utf8')
   expect(
@@ -89,13 +90,19 @@ it('generates identical offline SQL and snapshot metadata without credentials or
   expect(journal.entries).toEqual([
     expect.objectContaining({ idx: 0, tag: '0000_knowledge_base', breakpoints: true }),
     expect.objectContaining({ idx: 1, tag: '0001_capacity_projection', breakpoints: true }),
+    expect.objectContaining({ idx: 2, tag: '0002_operation_attempt_binding', breakpoints: true }),
   ])
   await mkdir(join(output, 'meta'), { recursive: true })
-  for (const name of ['0000_knowledge_base.sql', 'meta/0000_snapshot.json'])
+  for (const name of [
+    '0000_knowledge_base.sql',
+    '0001_capacity_projection.sql',
+    'meta/0000_snapshot.json',
+    'meta/0001_snapshot.json',
+  ])
     await writeFile(join(output, name), await readFile(join(directory, 'drizzle', name)))
   await writeFile(
     join(output, 'meta/_journal.json'),
-    JSON.stringify({ ...journal, entries: journal.entries.slice(0, 1) }),
+    JSON.stringify({ ...journal, entries: journal.entries.slice(0, 2) }),
   )
   const config = join(temporary, 'drizzle.config.json')
   await writeFile(
@@ -110,7 +117,7 @@ it('generates identical offline SQL and snapshot metadata without credentials or
   const cli = fileURLToPath(new URL('../../../node_modules/drizzle-kit/bin.cjs', import.meta.url))
   const result = await execute(
     process.execPath,
-    [cli, 'generate', '--config', config, '--name', 'capacity_projection'],
+    [cli, 'generate', '--config', config, '--name', 'operation_attempt_binding'],
     { cwd: temporary, timeout: 20000 },
   ).catch((error: unknown) => {
     if (error instanceof Error && 'stdout' in error && 'stderr' in error)
@@ -118,15 +125,15 @@ it('generates identical offline SQL and snapshot metadata without credentials or
     throw error
   })
   expect(result.stdout).toContain('16 tables')
-  const increment = '0001_capacity_projection.sql'
+  const increment = '0002_operation_attempt_binding.sql'
   expect(await readFile(join(output, increment), 'utf8')).toBe(
     await readFile(join(directory, 'drizzle', increment), 'utf8'),
   )
   const snapshot = JSON.parse(
-    await readFile(join(directory, 'drizzle/meta/0001_snapshot.json'), 'utf8'),
+    await readFile(join(directory, 'drizzle/meta/0002_snapshot.json'), 'utf8'),
   ) as Record<string, unknown>
   const regenerated = JSON.parse(
-    await readFile(join(output, 'meta/0001_snapshot.json'), 'utf8'),
+    await readFile(join(output, 'meta/0002_snapshot.json'), 'utf8'),
   ) as Record<string, unknown>
   const { id: snapshotId, ...snapshotBody } = snapshot
   const { id: regeneratedId, ...regeneratedBody } = regenerated
