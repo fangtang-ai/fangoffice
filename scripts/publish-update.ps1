@@ -4,6 +4,7 @@
 # Usage (from repo root or this folder):
 #   powershell -File scripts/publish-update.ps1 -Channel stable
 #   powershell -File scripts/publish-update.ps1 -Channel stable -SkipBuild   # reuse last build output
+#   powershell -File scripts/publish-update.ps1 -Channel test     # test-site line
 #
 # Requires: aliyun CLI logged in (profile with OSS write on the bucket),
 # Windows SDK at D:\Windows Kits\10 (see AGENTS.md), node toolchain built.
@@ -11,13 +12,14 @@
 # Layout on OSS (bucket: fangtang-office-updates, region cn-hangzhou):
 #   <channel>/latest.yml                        electron-updater feed
 #   <channel>/FangTangOffice-Setup-<v>.exe      installer (ASCII name: URLs/yml stay encoding-safe)
+#   <channel=test>/FangTangOffice-Test-Setup-<v>.exe   test line carries a Test infix
 #
 # Bucket stays private; only the two published objects get public-read.
 # The script writes ONLY into this bucket — every other bucket on the account
 # is off-limits (production buckets must never be touched).
 
 param(
-    [ValidateSet('stable', 'beta')]
+    [ValidateSet('stable', 'beta', 'test')]
     [string]$Channel = 'stable',
 
     # reuse the previous BUILD_DIR output instead of rebuilding (publish-only)
@@ -34,9 +36,16 @@ $ErrorActionPreference = 'Stop'
 $Bucket = 'fangtang-office-updates'
 $OssBase = "oss://$Bucket/$Channel"
 $HttpBase = "https://$Bucket.oss-cn-hangzhou.aliyuncs.com/$Channel"
+# test channel packages the test-site factory config (committed defaults);
+# stable/beta require the gitignored fangtang-defaults.prod.json —
+# electron-builder.cjs hard-fails without it, so the lines can't be crossed
+$env:FANGTANG_BUILD_ENV = if ($Channel -eq 'test') { 'test' } else { 'production' }
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
+
+# --- locate artifacts --------------------------------------------------------
+$version = (Get-Content apps/shell/package.json -Raw | ConvertFrom-Json).version
 
 # --- build ------------------------------------------------------------------
 if (-not $SkipBuild) {
@@ -52,8 +61,21 @@ if (-not $SkipBuild) {
     $env:FANGTANG_UPDATE_URL = $HttpBase
 }
 
-# --- locate artifacts --------------------------------------------------------
-$version = (Get-Content apps/shell/package.json -Raw | ConvertFrom-Json).version
+# deployment-line guard (same rule as stage-release.cjs): with -SkipBuild the
+# artifacts may predate this run's channel choice — never cross the lines.
+# (Without -SkipBuild the fresh build just derived its env from $Channel, so
+# the freshly written marker is matching by construction.)
+if ($SkipBuild) {
+    $marker = Join-Path $RepoRoot "$BuildDir/fangtang-build-env.txt"
+    if (Test-Path $marker) {
+        $built = (Get-Content $marker -Raw).Trim()
+        $need = if ($Channel -eq 'test') { 'test' } else { 'production' }
+        if ($built -ne $need) {
+            throw "artifacts in $BuildDir were built for the '$built' line but -Channel $Channel publishes the '$need' line — rebuild with matching FANGTANG_BUILD_ENV"
+        }
+    }
+}
+
 $installerSrc = Join-Path $RepoRoot "$BuildDir/方塘Office Setup $version.exe"
 $ymlPath = Join-Path $RepoRoot "$BuildDir/latest.yml"
 foreach ($f in @($installerSrc, $ymlPath)) {
@@ -61,7 +83,8 @@ foreach ($f in @($installerSrc, $ymlPath)) {
 }
 
 # ASCII name for the published object; latest.yml must point at it.
-$installerName = "FangTangOffice-Setup-$version.exe"
+# test channel gets a Test infix so the two release lines stay distinguishable
+$installerName = if ($Channel -eq 'test') { "FangTangOffice-Test-Setup-$version.exe" } else { "FangTangOffice-Setup-$version.exe" }
 $installerStaged = Join-Path $RepoRoot "$BuildDir/$installerName"
 Copy-Item $installerSrc $installerStaged -Force
 

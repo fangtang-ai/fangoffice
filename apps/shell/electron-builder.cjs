@@ -17,10 +17,21 @@
  * Official release jobs inject it through extraMetadata so the endpoint stays
  * out of source. Without it, font download prompts/catalog entries are hidden;
  * users can still install local font files.
+ *
+ * FANGTANG_BUILD_ENV — which deployment line the package targets: "test"
+ * (default) bakes the committed test-site factory config
+ * (resources/fangtang-defaults.json); "production" swaps the extraResources
+ * source to the gitignored resources/fangtang-defaults.prod.json (CI writes
+ * it from a repository secret; for local production builds create it once —
+ * same JSON shape, production endpoints). Both land as
+ * Resources/fangtang-defaults.json inside the app, so runtime resolution is
+ * untouched. Production builds hard-fail when the prod file is missing or
+ * when FANGTANG_UPDATE_URL points at the /test release line — the test-site
+ * config must never ship inside a production artifact.
  */
 
 const { execFileSync } = require('node:child_process')
-const { copyFileSync, existsSync, rmSync } = require('node:fs')
+const { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } = require('node:fs')
 const { join } = require('node:path')
 
 function normalizeHttpsBaseUrl(name, value) {
@@ -37,6 +48,37 @@ function normalizeHttpsBaseUrl(name, value) {
 }
 
 const updateUrl = process.env.FANGTANG_UPDATE_URL
+
+// FANGTANG_BUILD_ENV — "test" (default) | "production"; see header comment.
+const buildEnv = process.env.FANGTANG_BUILD_ENV || 'test'
+if (buildEnv !== 'test' && buildEnv !== 'production') {
+  throw new Error(`FANGTANG_BUILD_ENV must be "test" or "production", got "${buildEnv}"`)
+}
+const factoryDefaultsFile =
+  buildEnv === 'production'
+    ? 'resources/fangtang-defaults.prod.json'
+    : 'resources/fangtang-defaults.json'
+if (buildEnv === 'production' && !existsSync(join(__dirname, factoryDefaultsFile))) {
+  throw new Error(
+    'production build requires apps/shell/resources/fangtang-defaults.prod.json ' +
+      '(gitignored; CI writes it from the FANGTANG_DEFAULTS_PROD_JSON secret) — ' +
+      'refusing to package the test-site config',
+  )
+}
+// a production package must never auto-update from the test release line
+if (
+  buildEnv === 'production' &&
+  updateUrl &&
+  /\/test\/?$/i.test(updateUrl.replace(/\/+$/, ''))
+) {
+  throw new Error(
+    `FANGTANG_UPDATE_URL points at the test release line (${updateUrl}) — ` +
+      'production builds need a stable/beta feed',
+  )
+}
+// fixed artifact directory (repo-root dist/; BUILD_DIR still takes priority)
+const outputDir = process.env.BUILD_DIR || join(__dirname, '../../dist')
+
 const fontCdnUrl = normalizeHttpsBaseUrl(
   'FANGTANG_FONT_CDN_URL',
   process.env.FANGTANG_FONT_CDN_URL,
@@ -224,8 +266,7 @@ const config = {
   // the old runtime).
   electronVersion: require('electron/package.json').version,
   directories: {
-    // Fixed artifact directory: repo-root dist/ (BUILD_DIR still takes priority)
-  output: process.env.BUILD_DIR || join(__dirname, '../../dist'),
+    output: outputDir,
   },
   files: ['out/**'],
   extraResources: [
@@ -264,9 +305,11 @@ const config = {
       to: 'wasm/pdfium.wasm',
     },
     // Deployment-supplied factory config (AI endpoint, MCP servers); read from
-    // Resources/ when packaged (packages/electron-utils/src/factory-defaults.ts)
+    // Resources/ when packaged (packages/electron-utils/src/factory-defaults.ts).
+    // The source file follows FANGTANG_BUILD_ENV (test-site config vs prod); the
+    // destination name is constant so runtime resolution is untouched.
     {
-      from: 'resources/fangtang-defaults.json',
+      from: factoryDefaultsFile,
       to: 'fangtang-defaults.json',
     },
     {
@@ -523,6 +566,9 @@ const config = {
       }
       return
     }
+    // test builds only: a production pack must never carry the developer's
+    // test-endpoint overrides (fangtang-defaults.local.json, AGENTS.md)
+    if (buildEnv !== 'test') return
     const local = join(__dirname, 'resources/fangtang-defaults.local.json')
     if (existsSync(local)) copyFileSync(local, packedLocal)
   },
@@ -530,6 +576,16 @@ const config = {
     sign: true,
   },
   afterAllArtifactBuild: 'build/notarize-dmg.js',
+}
+
+// Marker for scripts/stage-release.cjs: it refuses to publish these artifacts
+// to a channel whose deployment line (test vs production) differs from the env
+// they were built with. Staging deletes it again — never uploaded.
+try {
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, 'fangtang-build-env.txt'), buildEnv)
+} catch {
+  // the marker is a safety net, not a release requirement
 }
 
 // Windows in-package code signing. Security features that judge every PE

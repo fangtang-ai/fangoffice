@@ -12,9 +12,13 @@
  * Without --publish it only stages (renames + rewrites + verifies) — handy
  * for a local dry run after dist:win.
  *
+ * channel=test stages/uploads with a Test infix (FangTangOffice-Test-Setup-…)
+ * so the test-site release line can never be confused with the stable one.
+ *
  * OSS layout (bucket: fangtang-office-updates, region cn-hangzhou):
  *   <channel>/latest.yml  <channel>/latest-mac.yml  <channel>/latest-linux.yml
  *   <channel>/FangTangOffice-Setup-<v>.exe (+ .exe.blockmap)
+ *   <channel=test>/FangTangOffice-Test-Setup-<v>.exe (+ .exe.blockmap)
  *   <channel>/FangTangOffice-<v>-arm64.dmg / .zip (+ .zip.blockmap)
  *   <channel>/fangtang-office_<v>_amd64.deb / .x86_64.rpm / *.AppImage
  *
@@ -47,16 +51,33 @@ async function main() {
   const channel = arg('channel', 'stable')
   const publish = hasFlag('publish')
   const force = hasFlag('force')
-  if (!['stable', 'beta'].includes(channel)) throw new Error(`bad channel: ${channel}`)
+  if (!['stable', 'beta', 'test'].includes(channel)) throw new Error(`bad channel: ${channel}`)
   if (!existsSync(dir)) throw new Error(`artifacts dir not found: ${dir}`)
+
+  // deployment-line guard: refuse to publish a test-env build to a production
+  // channel (or the reverse) — see the marker written by electron-builder.cjs
+  const markerPath = join(dir, 'fangtang-build-env.txt')
+  if (existsSync(markerPath)) {
+    const built = readFileSync(markerPath, 'utf8').trim()
+    const need = channel === 'test' ? 'test' : 'production'
+    if (built !== need) {
+      throw new Error(
+        `artifacts in ${dir} were built for the "${built}" line but --channel ${channel} ` +
+          `publishes the "${need}" line — rebuild with matching FANGTANG_BUILD_ENV`,
+      )
+    }
+  }
 
   // --- 1. rename Chinese-named artifacts to ASCII and rewrite feeds --------
   // electron-builder default names embed the Chinese productName; OSS/URLs
   // and the download page stay encoding-safe when everything is ASCII. The
   // FangTangOffice-Setup name matches the already-published stable feed.
+  // test-channel artifacts carry a Test infix so the two release lines are
+  // never confusable in the bucket or on a download page
+  const ascii = channel === 'test' ? 'FangTangOffice-Test' : 'FangTangOffice'
   const renames = [
-    [/^方塘Office Setup (.+)\.exe(\.blockmap)?$/, 'FangTangOffice-Setup-$1.exe$2'],
-    [/^方塘Office-(.+)\.(dmg|zip|AppImage)(\.blockmap)?$/, 'FangTangOffice-$1.$2$3'],
+    [/^方塘Office Setup (.+)\.exe(\.blockmap)?$/, `${ascii}-Setup-$1.exe$2`],
+    [/^方塘Office-(.+)\.(dmg|zip|AppImage)(\.blockmap)?$/, `${ascii}-$1.$2$3`],
   ]
   const staged = readdirSync(dir)
   const nameMap = []
@@ -82,7 +103,9 @@ async function main() {
   // *-unpacked/ app directories (the release = installers + blockmaps + feeds)
   for (const name of readdirSync(dir)) {
     const p = join(dir, name)
-    if (/^builder-(debug\.yml|effective-config\.yaml)$/.test(name)) {
+    // fangtang-build-env.txt: the electron-builder marker consumed by the
+    // deployment-line guard above — deleted here so it never uploads
+    if (/^builder-(debug\.yml|effective-config\.yaml)$/.test(name) || name === 'fangtang-build-env.txt') {
       rmSync(p)
       console.log(`removed: ${name}`)
     } else if (statSync(p).isDirectory()) {

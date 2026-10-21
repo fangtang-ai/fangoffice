@@ -19,10 +19,14 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'OSS update channel (baked into the auto-update feed URL)'
+        description: >-
+          OSS update channel (baked into the auto-update feed URL). test =
+          test-site line (test factory config, FangTangOffice-Test-* artifacts, no
+          GitHub release); stable/beta = production line (needs the
+          FANGTANG_DEFAULTS_PROD_JSON secret).
         type: choice
         default: stable
-        options: [stable, beta]
+        options: [stable, beta, test]
 
 concurrency:
   group: release-${{ github.ref }}
@@ -49,6 +53,8 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/dist-${{ matrix.platform }}
       FANGTANG_UPDATE_URL: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/${{ github.event.inputs.channel || 'stable' }}
+      # tag pushes (empty input) are production; channel=test packages the test site
+      FANGTANG_BUILD_ENV: ${{ github.event.inputs.channel == 'test' && 'test' || 'production' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -72,6 +78,20 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Write production factory defaults from secret
+        # electron-builder.cjs hard-fails when this file is missing in a
+        # production build, so the test-site config can never ship to prod
+        if: env.FANGTANG_BUILD_ENV == 'production'
+        env:
+          FANGTANG_DEFAULTS_PROD_JSON: ${{ secrets.FANGTANG_DEFAULTS_PROD_JSON }}
+        shell: bash
+        run: |
+          if [ -z "$FANGTANG_DEFAULTS_PROD_JSON" ]; then
+            echo "::error::secret FANGTANG_DEFAULTS_PROD_JSON is not set — production builds refuse to package the test-site config" >&2
+            exit 1
+          fi
+          printf '%s' "$FANGTANG_DEFAULTS_PROD_JSON" > apps/shell/resources/fangtang-defaults.prod.json
 
       - name: Build macOS (arm64 dmg + zip, universal sidecar/OCR)
         if: matrix.platform == 'mac'
@@ -148,6 +168,8 @@ jobs:
         run: node scripts/stage-release.cjs --artifacts dist --channel "$CHANNEL" --publish
 
       - name: Publish GitHub release
+        # test-channel builds ship to the test site only — never a public release
+        if: env.CHANNEL != 'test'
         run: |
           VERSION=$(node -p "require('./apps/shell/package.json').version")
           TAG="v$VERSION"

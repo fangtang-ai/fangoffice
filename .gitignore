@@ -48,6 +48,9 @@ _scratch-*
 
 # Local deployment secrets (never commit; see resources/*.json $comment)
 apps/shell/resources/*.local.json
+# production-site factory config (FANGTANG_BUILD_ENV=production); CI writes it
+# from the FANGTANG_DEFAULTS_PROD_JSON secret — see apps/shell/resources/
+apps/shell/resources/fangtang-defaults.prod.json
 
 tmp/
 
