@@ -3,7 +3,7 @@ import { isLoopback, port, setting, type KnowledgeEnvironment } from './config-v
 
 export function dedicatedDatabase(
   env: KnowledgeEnvironment,
-  role: 'api' | 'worker' | 'maintenance',
+  role: 'api' | 'worker' | 'maintenance' | 'migrator',
   isolated: boolean,
 ) {
   const database = setting(env.KNOWLEDGE_DATABASE_NAME, 63)

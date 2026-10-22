@@ -120,7 +120,7 @@ export function createKnowledgeBuildHandler(
   let imdsSource: KnowledgeImdsCredentialSource | undefined
   let imdsStore: BuildStore | undefined
 
-  function resolveStore(bucket: string): BuildStore {
+  function resolveStore(_bucket: string): BuildStore {
     if (config.ossSource) {
       const staticStore = createKnowledgeOssSourceStore(config.ossSource, { now, fetch: fetchImpl })
       return { read: (input) => staticStore.read({ key: input.key, signal: input.signal }) }

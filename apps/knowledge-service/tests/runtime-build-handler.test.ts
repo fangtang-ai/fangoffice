@@ -2,7 +2,6 @@ import { strict as assert } from 'node:assert'
 import { describe, it } from 'vitest'
 import { createHash } from 'node:crypto'
 import { Buffer } from 'node:buffer'
-import { Readable } from 'node:stream'
 
 import { parseKnowledgeTextDocument } from '../src/parsing/text-document'
 import { parseKnowledgeMarkdownDocument } from '../src/parsing/markdown-document'

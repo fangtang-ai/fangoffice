@@ -54,6 +54,7 @@ jobs:
             apps/knowledge-service/dist/api.mjs
             apps/knowledge-service/dist/worker.mjs
             apps/knowledge-service/dist/maintenance.mjs
+            apps/knowledge-service/dist/migrate.mjs
             apps/knowledge-service/dist/check-config.mjs
             apps/knowledge-service/dist/parser.mjs
             apps/knowledge-service/dist/text-worker.mjs

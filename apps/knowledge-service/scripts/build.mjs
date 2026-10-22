@@ -32,6 +32,7 @@ const expectedRuntime = {
     'start:api': 'node api.mjs',
     'start:worker': 'node worker.mjs',
     'maintain:queue': 'node maintenance.mjs',
+    'db:migrate': 'node migrate.mjs',
   },
   dependencies: { pg: manifest.dependencies.pg, 'pg-boss': manifest.dependencies['pg-boss'] },
 }
@@ -50,6 +51,7 @@ const result = await build({
     api: 'src/api-main.ts',
     worker: 'src/worker-main.ts',
     maintenance: 'src/maintenance-main.ts',
+    migrate: 'src/migrate-main.ts',
     'check-config': 'src/check-config.ts',
     parser: 'src/parsing/index.ts',
     'text-worker': 'src/parsing/text-worker.ts',
@@ -109,6 +111,7 @@ const filenames = [
   'api.mjs',
   'worker.mjs',
   'maintenance.mjs',
+  'migrate.mjs',
   'check-config.mjs',
   'parser.mjs',
   'text-worker.mjs',

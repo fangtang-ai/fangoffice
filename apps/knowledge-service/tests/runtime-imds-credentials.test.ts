@@ -89,7 +89,7 @@ it('refreshes inside the renewal window and shares one inflight refresh', async 
 })
 
 it('denies malformed payloads without caching and recovers on the next refresh', async () => {
-  let now = 0
+  const now = 0
   const { fetch, calls } = stubFetch([
     () => new Response('epoch-fangtang1-ecs-role', { status: 200 }),
     () => new Response(JSON.stringify({ ...CREDENTIALS, SecurityToken: '' }), { status: 200 }),
@@ -108,7 +108,7 @@ it('denies malformed payloads without caching and recovers on the next refresh',
 })
 
 it('denies an already expired payload', async () => {
-  let now = 1_000
+  const now = 1_000
   const { fetch } = stubFetch([
     () => new Response('epoch-fangtang1-ecs-role', { status: 200 }),
     () => new Response(JSON.stringify({ ...CREDENTIALS, Expiration: new Date(0).toISOString() }), { status: 200 }),

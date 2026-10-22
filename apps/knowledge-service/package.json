@@ -18,6 +18,7 @@
     "start:api": "node dist/api.mjs",
     "start:worker": "node dist/worker.mjs",
     "maintain:queue": "node dist/maintenance.mjs",
+    "db:migrate": "node dist/migrate.mjs",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:check": "drizzle-kit check --config drizzle.config.ts",
     "db:apply:local": "node --experimental-strip-types integration/apply-local.mjs",

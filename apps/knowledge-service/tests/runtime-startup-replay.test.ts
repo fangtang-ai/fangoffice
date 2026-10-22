@@ -6,7 +6,7 @@ import {
 } from '../src/runtime'
 import { collectDeletionIntents, deletionIntent, deletionJournalDirectory } from './deletion-journal-fixtures'
 import { localApiConfig, transactionalServicePool } from './runtime-service-fixtures'
-import { accessToken, publicKeySet } from './runtime-auth-fixtures'
+import { publicKeySet } from './runtime-auth-fixtures'
 import { now } from './fixtures'
 
 // 启动重放与 HTTP 删除共用同一配置面，这里只关注监听前的收敛行为。

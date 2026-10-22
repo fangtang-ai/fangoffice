@@ -9,7 +9,8 @@
   "scripts": {
     "start:api": "node api.mjs",
     "start:worker": "node worker.mjs",
-    "maintain:queue": "node maintenance.mjs"
+    "maintain:queue": "node maintenance.mjs",
+    "db:migrate": "node migrate.mjs"
   },
   "dependencies": {
     "pg": "8.23.1",

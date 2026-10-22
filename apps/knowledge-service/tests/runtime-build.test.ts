@@ -41,6 +41,7 @@ it('builds independent Node entries and rejects missing configuration without bu
     'maintenance.env.example',
     'maintenance.mjs',
     'markdown-worker.mjs',
+    'migrate.mjs',
     'package-lock.json',
     'package.json',
     'parser.mjs',
@@ -84,6 +85,7 @@ it('builds independent Node entries and rejects missing configuration without bu
       'start:api': 'node api.mjs',
       'start:worker': 'node worker.mjs',
       'maintain:queue': 'node maintenance.mjs',
+      'db:migrate': 'node migrate.mjs',
     },
     dependencies: {
       pg: servicePackage.dependencies.pg,
@@ -129,6 +131,9 @@ it('builds independent Node entries and rejects missing configuration without bu
   expect(Object.keys(metadata.outputs)).toContain('dist/text-worker.mjs')
   expect(Object.keys(metadata.outputs)).toContain('dist/markdown-worker.mjs')
   expect(metadata.outputs['dist/check-config.mjs']?.imports).toEqual([])
+  expect(
+    Object.keys(metadata.inputs).some((input) => input.includes('src/migrate-main.ts')),
+  ).toBe(true)
   expect(
     Object.keys(metadata.inputs).filter((input) =>
       /(?:^|\/)apps\/shell\/|(?:^|\/)electron(?:\/|$)|(?:^|\/)fangtang-site\/|(?:^|\/)tests\//.test(

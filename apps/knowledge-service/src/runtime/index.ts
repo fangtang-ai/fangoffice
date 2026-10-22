@@ -120,3 +120,10 @@ export {
   type KnowledgeUploadPreparation,
   type KnowledgeUploadPolicy,
 } from './upload-preparation'
+export {
+  migrateKnowledgeDatabase,
+  parseKnowledgeMigrateConfig,
+  type KnowledgeMigrateClient,
+  type KnowledgeMigrateConfig,
+  type KnowledgeMigrateIo,
+} from './migrate'
