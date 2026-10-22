@@ -23,8 +23,38 @@ Shell 的 `createAccountKnowledgeClient()` 惰性工厂复用现有账号会话�
 | `getQuota(options?)`                      | `/quota`                                                             |
 
 目标、分页及响应均经共享运行时契约校验；历史对象必须精确匹配完整请求目标，
-不以另一条合法 DTO 或当前版本代替。上传/修改/删除及其幂等、条件代次留 D 组，
-不临时制造未经契约固定的写入协议。
+不以另一条合法 DTO 或当前版本代替。
+
+E1新增三个固定JSON写动作，沿用同一账号会话和取消/刷新边界：
+
+| 动作                                           | 方法与固定路径（相对 `/api/knowledge`）           |
+| ---------------------------------------------- | ------------------------------------------------- |
+| `createSpace(target, metadata, options?)`      | `PUT /spaces/:space`                              |
+| `createDocument(target, metadata, options?)`   | `PUT /spaces/:space/documents/:document`          |
+| `prepareUpload(target, declaration, options?)` | `POST /spaces/:space/documents/:document/uploads` |
+
+资源UUID由调用方生成后保留，重复创建须metadata一致；上传声明包括
+`operationId/idempotencyKey/expectedGeneration/declaredBytes/format`，generation和bytes
+为精确十进制字符串。保留同一幂等键重试，不能每次生成新键。认证刷新只重发同一
+JSON快照，网络或5xx不自动重发；切换账号则丢弃迟到结果，不跨账号重试。
+`prepareUpload`只返回`uploading`操作及`preparation.status: prepared`、原期限和大小，
+不包含对象key、签名链接或ready承诺；不使用账号Bearer上传对象。真实固定对象授权、
+文件传输与完成上传是独立接缝，不能把此动作当上传完成。
+
+## E1固定对象授权与上传
+
+- `authorizeUpload(target, declaration, options?)`：固定POST到上述资料的
+  `/uploads/authorization`，返回经契约校验的OSS V4表单能力；重放保留原对象与会话期限。
+- `uploadFile(target, declaration, explicitlySelectedBlob, options?)`：先校验Blob精确大小，
+  再取得表单并发送文件；可传Node异步`openAsBlob`产生的文件支持Blob，不需要整份读入内存。
+- 对象目标仅允许规范OSS HTTPS桶主机，表单固定private/forbid-overwrite及操作key。
+  该请求绝不复用账号transport/Authorization/Cookie，也不手设multipart边界、跟随重定向，
+  或为OSS的401刷新账号token；换号/退出/取消/超时停止在途请求并丢弃迟到结果。
+- 只接受对象端204，并返回`transfer.status: uploaded_to_staging`；Operation仍为uploading。
+  没有自动完成上传、Version、入队或ready结果。网络歧义或重复对象409不等于相同文件，
+  需要后续E2服务端流式核验，不自动覆盖或把重发当成功。
+- 真实OSS部署/桶权限/凭据尚未验收；上述路径已用合成对象HTTP端与真实隔离数据库验证，
+  不代表真实资料、模型或客户收费已获授权。
 
 ## 配置与会话边界
 

@@ -1,4 +1,18 @@
 export { KnowledgeContractError } from './validation'
+export {
+  parseKnowledgeUploadAuthorization,
+  type KnowledgeUploadAuthorization,
+} from './upload-authorization'
+export {
+  parseKnowledgeUploadRequest,
+  parseKnowledgeUploadPreparation,
+  parseKnowledgeUploadCompletionRequest,
+  parseKnowledgeUploadCompletion,
+  type KnowledgeUploadRequest,
+  type KnowledgeUploadPreparation,
+  type KnowledgeUploadCompletionRequest,
+  type KnowledgeUploadCompletion,
+} from './uploads'
 export { parseKnowledgeMeteringEvent, type KnowledgeMeteringEvent } from './commerce/metering'
 export {
   parseKnowledgeSettlementSnapshot,

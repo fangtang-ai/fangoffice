@@ -20,12 +20,15 @@ export function createKnowledgeTransport(
     path: string,
     parse: (input: unknown) => Value,
     options: KnowledgeRequestOptions = {},
+    mutation?: { method: 'PUT' | 'POST'; body: object },
   ) => {
     if (closed.aborted) throw new KnowledgeClientError('knowledge:closed')
     const root = endpoint()
     const url = new URL(`${root.href}${path}`)
     const binding = bindAccount(access)
     const lifetime = createRequestLifetime(access, binding, closed, options.signal, timeoutMs)
+    // 认证重试只重发同一快照，不因调用方修改输入而改变幂等请求。
+    const body = mutation ? JSON.stringify(mutation.body) : undefined
     const check = () => {
       lifetime.check()
       if (endpoint().href !== root.href)
@@ -38,8 +41,13 @@ export function createKnowledgeTransport(
           const token = await readToken(access, binding, rejected || undefined)
           check()
           const response = await globalThis.fetch(url, {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+            method: mutation?.method ?? 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: 'application/json',
+              ...(mutation ? { 'Content-Type': 'application/json' } : {}),
+            },
+            body,
             signal: lifetime.signal,
             credentials: 'omit',
             redirect: 'error',

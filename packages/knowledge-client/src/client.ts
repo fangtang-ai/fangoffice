@@ -8,6 +8,8 @@ import {
 } from '@genoffice/knowledge-contract'
 import { createKnowledgeTransport } from './transport'
 import { createHistoryReads } from './reads'
+import { createKnowledgeMutations } from './mutations'
+import { createKnowledgeUploads } from './uploads'
 import type {
   KnowledgeAccountAccess,
   KnowledgeClientOptions,
@@ -26,6 +28,8 @@ export function createKnowledgeClient(
   return {
     close: () => closed.abort(),
     ...createHistoryReads(request),
+    ...createKnowledgeMutations(request),
+    ...createKnowledgeUploads(request, access, closed.signal, timeoutMs),
     async listDocuments(
       input: unknown,
       pageInput: unknown = {},
