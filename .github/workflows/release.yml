@@ -9,9 +9,13 @@ name: Release
 # Publishing (scripts/stage-release.cjs) renames Chinese-named artifacts to
 # ASCII, rewrites the electron-updater feeds, uploads installers first and
 # feeds last to the OSS update bucket, then verifies both anonymously. The
-# GitHub Release gets the same staged files. OSS upload degrades to a
-# warning when the ALIBABA_CLOUD_* secrets are not configured, so a release
-# can still go out via GitHub while OSS access is being fixed.
+# GitHub Release gets the same staged files. OSS upload is mandatory: the
+# script hard-fails when the aliyun CLI or credentials are missing, because
+# auto-updaters and the download page read the OSS feeds — a GitHub-only
+# release would be invisible to every installed client. Only the stable
+# channel creates a GitHub Release: beta shares the production factory
+# config but must never clobber stable assets on the same v<version> tag,
+# and test ships to the test site only.
 
 on:
   push:
@@ -22,7 +26,9 @@ on:
         description: >-
           OSS update channel (baked into the auto-update feed URL). test =
           test-site line (test factory config, FangTangOffice-Test-* artifacts, no
-          GitHub release); stable/beta = production line (needs the
+          GitHub release); beta = production line without a GitHub release
+          (same config, avoids clobbering stable assets on the shared tag);
+          stable = production line with GitHub release (needs the
           FANGTANG_DEFAULTS_PROD_JSON secret).
         type: choice
         default: stable
@@ -168,12 +174,14 @@ jobs:
         run: node scripts/stage-release.cjs --artifacts dist --channel "$CHANNEL" --publish
 
       - name: Publish GitHub release
-        # test-channel builds ship to the test site only — never a public release
-        if: env.CHANNEL != 'test'
+        # stable only: beta and stable share the v<version> tag, and a beta
+        # upload with --clobber would swap the public stable assets; test
+        # builds ship to the test site only
+        if: env.CHANNEL == 'stable'
         run: |
           VERSION=$(node -p "require('./apps/shell/package.json').version")
           TAG="v$VERSION"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --target "$GITHUB_SHA" --title "方塘Office $TAG" --generate-notes
           fi
-          gh release upload "$TAG" dist/* --clobber
+          find dist -maxdepth 1 -type f ! -name 'fangtang-build-env.txt' -exec gh release upload "$TAG" --clobber {} +

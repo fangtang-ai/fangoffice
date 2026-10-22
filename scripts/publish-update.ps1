@@ -61,22 +61,12 @@ if (-not $SkipBuild) {
     $env:FANGTANG_UPDATE_URL = $HttpBase
 }
 
-# deployment-line guard (same rule as stage-release.cjs): with -SkipBuild the
-# artifacts may predate this run's channel choice — never cross the lines.
-# (Without -SkipBuild the fresh build just derived its env from $Channel, so
-# the freshly written marker is matching by construction.)
-if ($SkipBuild) {
-    $marker = Join-Path $RepoRoot "$BuildDir/fangtang-build-env.txt"
-    if (Test-Path $marker) {
-        $built = (Get-Content $marker -Raw).Trim()
-        $need = if ($Channel -eq 'test') { 'test' } else { 'production' }
-        if ($built -ne $need) {
-            throw "artifacts in $BuildDir were built for the '$built' line but -Channel $Channel publishes the '$need' line — rebuild with matching FANGTANG_BUILD_ENV"
-        }
-    }
-}
+# Share the fail-closed check with CI, including publish-only runs.
+node scripts/stage-release.cjs --artifacts $env:BUILD_DIR --channel $Channel --check-env
+if ($LASTEXITCODE -ne 0) { throw "build environment verification failed; rebuild for -Channel $Channel" }
 
-$installerSrc = Join-Path $RepoRoot "$BuildDir/方塘Office Setup $version.exe"
+$productName = if ($Channel -eq 'test') { '方塘Office-Test' } else { '方塘Office' }
+$installerSrc = Join-Path $RepoRoot "$BuildDir/$productName Setup $version.exe"
 $ymlPath = Join-Path $RepoRoot "$BuildDir/latest.yml"
 foreach ($f in @($installerSrc, $ymlPath)) {
     if (-not (Test-Path $f)) { throw "missing build artifact: $f" }
@@ -95,11 +85,11 @@ $yml = [IO.File]::ReadAllText($ymlPath, [Text.Encoding]::UTF8)
 if ($yml -notmatch [regex]::Escape("path: $installerName")) {
     # PS 5.1: read/write as UTF-8 explicitly (no-BOM) — ANSI default would mojibake
     # the Chinese name and the rewrite would silently no-op.
-    if ($yml -notmatch [regex]::Escape("path: 方塘Office Setup $version.exe")) {
+    if ($yml -notmatch [regex]::Escape("path: $productName Setup $version.exe")) {
         throw "latest.yml carries neither the Chinese nor the expected ASCII path; refusing to publish"
     }
-    $yml = $yml -replace [regex]::Escape("path: 方塘Office Setup $version.exe"), "path: $installerName"
-    $yml = $yml -replace [regex]::Escape("url: 方塘Office Setup $version.exe"), "url: $installerName"
+    $yml = $yml -replace [regex]::Escape("path: $productName Setup $version.exe"), "path: $installerName"
+    $yml = $yml -replace [regex]::Escape("url: $productName Setup $version.exe"), "url: $installerName"
     [IO.File]::WriteAllText($ymlPath, $yml, [Text.UTF8Encoding]::new($false))
 }
 

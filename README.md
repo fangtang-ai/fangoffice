@@ -247,6 +247,48 @@ mcpServers: erp, wiki # 可选：该技能可调用的内置 MCP 服务器
 
 无 frontmatter 时，文件名（去 `.md`）即 id 与显示名。某应用目录存在任意 `.md` 文件时整体替换该应用内置技能；`userData/presets/<app>/*.md` 按 id 覆盖/新增，无需重打包。各应用的启用/停用开关在 设置 → 技能。
 
+## Release Environments
+
+`FANGTANG_BUILD_ENV` defaults to `test`. Test builds use
+`apps/shell/resources/fangtang-defaults.json`, the `com.fangtang.app.test` app ID,
+and the `方塘Office-Test` product name. Production builds require
+`FANGTANG_BUILD_ENV=production` and the gitignored
+`apps/shell/resources/fangtang-defaults.prod.json`; CI creates that file from
+the `FANGTANG_DEFAULTS_PROD_JSON` secret. The production app ID and product name
+remain `com.fangtang.app` and `方塘Office`.
+
+The packaged product names select separate Electron user-data directories, so
+login sessions, settings, recent files, Chromium storage and single-instance
+locks are independent. The test build also uses a separate updater cache,
+Linux executable, desktop entry and `fangtang-office-test` package name. Existing
+test installs that used the production identity are not migrated automatically;
+new test builds start with a separate profile.
+
+When auto-update is enabled, `FANGTANG_UPDATE_URL` must be an HTTPS base URL
+without credentials, query parameters or fragments. Its final path component
+must be `test` for a test build, or `stable` / `beta` for a production build.
+Leaving the URL unset disables auto-update. Manual-update fallbacks preserve
+the deployment line, including macOS feeds that list ZIPs but omit DMGs.
+
+Use `npm run dist:win`, `npm run dist:mac` or `npm run dist:linux` to package a
+release. These commands write `fangtang-build-env.txt` only after the builder
+and its update-feed tasks succeed. Calling `electron-builder` directly does
+not certify a release. Both `scripts/stage-release.cjs` and
+`scripts/publish-update.ps1` refuse artifacts with a missing or mismatched
+marker, including publish-only runs. Staging retains the marker for retries,
+but neither OSS nor GitHub Releases receive it. Old unmarked artifacts must
+be rebuilt rather than reused.
+
+For example, in PowerShell:
+
+```powershell
+# Local test build without publishing.
+$env:FANGTANG_BUILD_ENV = 'test'
+$env:FANGTANG_UPDATE_URL = 'https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test'
+npm run dist:win
+node scripts/stage-release.cjs --artifacts dist --channel test
+```
+
 ## FAQ
 
 **Is 方塘Office free?**
