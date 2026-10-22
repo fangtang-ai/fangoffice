@@ -1,0 +1,5 @@
+ALTER TABLE "knowledge"."kb_operations" ADD COLUMN "current_job_id" uuid;--> statement-breakpoint
+ALTER TABLE "knowledge"."kb_operations" ADD COLUMN "current_retry_count" integer;--> statement-breakpoint
+ALTER TABLE "knowledge"."kb_operations" ADD COLUMN "current_build_id" uuid;--> statement-breakpoint
+ALTER TABLE "knowledge"."kb_operations" ADD COLUMN "current_receipt_id" uuid;--> statement-breakpoint
+ALTER TABLE "knowledge"."kb_operations" ADD CONSTRAINT "kb_operations_current_binding_check" CHECK (("knowledge"."kb_operations"."current_job_id" IS NULL AND "knowledge"."kb_operations"."current_retry_count" IS NULL AND "knowledge"."kb_operations"."current_build_id" IS NULL AND "knowledge"."kb_operations"."current_receipt_id" IS NULL) OR ("knowledge"."kb_operations"."current_job_id" IS NOT NULL AND "knowledge"."kb_operations"."current_retry_count" IS NOT NULL AND "knowledge"."kb_operations"."current_retry_count" >= 0 AND "knowledge"."kb_operations"."current_build_id" IS NOT NULL AND "knowledge"."kb_operations"."current_receipt_id" IS NOT NULL));

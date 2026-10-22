@@ -1,0 +1,2 @@
+CREATE INDEX "kb_metering_events_embedding_attempt_idx" ON "knowledge"."kb_metering_events" USING btree ("owner_id","attempt_id","id") WHERE "knowledge"."kb_metering_events"."dimension" = 'embedding';--> statement-breakpoint
+CREATE UNIQUE INDEX "kb_metering_events_embedding_successor_unique" ON "knowledge"."kb_metering_events" USING btree ("owner_id","supersedes_event_id") WHERE "knowledge"."kb_metering_events"."dimension" = 'embedding' AND "knowledge"."kb_metering_events"."event_type" = 'correction';
