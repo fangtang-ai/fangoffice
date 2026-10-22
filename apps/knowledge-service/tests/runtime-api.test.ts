@@ -26,7 +26,10 @@ it('listens only after the dedicated probe and exposes no fabricated business da
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ status: 'ready' })
     expect(response.headers.get('Cache-Control')).toBe('no-store')
-    expect((await fetch(`${service.origin}/api/knowledge/spaces`, { headers })).status).toBe(404)
+    const unavailable = await fetch(`${service.origin}/api/knowledge/spaces`, { headers })
+    expect(unavailable.status).toBe(503)
+    expect(await unavailable.json()).toEqual({ code: 'SERVICE_UNAVAILABLE', requestId: null })
+    expect(pool.connect).toHaveBeenCalledOnce()
     expect(transport).toHaveBeenCalledOnce()
   } finally {
     await service.close()

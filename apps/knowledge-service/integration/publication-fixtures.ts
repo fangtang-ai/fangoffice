@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
 import {
+  bindOperationAttempt,
   claimBuild,
   resolveQueueBuild,
   reserveInitialCapacity,
@@ -62,16 +63,15 @@ export async function admitPublication(fixture: CapacityFixture) {
 export async function preparePublication(fixture: CapacityFixture) {
   await admitPublication(fixture)
   const context = await publicationTransaction(fixture, async (transaction) => {
-    const build = await resolveQueueBuild(
-      transaction,
-      { id: fixture.id, retryCount: 0 },
-      {
-        ownerId: fixture.owners[0],
-        operationId: fixture.id,
-        buildId: fixture.id,
-        receiptId: fixture.id,
-      },
-    )
+    const job = { id: fixture.id, retryCount: 0 }
+    const envelope = {
+      ownerId: fixture.owners[0],
+      operationId: fixture.id,
+      buildId: fixture.id,
+      receiptId: fixture.id,
+    }
+    await bindOperationAttempt(transaction, job, envelope)
+    const build = await resolveQueueBuild(transaction, job, envelope)
     await sealBuild(transaction, build, {})
     return build
   })

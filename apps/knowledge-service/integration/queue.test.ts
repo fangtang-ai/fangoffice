@@ -20,7 +20,7 @@ const pgBossVersion =
       dependencies: Record<string, string>
       devDependencies: Record<string, string>
     }
-  ).devDependencies['pg-boss'] ?? ''
+  ).dependencies['pg-boss'] ?? ''
 
 type QueueDatabase = NonNullable<ConstructorParameters<typeof PgBoss>[0]>['db']
 

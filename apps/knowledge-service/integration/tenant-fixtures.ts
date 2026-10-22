@@ -224,7 +224,8 @@ export async function removeTenants(fixture: Awaited<ReturnType<typeof seedTenan
         fixture.owners,
       ])
     await client.query(
-      `UPDATE knowledge.kb_operations SET target_version_id = NULL, phase = 'cancelled', error_code = NULL
+      `UPDATE knowledge.kb_operations SET target_version_id = NULL, phase = 'cancelled', error_code = NULL,
+      upload_job_id = NULL, upload_queue_name = NULL
       WHERE owner_id = ANY($1::text[])`,
       [fixture.owners],
     )

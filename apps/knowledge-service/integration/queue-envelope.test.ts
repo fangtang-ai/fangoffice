@@ -3,7 +3,11 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import { PgBoss } from 'pg-boss'
 import { KnowledgePolicyError } from '../src/errors'
 import { createKnowledgePrincipal } from '../src/identity'
-import { parseQueueEnvelope, resolveQueueBuild } from '../src/runtime/queue-envelope'
+import {
+  bindOperationAttempt,
+  parseQueueEnvelope,
+  resolveQueueBuild,
+} from '../src/runtime/queue-envelope'
 import type { KnowledgeTransaction } from '../src/runtime/transaction'
 import { withKnowledgeTransaction } from '../src/runtime/transaction'
 import { openLocalDatabase } from './local-database'
@@ -110,12 +114,18 @@ it('resolves a valid envelope to the trusted build context inside the worker tra
     const resolved = await withKnowledgeTransaction(
       worker.pool,
       principal(fixture.owners[0]),
-      (transaction) =>
-        resolveQueueBuild(
+      async (transaction) => {
+        await bindOperationAttempt(
+          transaction,
+          { id: jobId, retryCount: 0 },
+          envelopeFor(fixture.owners[0], buildId),
+        )
+        return resolveQueueBuild(
           transaction,
           { id: jobId, retryCount: 0 },
           parseQueueEnvelope(envelopeFor(fixture.owners[0], buildId)),
-        ),
+        )
+      },
     )
     expect(resolved).toEqual({
       ownerId: fixture.owners[0],

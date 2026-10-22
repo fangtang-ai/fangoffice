@@ -12,7 +12,7 @@ export async function withCapacityRace(
     waiterPid: number
   }) => Promise<void>,
   waiterRole: 'api' | 'worker' = 'api',
-  writerRole: 'api' | 'worker' = 'api',
+  writerRole: 'api' | 'worker' | 'bootstrap' = 'api',
 ) {
   await withCapacityFixture(async (fixture) => {
     const pools: Pool[] = []

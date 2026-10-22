@@ -8,6 +8,7 @@ import {
 } from '../src/runtime'
 import { cancellationState } from './cancellation-fixtures'
 import { expectBlocked } from './build-race-fixtures'
+import { bindSeedBuild } from './build-fixtures'
 import { addCapacityUpload, capacityInput, capacityTransaction } from './capacity-fixtures'
 import { withCapacityRace } from './capacity-race-fixtures'
 
@@ -137,6 +138,12 @@ it('waits for a content writer before invalidation and rejects its next append',
     await capacityTransaction(fixture, (transaction) =>
       reserveInitialCapacity(transaction, capacityInput(fixture)),
     )
+    await capacityTransaction(
+      fixture,
+      (transaction) => bindSeedBuild(transaction, fixture),
+      fixture.owners[0],
+      'worker',
+    )
     const context = { ownerId: fixture.owners[0], buildId: fixture.id }
     const chunk = {
       id: randomUUID(),
@@ -160,7 +167,7 @@ it('waits for a content writer before invalidation and rejects its next append',
       }),
     ).rejects.toMatchObject({
       code: '23514',
-      constraint: 'kb_build_writable',
+      constraint: 'kb_build_current_attempt',
     })
   }, 'worker')
 })

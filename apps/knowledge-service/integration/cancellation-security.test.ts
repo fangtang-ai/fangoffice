@@ -287,7 +287,7 @@ it.each(['sourceUnits', 'chunks', 'chunkSources', 'embeddings'] as const)(
             { ownerId: fixture.owners[0], buildId: fixture.id },
             { [kind]: content[kind] },
           ),
-        ).rejects.toMatchObject({ code: '23514', constraint: 'kb_build_writable' })
+        ).rejects.toMatchObject({ code: '23514', constraint: 'kb_build_current_attempt' })
       })
     })
   },

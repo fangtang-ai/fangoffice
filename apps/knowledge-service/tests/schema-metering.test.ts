@@ -3,6 +3,34 @@ import { expect, it } from 'vitest'
 import { kbBillingReceipts, kbMeteringEvents } from '../src/schema'
 import { checksOf, foreignKeysOf, primaryColumns } from './schema-fixtures'
 
+it('indexes each embedding attempt and prevents correction branches', () => {
+  for (const [name, columns, unique] of [
+    ['kb_metering_events_embedding_attempt_idx', ['owner_id', 'attempt_id', 'id'], false],
+    ['kb_metering_events_embedding_successor_unique', ['owner_id', 'supersedes_event_id'], true],
+  ] as const) {
+    const index = getTableConfig(kbMeteringEvents).indexes.find(
+      (entry) => entry.config.name === name,
+    )
+    expect(index?.config.unique).toBe(unique)
+    expect(index?.config.where).toBeDefined()
+    expect(index?.config.columns.map((column) => ('name' in column ? column.name : null))).toEqual(
+      columns,
+    )
+  }
+})
+
+it('indexes and uniquely identifies each owner storage observation window', () => {
+  const window = getTableConfig(kbMeteringEvents).indexes.find(
+    (index) => index.config.name === 'kb_metering_events_storage_window_unique',
+  )
+  expect(window?.config.unique).toBe(true)
+  expect(window?.config.where).toBeDefined()
+  expect(window?.config.columns.map((column) => ('name' in column ? column.name : null))).toEqual([
+    'owner_id',
+    'window_start',
+  ])
+})
+
 it('keeps exact metering quantities, unknown usage and optional query subjects distinct', () => {
   expect(primaryColumns(kbMeteringEvents)).toEqual(['owner_id', 'id'])
   expect(kbMeteringEvents.quantity.getSQLType()).toBe('numeric(38, 0)')

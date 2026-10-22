@@ -9,8 +9,9 @@ import {
   writeBuildContent,
 } from '../src/runtime'
 import { expectBlocked } from './build-race-fixtures'
+import { bindSeedBuild } from './build-fixtures'
 import { withCapacityRace } from './capacity-race-fixtures'
-import { admitPublication, publicationState } from './publication-fixtures'
+import { admitPublication, publicationState, publicationTransaction } from './publication-fixtures'
 
 const sourceUnit = () => ({
   id: randomUUID(),
@@ -60,6 +61,7 @@ it.each(['content', 'seal'] as const)(
     await withCapacityRace(
       async ({ fixture, writer, waiter, observer, writerPid, waiterPid }) => {
         await admitPublication(fixture)
+        await publicationTransaction(fixture, (transaction) => bindSeedBuild(transaction, fixture))
         const context = await resolveQueueBuild(
           writer,
           { id: fixture.id, retryCount: 0 },
@@ -99,6 +101,9 @@ for (const entry of ['content', 'seal'] as const) {
       await withCapacityRace(
         async ({ fixture, writer, waiter, observer, writerPid, waiterPid }) => {
           await admitPublication(fixture)
+          await publicationTransaction(fixture, (transaction) =>
+            bindSeedBuild(transaction, fixture),
+          )
           const context = { ownerId: fixture.owners[0], buildId: fixture.id }
           await cancelCapacityReservation(writer, fixture.id)
           const waiting = (
@@ -127,6 +132,7 @@ for (const entry of ['content', 'seal'] as const) {
 it('serializes two same-owner worker seals without a SHARE-to-UPDATE upgrade deadlock', async () => {
   await withCapacityRace(
     async ({ fixture, writer, waiter, observer, writerPid, waiterPid }) => {
+      await publicationTransaction(fixture, (transaction) => bindSeedBuild(transaction, fixture))
       const context = { ownerId: fixture.owners[0], buildId: fixture.id }
       await sealBuild(writer, context, {})
       const sealing = sealBuild(waiter, context, {}).then(
@@ -147,6 +153,7 @@ it('rolls back a controlled seal and publication together after a later SQL fail
   await withCapacityRace(
     async ({ fixture, writer, observer }) => {
       await admitPublication(fixture)
+      await publicationTransaction(fixture, (transaction) => bindSeedBuild(transaction, fixture))
       const context = await resolveQueueBuild(
         writer,
         { id: fixture.id, retryCount: 0 },

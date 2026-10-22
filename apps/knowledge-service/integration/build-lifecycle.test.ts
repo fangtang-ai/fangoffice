@@ -473,9 +473,14 @@ it('replays publishing the same build without advancing the generation twice', a
 it('refuses publishing a build claimed at a stale generation', async () => {
   const worker = await openLocalDatabase('worker')
   try {
-    // 同代数并发认领的两个尝试：先发布者胜出，后发布者代数已陈旧。
+    // 保留历史未绑定构建作为迟到反例；新worker已不能并行认领第二个attempt。
     const winner = await claimAndSeal(fixture.owners[0])
-    const stale = await claimAndSeal(fixture.owners[0])
+    await bootstrapExec(
+      `UPDATE knowledge.kb_builds SET status = 'sealed', sealed_at = now(), manifest = '{}'
+        WHERE owner_id = $1 AND id = $2`,
+      [fixture.owners[0], fixture.id],
+    )
+    const stale = { ...winner, buildId: fixture.id }
     await admit(fixture.owners[0], winner)
     await withKnowledgeTransaction(worker.pool, principal(fixture.owners[0]), (transaction) =>
       publishBuild(transaction, winner),

@@ -40,3 +40,37 @@ it('keeps bounded sequential health probes and stops after database failure', as
     vi.useRealTimers()
   }
 })
+
+it('cleans up its database when queue setup is rejected', async () => {
+  const pool = syntheticPool('knowledge_worker')
+  const config = parseKnowledgeRuntimeConfig(environment, 'worker')
+  if (config.role !== 'worker') throw new Error('expected worker config')
+  await expect(
+    startKnowledgeWorker(config, {
+      poolFactory: () => pool,
+      queue: { name: 'invalid-queue-name', handle: async () => {} },
+    }),
+  ).rejects.toMatchObject({ code: 'NOT_CONFIGURED' })
+  expect(pool.end).toHaveBeenCalledOnce()
+})
+
+it('fails the worker and closes its pool when queue polling fails', async () => {
+  const pool = syntheticPool('knowledge_worker')
+  const identity = await pool.query('synthetic identity fixture')
+  pool.query
+    .mockReset()
+    .mockResolvedValueOnce(identity)
+    .mockRejectedValue(new Error('synthetic-private-driver-error'))
+  const config = parseKnowledgeRuntimeConfig(environment, 'worker')
+  if (config.role !== 'worker') throw new Error('expected worker config')
+  const worker = await startKnowledgeWorker(config, {
+    poolFactory: () => pool,
+    queue: { name: 'synthetic_queue', handle: async () => {} },
+  })
+  try {
+    expect(await worker.finished).toEqual({ code: 'SERVICE_UNAVAILABLE' })
+    expect(pool.end).toHaveBeenCalledOnce()
+  } finally {
+    await worker.close().catch(() => undefined)
+  }
+})

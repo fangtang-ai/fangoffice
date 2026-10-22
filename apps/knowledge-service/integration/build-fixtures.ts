@@ -1,8 +1,22 @@
 import { randomUUID } from 'node:crypto'
 import type { PoolClient } from 'pg'
+import { bindOperationAttempt, type KnowledgeTransaction } from '../src/runtime'
 import type { seedTenants } from './tenant-fixtures'
 
 export type BuildFixture = Awaited<ReturnType<typeof seedTenants>>
+
+export async function bindSeedBuild(transaction: KnowledgeTransaction, fixture: BuildFixture) {
+  await bindOperationAttempt(
+    transaction,
+    { id: fixture.id, retryCount: 0 },
+    {
+      ownerId: fixture.owners[0],
+      operationId: fixture.id,
+      buildId: fixture.id,
+      receiptId: fixture.id,
+    },
+  )
+}
 export const contentTables = [
   'kb_source_units',
   'kb_chunks',

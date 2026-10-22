@@ -95,7 +95,7 @@ it('allows a fresh retry worker at the new generation while old and recancelled 
             },
           ],
         }),
-      ).rejects.toMatchObject({ code: '23514', constraint: 'kb_build_writable' })
+      ).rejects.toMatchObject({ code: '23514', constraint: 'kb_build_current_attempt' })
     })
   })
 })

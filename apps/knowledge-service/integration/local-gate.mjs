@@ -81,24 +81,28 @@ export async function applyLocalGate(label, guard, prerequisites = [], schemaFil
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended('knowledge:local-gates', 0))",
       )
-      // 新函数按签名防重放；纯ACL授予/撤销按变更前权限防重放，不造标记函数。
+      // Existing-function fixes require the original source fragment; no marker function or ACL change.
       const existing =
         typeof guard === 'string'
           ? await client.query('SELECT to_regprocedure($1) AS existing', [guard])
-          : 'column' in guard
-            ? await client.query("SELECT has_column_privilege($1, $2, $3, 'UPDATE') AS existing", [
-                guard.role,
-                guard.table,
-                guard.column,
-              ])
-            : await client.query("SELECT has_function_privilege($1, $2, 'EXECUTE') AS existing", [
-                guard.role,
-                guard.signature,
-              ])
+          : 'source' in guard
+            ? await client.query(
+                'SELECT position($2 IN prosrc) > 0 AS existing FROM pg_proc WHERE oid=to_regprocedure($1)',
+                [guard.signature, guard.source],
+              )
+            : 'column' in guard
+              ? await client.query(
+                  "SELECT has_column_privilege($1, $2, $3, 'UPDATE') AS existing",
+                  [guard.role, guard.table, guard.column],
+                )
+              : await client.query("SELECT has_function_privilege($1, $2, 'EXECUTE') AS existing", [
+                  guard.role,
+                  guard.signature,
+                ])
       if (
         typeof guard === 'string'
           ? existing.rows[0]?.existing !== null
-          : existing.rows[0]?.existing !== 'column' in guard
+          : existing.rows[0]?.existing !== ('column' in guard || 'source' in guard)
       )
         throw new Error(`Refusing to replay the ${label} migration`)
       const tables = await client.query(`SELECT relname::text, relrowsecurity, relforcerowsecurity,

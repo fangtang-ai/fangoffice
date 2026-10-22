@@ -5,7 +5,12 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { afterAll, beforeAll, expect, it } from 'vitest'
-import { changeBuild, closedBuildStates, prepareContentInsert } from './build-fixtures'
+import {
+  bindSeedBuild,
+  changeBuild,
+  closedBuildStates,
+  prepareContentInsert,
+} from './build-fixtures'
 import { localDirectory, localSettings, roleNames, serviceDirectory } from './local-database'
 import { inRoleTransaction, removeTenants, seedTenants } from './tenant-fixtures'
 
@@ -126,6 +131,7 @@ function workerInsert() {
 }
 it('enforces the worker content gate without direct build UPDATE privileges', async () => {
   await inRoleTransaction('bootstrap', fixture.owners[0], async (client) => {
+    await bindSeedBuild(client, fixture)
     const insert = workerInsert()
     await client.query(`SET LOCAL ROLE ${roleNames.worker}`)
     expect(
@@ -230,6 +236,7 @@ it('denies direct runtime publication and retains the underlying publication tri
     })
 
   await inRoleTransaction('bootstrap', fixture.owners[0], async (client) => {
+    await bindSeedBuild(client, fixture)
     await changeBuild(client, fixture, closedBuildStates.sealed)
     // admission 面：desired 指针与发布窗口由 bootstrap 维护（写入方无授权）。
     await client.query(

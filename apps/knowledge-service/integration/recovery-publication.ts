@@ -42,6 +42,14 @@ export async function verifyRestoredPublication() {
     await publisher.query("SELECT set_config('knowledge.owner_id', $1, true)", [fixture.owners[0]])
     expect(
       (
+        await publisher.query(
+          'SELECT knowledge.bind_operation_attempt($1, $2, $2, $2, 0, $2) AS status',
+          [fixture.owners[0], fixture.id],
+        )
+      ).rows,
+    ).toEqual([{ status: 'BOUND' }])
+    expect(
+      (
         await publisher.query("SELECT knowledge.seal_locked_build($1, $2, '{}', now()) AS status", [
           fixture.owners[0],
           fixture.id,

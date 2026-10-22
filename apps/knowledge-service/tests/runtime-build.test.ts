@@ -28,7 +28,7 @@ it('builds independent Node entries and rejects missing configuration without bu
     schemaVersion: 1,
     nodeTarget: '22.13.0',
     serviceVersion: '0.1.0',
-    externalDependencies: { pg: '8.23.1' },
+    externalDependencies: { pg: '8.23.1', 'pg-boss': '12.37.1' },
   })
   const lock = await readFile(new URL('../../../package-lock.json', import.meta.url))
   expect(manifest.lockSha256).toBe(createHash('sha256').update(lock).digest('hex'))
@@ -38,6 +38,8 @@ it('builds independent Node entries and rejects missing configuration without bu
     'api.env.example',
     'api.mjs',
     'check-config.mjs',
+    'maintenance.env.example',
+    'maintenance.mjs',
     'markdown-worker.mjs',
     'package-lock.json',
     'package.json',
@@ -58,7 +60,7 @@ it('builds independent Node entries and rejects missing configuration without bu
   const servicePackage: {
     version: string
     engines: { node: string }
-    dependencies: { pg: string }
+    dependencies: { pg: string; 'pg-boss': string }
   } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
   const lockedPackages: { packages: Record<string, { engines?: { node: string } }> } = JSON.parse(
     lock.toString('utf8'),
@@ -78,8 +80,15 @@ it('builds independent Node entries and rejects missing configuration without bu
     private: true,
     type: 'module',
     engines: servicePackage.engines,
-    scripts: { 'start:api': 'node api.mjs', 'start:worker': 'node worker.mjs' },
-    dependencies: { pg: servicePackage.dependencies.pg },
+    scripts: {
+      'start:api': 'node api.mjs',
+      'start:worker': 'node worker.mjs',
+      'maintain:queue': 'node maintenance.mjs',
+    },
+    dependencies: {
+      pg: servicePackage.dependencies.pg,
+      'pg-boss': servicePackage.dependencies['pg-boss'],
+    },
   })
   const runtimeLock: {
     lockfileVersion: number
@@ -89,7 +98,10 @@ it('builds independent Node entries and rejects missing configuration without bu
   expect(runtimeLock.packages['']).toMatchObject({
     version: servicePackage.version,
     engines: servicePackage.engines,
-    dependencies: { pg: servicePackage.dependencies.pg },
+    dependencies: {
+      pg: servicePackage.dependencies.pg,
+      'pg-boss': servicePackage.dependencies['pg-boss'],
+    },
   })
   for (const [path, entry] of Object.entries(runtimeLock.packages)) {
     if (!path) continue
@@ -128,11 +140,12 @@ it('builds independent Node entries and rejects missing configuration without bu
     Object.values(metadata.outputs)
       .flatMap((output) => output.imports)
       .filter((entry) => entry.external)
-      .every((entry) => entry.path === 'pg' || entry.path.startsWith('node:')),
+      .every((entry) => ['pg', 'pg-boss'].includes(entry.path) || entry.path.startsWith('node:')),
   ).toBe(true)
   const runtimeDirectory = await installedRuntimePackage(directory, Object.keys(manifest.artifacts))
   const installed = await readdir(join(runtimeDirectory, 'node_modules'))
   expect(installed).toContain('pg')
+  expect(installed).toContain('pg-boss')
   for (const unwanted of ['pdfjs-dist', 'pdf-lib', 'electron', 'typescript', 'vitest'])
     expect(installed).not.toContain(unwanted)
   const env = {
@@ -210,7 +223,7 @@ it('builds independent Node entries and rejects missing configuration without bu
     pdfText: 'Runtime PDF smoke',
     pdfStatus: 'complete',
   })
-  for (const role of ['api', 'worker']) {
+  for (const role of ['api', 'worker', 'maintenance']) {
     const result = await execute(process.execPath, [`${role}.mjs`], {
       cwd: runtimeDirectory,
       env,

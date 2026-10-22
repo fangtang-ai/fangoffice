@@ -15,6 +15,8 @@ interface GateReceipt {
 for (const [label, previous] of [
   ['worker-lock-order', 'capacity-publish'],
   ['worker-phase-lock', 'worker-lock-order'],
+  ['operation-attempt-binding', 'worker-phase-lock'],
+  ['operation-attempt-fence', 'operation-attempt-binding'],
 ]) {
   it(`records ${label} as an independent immutable supplement after ${previous}`, async () => {
     const receipt = JSON.parse(
@@ -25,7 +27,12 @@ for (const [label, previous] of [
     ) as GateReceipt
     expect(receipt.instanceId).toBe((await localSettings()).instanceId)
     expect(receipt.baseline).toEqual([...prior.baseline, ...prior.artifacts])
-    expect(receipt.artifacts.map((artifact) => artifact.name)).toEqual([`security/${label}.sql`])
+    expect(receipt.artifacts.map((artifact) => artifact.name)).toEqual([
+      ...(label === 'operation-attempt-binding'
+        ? ['drizzle/0002_operation_attempt_binding.sql']
+        : []),
+      `security/${label}.sql`,
+    ])
     for (const artifact of [...receipt.baseline, ...receipt.artifacts])
       expect(
         createHash('sha256')
@@ -50,6 +57,8 @@ for (const [label, previous] of [
       'capacity-publish',
       'worker-lock-order',
       'worker-phase-lock',
+      'operation-attempt-binding',
+      'operation-attempt-fence',
     ]
     const receipts = () =>
       Promise.all(

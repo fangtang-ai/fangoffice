@@ -1,13 +1,32 @@
 import { execFile } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { createHash, randomUUID } from 'node:crypto'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import type { Pool } from 'pg'
 import { expect, it } from 'vitest'
+import type { KnowledgeDeletionIntent } from '../src/deletion/intent'
+import {
+  applyKnowledgeDeletionIntent,
+  createFileDeletionJournal,
+  createKnowledgeReplayPrincipal,
+  replayKnowledgeDeletionJournal,
+  withKnowledgeTransaction,
+} from '../src/runtime'
 import { localDirectory, openLocalDatabase, tenantTables } from './local-database'
 import { verifyRestoredCapacity } from './recovery-capacity'
+import { prepareEmbeddingRecovery, verifyRestoredEmbedding } from './recovery-embedding'
+import { prepareUploadRecovery, verifyRestoredUpload } from './recovery-upload'
+import {
+  prepareUploadCompletionRecovery,
+  verifyRestoredUploadCompletion,
+} from './recovery-upload-completion'
 import { verifyRestoredPublication } from './recovery-publication'
+import {
+  prepareStorageWindowRecovery,
+  verifyRestoredStorageWindow,
+} from './recovery-storage-window'
 import { removeTenants, seedTenants } from './tenant-fixtures'
 
 const run = promisify(execFile)
@@ -66,11 +85,18 @@ it('restores a real custom-format backup into a new marked local database with d
   let runtime: Pool | undefined
   const backupDirectory = resolve(localDirectory, 'backups')
   const dump = resolve(backupDirectory, `knowledge-${Date.now()}.dump`)
+  let storage: Awaited<ReturnType<typeof prepareStorageWindowRecovery>> | undefined
+  let upload: Awaited<ReturnType<typeof prepareUploadRecovery>> | undefined
+  let completion: Awaited<ReturnType<typeof prepareUploadCompletionRecovery>> | undefined
   try {
     const existing = await source.query('SELECT datname FROM pg_database WHERE datname = $1', [
       restoreDatabase,
     ])
     expect(existing.rows, 'refuses to overwrite an existing restore database').toEqual([])
+    storage = await prepareStorageWindowRecovery()
+    const embedding = await prepareEmbeddingRecovery(fixture)
+    upload = await prepareUploadRecovery()
+    completion = await prepareUploadCompletionRecovery()
     const expected = await fingerprint(source)
     await mkdir(backupDirectory, { recursive: true })
     const environment = {
@@ -107,7 +133,11 @@ it('restores a real custom-format backup into a new marked local database with d
     expect(await fingerprint(restored)).toEqual(expected)
     expect(await fingerprint(source)).toEqual(expected)
     expect(expected.triggers).toHaveLength(15)
-    expect(expected.functions).toHaveLength(16)
+    expect(expected.functions).toHaveLength(31)
+    await verifyRestoredStorageWindow(storage)
+    await verifyRestoredEmbedding(embedding)
+    await verifyRestoredUpload(upload)
+    await verifyRestoredUploadCompletion(completion)
     await restored.query('BEGIN')
     await expect(
       restored.query(
@@ -143,6 +173,66 @@ it('restores a real custom-format backup into a new marked local database with d
     await runtime.query('ROLLBACK')
     await verifyRestoredCapacity(restored, runtime, fixture)
     await verifyRestoredPublication()
+    // I1 独立删除日志重放：备份先于意图 → 恢复库仅凭文件日志收敛（PG中断场景），幂等且不复活。
+    const journalDirectory = await mkdtemp(join(tmpdir(), 'kb-recovery-journal-'))
+    try {
+      const journal = await createFileDeletionJournal(journalDirectory)
+      await journal.append({
+        schemaVersion: 1,
+        id: randomUUID(),
+        ownerId: fixture.owners[0],
+        scope: { kind: 'document', spaceId: fixture.id, documentId: fixture.id },
+        recordedAt: Date.now(),
+      })
+      const authority = { issuer: 'https://synthetic.invalid', audience: 'local-knowledge' }
+      const replayPool = runtime
+      const applyReplay = (intent: KnowledgeDeletionIntent) =>
+        withKnowledgeTransaction(
+          replayPool,
+          createKnowledgeReplayPrincipal(intent.ownerId, authority),
+          (transaction) => applyKnowledgeDeletionIntent(transaction, intent),
+        )
+      expect(await replayKnowledgeDeletionJournal(journal, applyReplay)).toBe(1)
+      expect(
+        (
+          await restored.query(
+            `SELECT deleted_at IS NOT NULL AS deleted
+        FROM knowledge.kb_documents WHERE owner_id = $1 AND id = $2`,
+            [fixture.owners[0], fixture.id],
+          )
+        ).rows,
+      ).toEqual([{ deleted: true }])
+      expect(
+        (
+          await restored.query(
+            `SELECT active_files::text AS files, active_bytes::text AS bytes,
+        reserved_files::text AS reserved_files, reserved_bytes::text AS reserved_bytes
+        FROM knowledge.kb_quotas WHERE owner_id = $1`,
+            [fixture.owners[0]],
+          )
+        ).rows,
+      ).toEqual([{ files: '0', bytes: '0', reserved_files: '0', reserved_bytes: '0' }])
+      // 幂等重放：同一意图再次收敛为REPLAY，不复活文档、不新增事实。
+      const events = (
+        await restored.query(
+          `SELECT count(*)::int AS events
+        FROM knowledge.kb_metering_events WHERE owner_id = $1`,
+          [fixture.owners[0]],
+        )
+      ).rows[0].events
+      expect(await replayKnowledgeDeletionJournal(journal, applyReplay)).toBe(1)
+      expect(
+        (
+          await restored.query(
+            `SELECT count(*)::int AS events
+        FROM knowledge.kb_metering_events WHERE owner_id = $1`,
+            [fixture.owners[0]],
+          )
+        ).rows[0].events,
+      ).toEqual(events)
+    } finally {
+      await rm(journalDirectory, { recursive: true, force: true })
+    }
     await writeFile(
       resolve(localDirectory, 'recovery-receipt.json'),
       JSON.stringify(
@@ -167,6 +257,12 @@ it('restores a real custom-format backup into a new marked local database with d
           capacityCancellation: true,
           retryAdmission: true,
           capacityPublication: true,
+          operationAttemptBinding: true,
+          deletionJournalReplay: true,
+          storageWindowReplay: true,
+          embeddingAttemptReplay: true,
+          uploadPreparationReplay: true,
+          uploadCompletionReplay: true,
         },
         null,
         2,
@@ -179,6 +275,15 @@ it('restores a real custom-format backup into a new marked local database with d
       if (created) await removeRestoredDatabase(source, settings.instanceId)
     } finally {
       await source.end()
+      if (storage) await removeTenants(storage.fixture)
+      if (upload) await removeTenants(upload.fixture)
+      if (completion) {
+        try {
+          await completion.close()
+        } finally {
+          await removeTenants(completion)
+        }
+      }
       await removeTenants(fixture)
     }
   }

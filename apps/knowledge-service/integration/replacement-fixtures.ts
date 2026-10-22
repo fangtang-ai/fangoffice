@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { bindSeedBuild } from './build-fixtures'
 import { type CapacityFixture, withCapacityFixture } from './capacity-fixtures'
 import { openLocalDatabase } from './local-database'
 import { inRoleTransaction } from './tenant-fixtures'
@@ -17,6 +18,8 @@ export async function prepareReplacement(
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+    await client.query("SELECT set_config('knowledge.owner_id', $1, true)", [fixture.owners[0]])
+    await bindSeedBuild(client, fixture)
     await client.query(
       `UPDATE knowledge.kb_operations SET phase = 'indexing' WHERE owner_id = $1 AND id = $2`,
       [fixture.owners[0], fixture.id],

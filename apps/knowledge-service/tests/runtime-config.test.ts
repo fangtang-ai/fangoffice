@@ -3,6 +3,30 @@ import { parseKnowledgeRuntimeConfig } from '../src/runtime'
 
 import { environment } from './runtime-fixtures'
 
+it('requires a positive canonical server upload limit instead of a default entitlement', () => {
+  const absent = parseKnowledgeRuntimeConfig(environment, 'api')
+  expect(absent).not.toHaveProperty('uploadPolicy.maximumFileBytes')
+  const configured = parseKnowledgeRuntimeConfig(
+    {
+      ...environment,
+      KNOWLEDGE_UPLOAD_MAXIMUM_FILE_BYTES: '9007199254740993',
+    },
+    'api',
+  )
+  expect(configured).toHaveProperty('uploadPolicy.maximumFileBytes', 9007199254740993n)
+  for (const value of ['0', '-1', '01', '1.5', '9223372036854775808', '', ' 4 ']) {
+    expect(() =>
+      parseKnowledgeRuntimeConfig(
+        {
+          ...environment,
+          KNOWLEDGE_UPLOAD_MAXIMUM_FILE_BYTES: value,
+        },
+        'api',
+      ),
+    ).toThrow('NOT_CONFIGURED')
+  }
+})
+
 it('uses an explicit dedicated API target and pinned issuer/JWKS without generic database fallback', () => {
   const config = parseKnowledgeRuntimeConfig(
     {
@@ -127,4 +151,66 @@ it.each([
   expect(() => parseKnowledgeRuntimeConfig({ ...environment, ...overrides }, 'api')).toThrow(
     'NOT_CONFIGURED',
   )
+})
+
+const minimalWorkerEnv = {
+  KNOWLEDGE_DATABASE_NAME: environment.KNOWLEDGE_DATABASE_NAME,
+  KNOWLEDGE_WORKER_DATABASE_ROLE: environment.KNOWLEDGE_WORKER_DATABASE_ROLE,
+  KNOWLEDGE_WORKER_DATABASE_URL: environment.KNOWLEDGE_WORKER_DATABASE_URL,
+}
+
+it('keeps worker pipeline configuration explicit: absent unless configured', () => {
+  const config = parseKnowledgeRuntimeConfig(minimalWorkerEnv, 'worker')
+  expect(config).not.toHaveProperty('queueName')
+  expect(config).not.toHaveProperty('auth')
+  expect(config).not.toHaveProperty('ossSource')
+  expect(config).not.toHaveProperty('embedding')
+  expect(config).not.toHaveProperty('indexProfileId')
+})
+
+const workerPipelineEnv = () => ({
+  ...minimalWorkerEnv,
+  KNOWLEDGE_UPLOAD_COMPLETION_QUEUE: 'knowledge_ingest',
+  KNOWLEDGE_AUTH_ISSUER: 'https://issuer.invalid/oidc',
+  KNOWLEDGE_AUTH_AUDIENCE: 'https://account.invalid',
+  KNOWLEDGE_AUTH_REQUIRED_SCOPES: 'knowledge:access',
+  KNOWLEDGE_WORKER_INDEX_PROFILE_ID: '01890a5d-ac96-774b-bcce-b302099a8057',
+  KNOWLEDGE_UPLOAD_OSS_BUCKET: 'knowledge-pilot',
+  KNOWLEDGE_UPLOAD_OSS_REGION: 'cn-hangzhou',
+  KNOWLEDGE_UPLOAD_OSS_VERSIONING: 'disabled',
+  KNOWLEDGE_UPLOAD_OSS_ACCESS_KEY_ID: 'STS-ak',
+  KNOWLEDGE_UPLOAD_OSS_ACCESS_KEY_SECRET: 'STS-sk',
+  KNOWLEDGE_UPLOAD_OSS_SECURITY_TOKEN: 'STS-token',
+  KNOWLEDGE_UPLOAD_OSS_CREDENTIAL_EXPIRES_AT: new Date(Date.now() + 3_600_000).toISOString(),
+  KNOWLEDGE_EMBEDDING_BASE_URL: 'https://dashscope-fallback.aliyuncs.aliyun.com/compatible-mode/v1',
+  KNOWLEDGE_EMBEDDING_MODEL: 'text-embedding-v4',
+  KNOWLEDGE_EMBEDDING_DIMENSIONS: '1024',
+  KNOWLEDGE_EMBEDDING_TIMEOUT_MS: '20000',
+  KNOWLEDGE_EMBEDDING_BATCH_SIZE: '10',
+  KNOWLEDGE_EMBEDDING_API_KEY: 'sk-test',
+})
+
+it('parses worker pipeline configuration from dedicated variables only', () => {
+  const config = parseKnowledgeRuntimeConfig(workerPipelineEnv(), 'worker')
+  if (config.role !== 'worker') throw new Error('expected worker configuration')
+  expect(config.queueName).toBe('knowledge_ingest')
+  expect(config.auth).toMatchObject({
+    issuer: 'https://issuer.invalid/oidc',
+    audience: 'https://account.invalid',
+  })
+  expect(config.indexProfileId).toBe('01890a5d-ac96-774b-bcce-b302099a8057')
+  expect(config.ossSource).toMatchObject({ bucket: 'knowledge-pilot', region: 'cn-hangzhou' })
+  expect(config.embedding).toMatchObject({ model: 'text-embedding-v4', dimensions: 1024 })
+})
+
+it.each([
+  { KNOWLEDGE_UPLOAD_COMPLETION_QUEUE: 'Knowledge_Ingest' },
+  { KNOWLEDGE_WORKER_INDEX_PROFILE_ID: 'not-a-uuid' },
+  { KNOWLEDGE_WORKER_INDEX_PROFILE_ID: '' },
+  { KNOWLEDGE_AUTH_ISSUER: 'https://user:synthetic-pass@issuer.invalid/oidc' },
+  { KNOWLEDGE_UPLOAD_COMPLETION_QUEUE: '' },
+])('rejects malformed worker pipeline settings instead of picking defaults', (overrides) => {
+  expect(() =>
+    parseKnowledgeRuntimeConfig({ ...workerPipelineEnv(), ...overrides }, 'worker'),
+  ).toThrow('NOT_CONFIGURED')
 })
