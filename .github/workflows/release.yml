@@ -34,10 +34,6 @@ on:
         default: stable
         options: [stable, beta, test]
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 permissions:
   contents: write
 
@@ -45,7 +41,34 @@ env:
   OSS_HTTP_BASE: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com
 
 jobs:
+  check:
+    name: verify release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+    steps:
+      - name: Checkout release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Check release source and version
+        run: node scripts/check-release-ref.cjs
+
+  verify:
+    needs: check
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: verify
     name: build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -133,6 +156,9 @@ jobs:
     # ~1.1GB of installers from a US runner to OSS cn-hangzhou: v0.9.4's publish
     # died twice at exactly 30:19 on the old 30-min cap, half-uploaded.
     timeout-minutes: 90
+    concurrency:
+      group: release-${{ github.event.inputs.channel || 'stable' }}
+      cancel-in-progress: false
     env:
       CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
       GH_TOKEN: ${{ github.token }}
@@ -151,15 +177,6 @@ jobs:
           pattern: release-*
           path: dist
           merge-multiple: true
-
-      - name: Verify tag matches packaged version
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          VERSION=$(node -p "require('./apps/shell/package.json').version")
-          if [ "v$VERSION" != "${{ github.ref_name }}" ]; then
-            echo "tag ${{ github.ref_name }} != packaged version v$VERSION" >&2
-            exit 1
-          fi
 
       - name: Install aliyun CLI
         run: |

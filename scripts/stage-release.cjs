@@ -8,11 +8,13 @@
  *
  * Usage:
  *   node scripts/stage-release.cjs [--artifacts dist] [--channel stable] [--publish] [--force]
+ *   node scripts/stage-release.cjs --channel test --publish --initial-release
  *   node scripts/stage-release.cjs --artifacts dist --channel test --check-env
  *
  * Without --publish it only stages (renames + rewrites + verifies) — handy
  * for a local dry run after dist:win.
  * --check-env validates the required build marker without staging or uploading.
+ * --initial-release permits confirmed HTTP 404 feeds only, never unknown state.
  *
  * channel=test stages/uploads with a Test infix (FangTangOffice-Test-Setup-…)
  * so the test-site release line can never be confused with the stable one.
@@ -56,12 +58,29 @@ function arg(name, fallback) {
 }
 const hasFlag = (name) => args.includes(`--${name}`)
 
+async function publishedVersion(url, initialRelease) {
+  // Unknown remote state must never become permission to overwrite a channel.
+  const response = await fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(30000),
+  })
+  if (response.status === 404 && initialRelease) return null
+  if (!response.ok) throw new Error(`remote feed HTTP ${response.status}: ${url}`)
+  if (initialRelease) throw new Error(`remote feed already exists: ${url}`)
+  const version = ymlVersion(await response.text())
+  if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`remote feed has no valid published version: ${url}`)
+  }
+  return version
+}
+
 async function main() {
   const artifacts = arg('artifacts', 'dist')
   const dir = isAbsolute(artifacts) ? artifacts : join(process.cwd(), artifacts)
   const channel = arg('channel', 'stable')
   const publish = hasFlag('publish')
   const force = hasFlag('force')
+  const initialRelease = hasFlag('initial-release')
   if (!['stable', 'beta', 'test'].includes(channel)) throw new Error(`bad channel: ${channel}`)
   if (!existsSync(dir)) throw new Error(`artifacts dir not found: ${dir}`)
 
@@ -146,7 +165,12 @@ async function main() {
   for (const feed of feeds) {
     const text = readFileSync(join(dir, feed), 'utf8')
     const version = ymlVersion(text)
-    if (!version) throw new Error(`${feed}: no version line`)
+    if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
+      throw new Error(`${feed}: no valid version line`)
+    }
+    if (feedVersion && feedVersion !== version) {
+      throw new Error(`platform feeds have different versions: ${feedVersion} != ${version}`)
+    }
     // top-level path/sha512 (latest.yml) plus the files: list entries
     const entries = []
     const topPath = text.match(/^path:\s*(\S+)/m)?.[1]
@@ -207,14 +231,7 @@ async function main() {
   // Checked per-platform feed — a republish could otherwise roll back one
   // platform (e.g. latest-mac.yml) while latest.yml stays ahead.
   for (const feed of feeds) {
-    let current = null
-    try {
-      const res = await fetch(`${HTTP_BASE}/${channel}/${feed}`)
-      if (res.ok) current = ymlVersion(await res.text())
-    } catch {
-      // network error counts as absent — hard to tell from a first publish,
-      // and the anonymous verification below still re-checks what landed
-    }
+    const current = await publishedVersion(`${HTTP_BASE}/${channel}/${feed}`, initialRelease)
     const decision = releaseUploadDecision(feedVersion, current, { force })
     if (decision.action === 'reject') throw new Error(decision.reason)
   }

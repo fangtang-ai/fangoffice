@@ -279,6 +279,32 @@ marker, including publish-only runs. Staging retains the marker for retries,
 but neither OSS nor GitHub Releases receive it. Old unmarked artifacts must
 be rebuilt rather than reused.
 
+The Office trunk is `release/fangtang`; `main` is not a release source. Manual
+`stable` / `beta` releases must select that branch. A pushed `v<version>` tag
+must match `apps/shell/package.json` and point to a commit already contained in
+`release/fangtang`. Test releases may select a feature branch. Source validation
+and the complete reusable CI gate run before packaging.
+
+All staged platform feeds must have the same plain `x.y.z` version. Publishing
+requires a version newer than every existing platform feed. Bump the package
+version before the next production release; do not reuse `0.9.6` for new bytes.
+Network failures, HTTP errors and malformed remote feeds stop publishing before
+any upload. For a genuinely new channel only, `--initial-release` permits feeds
+confirmed absent with HTTP 404; it refuses existing feeds and never bypasses
+403 or network failures. `--force` also cannot bypass unknown remote state.
+
+The Windows PowerShell entry point delegates to the same publisher and accepts
+`-InitialRelease` for explicit initialization. Both entry points require the
+aliyun CLI and `ALIBABA_CLOUD_ACCESS_KEY_ID` /
+`ALIBABA_CLOUD_ACCESS_KEY_SECRET` environment variables.
+
+CI serializes the complete publish job by channel, including GitHub Release
+uploads. Local publishing must not run concurrently with CI or another local
+publisher: the GitHub concurrency group does not cover local processes.
+Before production approval, verify packaged account/API/recharge endpoints,
+side-by-side installation and channel-specific updates. A code revert does not
+restore uploaded feeds or installed clients; prefer a forward patch release.
+
 For example, in PowerShell:
 
 ```powershell
