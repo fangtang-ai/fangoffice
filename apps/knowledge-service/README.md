@@ -367,9 +367,9 @@ Build with `npm run build:knowledge` from the repository root. Start the API wit
 to the configured database and must only be used after the corresponding resource
 approval. Neither process imports the website application or runs migrations.
 
-The code-only candidate contains seven `.mjs` entries (`api`, `worker`, `maintenance`, `check-config`,
+The code-only candidate contains eight `.mjs` entries (`api`, `worker`, `maintenance`, `migrate`, `check-config`,
 `parser`, `text-worker` and `markdown-worker`), `package.json`, `package-lock.json`,
-`api.env.example`, `worker.env.example`, `maintenance.env.example`, `OPERATIONS.md`, `build-meta.json` and
+`api.env.example`, `worker.env.example`, `maintenance.env.example`, `migrate.env.example`, `OPERATIONS.md`, `build-meta.json` and
 `build-manifest.json` in `dist/`. It requires Node >=22.13.0,
 bundles the parser dependencies and JOSE/shared contracts, and retains pinned `pg`
 and `pg-boss` as external packages. The installation manifest and lock in `deployment/`
@@ -408,9 +408,11 @@ grants/RLS, entitlements or migration compatibility. Node gives inherited variab
 precedence and can apply `NODE_OPTIONS` from the file: use a dedicated environment
 and only trusted operator-managed files, never an uploaded file. See
 [deployment/OPERATIONS.md](deployment/OPERATIONS.md) for secret isolation, gated
-launch and stop/recovery checks. No production migration runner is implemented;
-the marked local B2 candidate and native recovery slice are accepted, not a
-configured deployment or production recovery exercise.
+launch and stop/recovery checks. The production migration entry is the explicit
+single-pass `migrate.mjs` command with its own migrator identity and receipt
+chain (see OPERATIONS.md); no migration runs on API/worker startup, and there
+is no `down`. The marked local B2 candidate and native recovery slice are
+accepted, not a configured deployment or production recovery exercise.
 
 The workspace `.node-version` pins the minimum compatibility target to `22.13.0`.
 Production builds, worker test bundles and the knowledge CI read this same file;

@@ -64,6 +64,7 @@ jobs:
             apps/knowledge-service/dist/api.env.example
             apps/knowledge-service/dist/worker.env.example
             apps/knowledge-service/dist/maintenance.env.example
+            apps/knowledge-service/dist/migrate.env.example
             apps/knowledge-service/dist/OPERATIONS.md
             apps/knowledge-service/dist/build-meta.json
             apps/knowledge-service/dist/build-manifest.json

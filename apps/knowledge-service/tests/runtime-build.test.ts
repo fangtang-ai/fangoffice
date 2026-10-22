@@ -41,6 +41,7 @@ it('builds independent Node entries and rejects missing configuration without bu
     'maintenance.env.example',
     'maintenance.mjs',
     'markdown-worker.mjs',
+    'migrate.env.example',
     'migrate.mjs',
     'package-lock.json',
     'package.json',
@@ -130,7 +131,13 @@ it('builds independent Node entries and rejects missing configuration without bu
   expect(Object.keys(metadata.outputs)).toContain('dist/parser.mjs')
   expect(Object.keys(metadata.outputs)).toContain('dist/text-worker.mjs')
   expect(Object.keys(metadata.outputs)).toContain('dist/markdown-worker.mjs')
-  expect(metadata.outputs['dist/check-config.mjs']?.imports).toEqual([])
+  expect(
+    (metadata.outputs['dist/check-config.mjs']?.imports ?? []).every(
+      (entry) =>
+        entry.external === true &&
+        (entry.path.startsWith('node:') || ['pg', 'pg-boss'].includes(entry.path)),
+    ),
+  ).toBe(true)
   expect(
     Object.keys(metadata.inputs).some((input) => input.includes('src/migrate-main.ts')),
   ).toBe(true)

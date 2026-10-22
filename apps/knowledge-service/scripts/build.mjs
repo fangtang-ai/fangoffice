@@ -20,6 +20,7 @@ const runtimeFiles = [
   'api.env.example',
   'worker.env.example',
   'maintenance.env.example',
+  'migrate.env.example',
   'OPERATIONS.md',
 ]
 const expectedRuntime = {

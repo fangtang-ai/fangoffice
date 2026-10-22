@@ -8,7 +8,9 @@ R4 privacy, R5 commercial policy and R6 release/stop/recovery authority. Record 
 approved target, actors and command scope before any real operation. Do not infer
 approval from a passing preflight or from this document.
 
-There is no knowledge schema or migration runner in this candidate. The runtime
+The knowledge schema is applied only by an explicit single-pass `migrate.mjs`
+command (see the migration entry section below); nothing runs migrations on
+API/worker/maintenance startup. The runtime
 library supports an explicitly supplied queue handler, but the shipped worker
 CLI does not yet wire an E4 ingestion handler and must not be treated as an
 operational document consumer. Its locked external packages are `pg` 8.23.1 and
@@ -17,8 +19,8 @@ An explicit single-pass `maintenance.mjs` command is available with separate
 maintenance credentials and one required queue name; it does not create schemas,
 run migrations, register instances, schedule jobs or rebuild indexes.
 Accepted local B2/B3/B4/B6 slices do not provide deployment or migration acceptance
-for this runtime artifact. No production `migrate`, `down`, queue-maintenance or
-restore command is supplied or implicitly run on startup.
+for this runtime artifact. No `down` or restore command is supplied, and no
+migration, queue-maintenance or restore command is implicitly run on startup.
 
 ## Optional OSS uploads
 
@@ -158,7 +160,27 @@ privilege/connection failure returns a stable error and nonzero exit, not succes
 The local synthetic verification uses the existing migrator identity, without
 granting maintenance privileges to runtime roles or creating a production actor.
 
-## Production migration entry: requirements, not an implemented command
+## Production migration entry
+
+The generated journal (`src/migrations/drizzle`) is applied only by the explicit
+single-pass `migrate.mjs` command using dedicated migrator credentials
+(`KNOWLEDGE_MIGRATOR_DATABASE_ROLE` + `KNOWLEDGE_MIGRATOR_DATABASE_URL`, see
+`migrate.env.example`); it is never invoked by API/worker/maintenance startup,
+restart, health checks or preflight. The command refuses borrowed runtime
+credentials, verifies every SQL artifact hash against the previous receipt,
+takes a per-database advisory lock, applies the journal with
+`--expected EMPTY|CURRENT` and an optional `--target`, and writes a new receipt
+(artifact hashes plus the required `--backup-checkpoint`) only after every
+statement commits; a failed statement rolls back and preserves evidence. There
+is no `down`.
+
+Validate the environment without connecting, then run one pass:
+
+```sh
+node --env-file=/protected/knowledge-migrate.env check-config.mjs migrate
+node --env-file=/protected/knowledge-migrate.env migrate.mjs --expected EMPTY --backup-checkpoint=<approved-id>
+node --env-file=/protected/knowledge-migrate.env migrate.mjs
+```
 
 The development-only `db:apply:local`, `db:apply:immutable:local`, `db:apply:content:local` and
 `test:database` commands now exercise
@@ -172,9 +194,8 @@ its own receipt; it does not grant lifecycle writes or run during service startu
 The content increment also checks the immutable-facts receipt and records its own
 hash chain; shared local migration checks do not make these a production runner.
 
-After R2 and B2/B3 are approved, designate exactly one independent migration entry
-using a separate approved migration identity, not API/worker credentials. Require
-an explicit target database and expected current/next revision, consistent generated
+Operating the shipped entry still requires the properties below: an explicit
+target database and expected current/next revision, consistent generated
 schema/SQL/journal/snapshot from the pinned tooling, concurrency exclusion and a
 reviewed backup/restore checkpoint. Review locks, failure boundaries and grants
 before execution; do not handwrite an entire generated migration from this plan.
@@ -182,7 +203,9 @@ before execution; do not handwrite an entire generated migration from this plan.
 API/worker startup, restart, health checks, preflight and shutdown must never invoke
 this entry. A failure stops rollout and preserves evidence; it must not silently
 retry against a different database or borrow the website migration provider.
-No current command claims to verify any of these future properties.
+The command implements the receipt chain, artifact-hash verification, advisory
+lock and expected-state gates; production acceptance against a real cluster,
+cloud backup/PITR rehearsal and deployment approval remain future acceptance work.
 
 ## Stop and recovery checklist
 
