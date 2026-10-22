@@ -53,6 +53,7 @@ jobs:
           path: |
             apps/knowledge-service/dist/api.mjs
             apps/knowledge-service/dist/worker.mjs
+            apps/knowledge-service/dist/maintenance.mjs
             apps/knowledge-service/dist/check-config.mjs
             apps/knowledge-service/dist/parser.mjs
             apps/knowledge-service/dist/text-worker.mjs
@@ -61,6 +62,7 @@ jobs:
             apps/knowledge-service/dist/package-lock.json
             apps/knowledge-service/dist/api.env.example
             apps/knowledge-service/dist/worker.env.example
+            apps/knowledge-service/dist/maintenance.env.example
             apps/knowledge-service/dist/OPERATIONS.md
             apps/knowledge-service/dist/build-meta.json
             apps/knowledge-service/dist/build-manifest.json

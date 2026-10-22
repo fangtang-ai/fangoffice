@@ -8,9 +8,11 @@
   },
   "scripts": {
     "start:api": "node api.mjs",
-    "start:worker": "node worker.mjs"
+    "start:worker": "node worker.mjs",
+    "maintain:queue": "node maintenance.mjs"
   },
   "dependencies": {
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "pg-boss": "12.37.1"
   }
 }

@@ -10,6 +10,23 @@ validation, budget admission, deletion/GC protocols and production privileges re
 No cloud/deployment/private-document/financial approval is
 implied by local success.
 
+## Empty-space deletion clock increment (2026-10-21)
+
+`deletion-empty-space.sql` independently follows upload completion. Real HTTP
+regressions exposed a NULL `updated_at` when no live child enters the document
+loop, including deleting a space after its last document. Before the space
+tombstone, the increment assigns `GREATEST(now_at, clock_timestamp())`; it appends
+no artificial storage events and does not forgive physical debt.
+
+It reconstructs the existing function and replaces exactly one expected source
+fragment; signature, owner, SECURITY DEFINER, search path, RLS and ACL remain
+unchanged. The SQL and source-aware local gate reject replay/unexpected fragments.
+No accepted SQL, snapshot or old receipt is rewritten. Only the already marked
+disposable cluster may run
+`npm run db:apply:deletion-empty-space:local -w @genoffice/knowledge-service`.
+Its receipt verifies the complete baseline through upload completion; this is
+not a hosted migration executor or authorization to touch business data.
+
 ## Executed local slice
 
 `local-grants.sql` is explicitly local-only. Runtime roles are non-owning,
@@ -547,3 +564,159 @@ must commit promptly. Different owners lock different quota rows. Current queue
 attempt/Receipt persistence, external consumers and atomic queue settlement,
 website monetary authorization, failure recovery and physical GC remain separate
 acceptance work; this slice does not complete B6 or authorize deployment.
+
+## Durable Operation attempt fence
+
+The next immutable chain entries are `operation-attempt-binding` (including
+`drizzle/0002_operation_attempt_binding.sql`) and `operation-attempt-fence`.
+Both are required. The accepted first increment is retained byte-for-byte;
+the independent fence corrects its unchecked binding and restores the existing
+fact-based cancellation branch rather than rewriting migration history.
+
+`bind_operation_attempt` remains a worker-only SECURITY DEFINER owned by the
+non-superuser/NOBYPASSRLS migrator, with `row_security=on` and a fixed search path.
+It verifies the transaction-bound owner and a real open Build, takes the common
+Quota-first lifecycle locks, rereads facts after waiting, validates job/retry/
+Operation/document/version/generation and a same-owner pending Receipt, then
+binds all four columns together. Invalid IDs/receipts cannot poison an Operation.
+Same-attempt replay does not change stored facts; another binding is refused.
+No runtime role gains Operation UPDATE or Receipt INSERT/UPDATE privileges.
+
+The worker claim trigger rechecks an existing binding after parent-lock waits.
+Content gates, the narrow seal entry and the publication trigger independently
+check the current attempt. The shared boolean checker is SECURITY INVOKER,
+read-only, RLS-scoped and executable only by worker (not API/GC/PUBLIC).
+All existing append-only, sealed-count/hash and cancellation rules remain.
+
+The runtime resolver compares current job/build/Receipt UUIDs and retry count in
+its typed database query. It requires the resulting predicate to be exactly true;
+NULL and false remain refusals. This accepts alternate UUID letter casing without
+normalizing owner text, weakening RLS or adding an unbound compatibility path.
+
+This fences local lifecycle writes; it does not prove that a job is currently
+leased in pg-boss, authorize website spending, bind a provider budget, settle a
+queue delivery or permit retry takeover. Future Receipt settlement writers must
+participate in the common lifecycle lock protocol; their atomicity is not part
+of this slice. Same-owner short transactions still serialize, so external I/O
+must stay outside them.
+
+## B4 separate maintenance command (2026-10-20)
+
+`maintenance.mjs` is a single explicit supervision pass for one configured queue,
+not API/worker startup work. It requires its own database-role/URL settings and
+uses the same dedicated-database/session-identity probe. Runtime roles retain
+their existing queue statement surface and fail real maintenance attempts.
+The local maintenance actor is the already approved isolated migrator; no new
+role, grant, schema or applied migration is introduced.
+
+The fixed driver's maintenance statements recover timeout/heartbeat-expired
+deliveries and apply retention on the named queue, plus stale instance metadata
+housekeeping. Schema creation/migration, instance registration, scheduling,
+persisted stats/warnings, vacuum diagnostics and reindex are disabled; tests
+inspect executed statements to exclude DDL. An external host scheduler and
+production maintenance actor are still operational approval items, not implicit
+permissions granted by the candidate. Queue retry alone never authorizes a new
+knowledge attempt, spending or document publication.
+
+## E1 local metadata/upload preparation (2026-10-20 partial)
+
+`knowledge.create_space(uuid,text)`,
+`knowledge.create_document(uuid,uuid,text,text[],text)` and
+`knowledge.prepare_upload(uuid,text,uuid,uuid,bigint,bigint,text,bigint)` are
+API-only definers owned by the existing migrator, with fixed safe search path,
+`row_security=on`, no superuser/bypass and no PUBLIC execution. Worker/GC
+cannot execute them, and no direct document/operation INSERT is granted.
+The pre-existing space column grant is unchanged, not silently enlarged.
+
+Owner identity comes only from the trusted transaction. Quota-first locks
+serialize metadata creation and pending-upload admission with deletion and
+other lifecycle work. Missing/withdrawn policies, inactive owners/spaces,
+deleted or wrong-parent documents, generation conflicts and capacity excess
+fail closed. The server computes request hashes, staging key and expiry;
+replay never accepts client ownership, substitutes another object or renews
+an expired lease. The declared format is not a verified MIME assertion.
+
+Physical admission retains every still-keyed staging declaration even after
+failure/cancellation/expiry, with a bounded indexed metadata scan. No Version,
+ready state, object upload or financial reservation is created. Grant signing
+and transfer are not implemented by this slice, so internal staging facts
+must not be exposed as an upload permission. The independent `0005` and
+`upload-preparation` receipt are hash-checked and replay-protected; native
+backup/restore retains the same prepared session and original expiry.
+
+## E2 local completion transaction (2026-10-21 partial)
+
+`knowledge.lock_upload_completion(uuid,uuid,uuid,bigint)` and
+`knowledge.complete_upload(uuid,uuid,uuid,bigint,uuid,text,text,bytea,bigint,text,bigint,bigint,timestamptz,text,uuid,jsonb,bigint)`
+are API-only SECURITY DEFINER entries owned by the existing non-superuser,
+non-bypass migrator. Both fix `search_path=pg_catalog, pg_temp`, enable
+`row_security`, bind the trusted owner and revoke PUBLIC execution. Worker/GC
+cannot execute them; no direct Version INSERT or upload-job column UPDATE is
+granted. The original `0005` and all earlier applied artifacts remain unchanged.
+
+The independent `0006` adds paired immutable completion references to Operation.
+Under the shared owner-first parent locks, the entry rechecks the persisted
+declaration, owner-derived original path, generation, tombstones and actual clock,
+then commits Version, capacity/desired state and a matching created reference-only
+job on the same connection. Refusal or caller abort rolls all of them back.
+The runtime write set uses a savepoint so handling a domain refusal inside the
+caller transaction cannot commit an orphan enqueue; SQL failures still prevent
+the outer trusted transaction from committing.
+Replay uses the committed business references and immutable Version/capacity,
+not a queue row that retention may remove. Real lock waits cover duplicate
+commit/rollback, expiry and freeze; native restore replays the completed upload
+under the restricted API role without duplicating its job or Version.
+
+No object/model I/O is performed in the short transaction. No BillingReceipt or
+Build is created, and missing financial prerequisites still block claim. This
+does not authorize production OSS, website funds, E4 ingestion or deployment.
+
+## D2 embedding attempt facts (2026-10-20)
+
+`knowledge.record_embedding_event(uuid,uuid,text,text,numeric,uuid,uuid,uuid,uuid,uuid,text)`
+is worker-only, owned by the existing non-superuser/NOBYPASSRLS migrator with
+`search_path=pg_catalog,pg_temp` and `row_security=on`. PUBLIC/API/GC cannot
+execute it. Runtime roles gain no direct metering INSERT, UPDATE or DELETE.
+The owner is taken from the trusted transaction, never from function arguments.
+
+The Quota-first lock serializes intent admission and correction selection.
+Document intents revalidate the live/current build, operation, generation,
+reservation, space and profile after taking the shared lifecycle locks. Query
+intents require run/call IDs and the active profile without fabricating file FKs.
+Late results inherit the committed intent and can record costs after deletion
+or freezing; they cannot admit new work or resurrect documents.
+
+Intent and initial usage have independent immutable logical keys. Corrections
+must reference a non-intent event from that same attempt and preserve its
+subject/profile/purpose. A partial unique successor index additionally prevents
+forks. A proven no-call result cannot be revised into a provider call. Unknown
+usage is NULL, not zero; known quantities must be integral, nonnegative and
+within signed-int64 bounds. Estimated cost is refused at both runtime and SQL
+boundaries. Native restore preserves the function, indexes, RLS and replay.
+
+The independent `0004_embedding_attempt.sql` and `embedding-attempt` supplement
+have their own hash-checked local receipt; replay cannot rewrite it. All events
+remain platform-paid, completion `none`, with no tariff or customer settlement.
+The service must commit intent before external I/O; the SQL entry itself does
+not call a provider or guarantee exactly-once execution outside PostgreSQL.
+
+## D1 storage-window closure (2026-10-20)
+
+`knowledge.close_storage_window(uuid,timestamptz,timestamptz,text)` is a
+worker-only SECURITY DEFINER owned by the existing non-superuser/NOBYPASSRLS
+migrator, with a fixed search path and `row_security=on`. PUBLIC/API/GC cannot
+execute it, and no runtime role gains direct metering INSERT. The owner comes
+only from the trusted transaction binding, never from the request.
+
+The entry locks the owner Quota before reading capacity facts and appends one
+immutable, pending storage observation per day. Missing owners, malformed or
+future ranges, discontinuous watermarks, broken capacity/time/sequence chains,
+changed replays and more than 10,000 daily changes fail closed. Frozen/closed
+owners can still accrue previously incurred storage; closure cannot admit new
+documents or change active capacity. The runtime reads the actual RLS-scoped
+observation on the same connection and validates its shared contract.
+
+This is not monetary authority: callers must source the tariff from trusted
+configuration, and customer attribution is not a confirmed website receipt or
+balance change. The immutable local supplement/0003 receipt is hash-checked;
+reapplication is refused without changing any accepted artifact.

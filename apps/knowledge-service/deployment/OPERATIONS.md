@@ -8,20 +8,46 @@ R4 privacy, R5 commercial policy and R6 release/stop/recovery authority. Record 
 approved target, actors and command scope before any real operation. Do not infer
 approval from a passing preflight or from this document.
 
-There is no knowledge schema, migration runner or queue consumer in this candidate.
+There is no knowledge schema or migration runner in this candidate. The runtime
+library supports an explicitly supplied queue handler, but the shipped worker
+CLI does not yet wire an E4 ingestion handler and must not be treated as an
+operational document consumer. Its locked external packages are `pg` 8.23.1 and
+`pg-boss` 12.37.1; queue creation and privileged maintenance are not API/worker startup actions.
+An explicit single-pass `maintenance.mjs` command is available with separate
+maintenance credentials and one required queue name; it does not create schemas,
+run migrations, register instances, schedule jobs or rebuild indexes.
 Accepted local B2/B3/B4/B6 slices do not provide deployment or migration acceptance
 for this runtime artifact. No production `migrate`, `down`, queue-maintenance or
 restore command is supplied or implicitly run on startup.
 
+## Optional OSS uploads
+
+Optional E1 object transfer is code-enabled only after the complete API-only
+`KNOWLEDGE_UPLOAD_OSS_*` block is configured. It uses short-lived STS credentials,
+not a desktop credential or SDK-managed secret provider. Verify the approved
+dedicated bucket's private access policy and **disabled versioning** before
+enabling: OSS ignores forbid-overwrite for enabled/suspended versioning.
+No real bucket/IAM verification is performed by this candidate. Never enable it
+against an existing business/update bucket to work around missing resources.
+
+Use a canonical UTC credential expiry and rotate/restart before the final
+60-second safety margin. Partial/expired configuration fails preflight. Redact
+the full policy/token/signature/form grant from logs and traces: the issued
+capability is a bearer secret until its short expiration. It binds one key,
+exact bytes, private ACL and no overwrite; the earlier PostgreSQL upload deadline
+is never extended. A tombstone cannot instantly revoke an already issued form.
+E2 must still revalidate and stream-check the object before immutable Version
+creation/queue admission. An upload acknowledgment is not ready/searchable data.
+
 ## Candidate inventory
 
 Copy only the explicit CI candidate files to a new versioned directory outside the
-repository: six `.mjs` files (`api`, `worker`, `check-config`, `parser`, `text-worker`,
-`markdown-worker`), two package files, two `.env.example` templates, this document,
-`build-meta.json` and `build-manifest.json` (13 files total). Never copy a whole
+repository: seven `.mjs` files (`api`, `worker`, `maintenance`, `check-config`, `parser`, `text-worker`,
+`markdown-worker`), two package files, three `.env.example` templates, this document,
+`build-meta.json` and `build-manifest.json` (15 files total). Never copy a whole
 deployment directory, a real environment file or a repository `node_modules`.
 
-Check the manifest against the trusted release record and verify all 11 primary
+Check the manifest against the trusted release record and verify all 13 primary
 artifact hashes before installing or executing them. Hashes detect changes, not
 publisher authenticity. Installation uses the included lock:
 
@@ -53,6 +79,17 @@ do not mount the worker DSN into the API or the API DSN into the worker.
   service; a template does not create a new scope or product entitlement.
 - The API defaults to loopback. A public listener, proxy/TLS routing and ingress
   policy require separate approval. The worker needs no issuer or HTTP listener.
+- E1 upload preparation additionally requires an explicit positive canonical
+  `KNOWLEDGE_UPLOAD_MAXIMUM_FILE_BYTES` decimal byte limit (at most signed-int64).
+  Omit the variable to disable preparation; leaving it present but empty, zero
+  or malformed fails preflight. It does not provision an owner, quota, budget,
+  storage credential or fixed-object grant. The PUT metadata and POST preparation
+  endpoints return preparation facts only; no file transfer or E4 handler is enabled.
+- Maintenance uses only `KNOWLEDGE_MAINTENANCE_DATABASE_ROLE` and
+  `KNOWLEDGE_MAINTENANCE_DATABASE_URL`, never API/worker or generic PG credentials.
+  `KNOWLEDGE_QUEUE_NAME` must be one existing explicit queue, not a wildcard.
+  The maintenance actor needs queue metadata and retention/instance housekeeping
+  rights; ordinary API/worker roles deliberately cannot run this command.
 - `DATABASE_URL`, generic `PG*` variables, website configuration and `NODE_ENV=test`
   do not provide missing knowledge settings or enable isolated-test exceptions.
 - There is no custom dotenv loader, secret provider, `_FILE` setting or key
@@ -95,11 +132,31 @@ node --env-file=/protected/knowledge-worker.env worker.mjs
 
 Launch makes a real database connection and a read-only database/session-role
 probe before readiness. The API exposes `/healthz`, `/readyz` and authenticated
-`/api/knowledge/status`, not working business routes. The worker currently only
-performs health probes. SIGINT/SIGTERM request bounded cleanup; failed cleanup is
+`/api/knowledge/status`, not working business routes. The shipped worker CLI only
+performs health probes; library callers can explicitly supply the B4 consumer
+handler, with attempt-fenced heartbeats and cooperative cancellation. SIGINT/SIGTERM request bounded cleanup; failed cleanup is
 not a successful stop. Record the release/configuration revision and sanitized
 outcome, never a raw environment or DSN. Stopping a real process also needs the
 approved operational scope.
+
+## Explicit queue maintenance
+
+For an approved existing schema/queue only, validate the separate maintenance
+configuration without connecting, then explicitly run one pass:
+
+```sh
+node --env-file=/protected/knowledge-maintenance.env check-config.mjs maintenance
+node --env-file=/protected/knowledge-maintenance.env maintenance.mjs
+```
+
+An independently approved host scheduler can invoke it at the queue monitor cadence
+(60 seconds by default); this candidate does not install a scheduler. Queue-level
+expiry/heartbeat recovery and retention obey pg-boss database-side interval claims.
+The pass also prunes stale pg-boss instance metadata, but does not touch knowledge
+content or independently settle its financial/operation facts. A missing queue or
+privilege/connection failure returns a stable error and nonzero exit, not success.
+The local synthetic verification uses the existing migrator identity, without
+granting maintenance privileges to runtime roles or creating a production actor.
 
 ## Production migration entry: requirements, not an implemented command
 

@@ -31,6 +31,16 @@ together; accepted `0000_knowledge_base.sql` and `0000_snapshot.json` stay uncha
 `db:apply:replacement:local` applies the generated ALTER and dependent narrow
 function in one marked-local migration transaction and hashes both in one receipt.
 
+The E2 `0006_upload_completion.sql` increment adds paired `upload_job_id` and
+`upload_queue_name` facts to Operation. A CHECK permits either both NULL or both
+set on a non-uploading upload Operation with a target Version. These are the
+durable first-completion references, distinct from the mutable current-attempt
+binding and independent of pg-boss job retention. Version creation, capacity and
+the matching job are committed through the API-only completion entries; runtime
+roles do not gain direct writes to these columns or Version INSERT. Its generated
+snapshot/journal and separate local gate receipt leave all applied predecessors
+unchanged. This does not create or authorize a financial receipt.
+
 ## Tables and relationships
 
 | Group                       | Tables                                                                    |
