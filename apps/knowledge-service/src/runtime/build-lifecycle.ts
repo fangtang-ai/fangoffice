@@ -1,6 +1,8 @@
 import { deny } from '../errors'
 import type { KnowledgeTransaction } from './transaction'
 import {
+  bindOperationAttempt,
+  rebindOperationAttempt,
   resolveQueueBuild,
   type QueueBuildContext,
   type QueueEnvelope,
@@ -69,12 +71,15 @@ export async function claimBuild(
   envelope: QueueEnvelope,
   options: BuildClaimOptions,
 ): Promise<QueueBuildContext> {
-  // 此处只做轻量预检查；INSERT时的取消门持Operation共享锁并复核phase，
+  // 此处只做轻量预检查；INSERT时的取消门按统一父锁序复核phase与绑定，
   // 不能把这里的无锁快照或FK存在性当作取消后仍可写入的授权。
   const { rows } = await transaction.query(
     `SELECT phase::text AS phase, document_id::text AS document_id,
             target_version_id::text AS version_id,
-            expected_generation::text AS expected_generation
+            expected_generation::text AS expected_generation,
+            current_build_id::text AS current_build_id,
+            current_job_id::text AS current_job_id,
+            current_retry_count AS current_retry_count
        FROM knowledge.kb_operations
       WHERE owner_id = $1 AND id = $2`,
     [envelope.ownerId, envelope.operationId],
@@ -85,10 +90,23 @@ export async function claimBuild(
         document_id: string
         version_id: string | null
         expected_generation: string
+        current_build_id: string | null
+        current_job_id: string | null
+        current_retry_count: number | null
       }
     | undefined
   if (!operation) deny('NOT_FOUND')
-  if (operation.version_id === null || !['queued', 'parsing', 'indexing'].includes(operation.phase))
+  // B6.4：队列重试（同job、retryCount+1）的重投递在换绑前先认领新构建行；
+  // 其余已绑定形态仍拒绝，换绑只认前一重试，认领路径绝不静默换绑。
+  const retryClaim =
+    operation.current_build_id !== null &&
+    operation.current_job_id === job.id &&
+    operation.current_retry_count === job.retryCount - 1
+  if (
+    operation.version_id === null ||
+    (operation.current_build_id !== null && !retryClaim) ||
+    !['queued', 'parsing', 'indexing'].includes(operation.phase)
+  )
     deny('FORBIDDEN')
   const profile = await transaction.query(
     'SELECT 1 AS ok FROM knowledge.kb_index_profiles WHERE id = $1',
@@ -127,6 +145,15 @@ export async function claimBuild(
     if ((error as { code?: string }).code === '23505') deny('FORBIDDEN')
     throw error
   }
+  // B6.3/B6.4 绑定CAS：INSERT成功后（取消门触发器已按锁序持行锁）把本次
+  // attempt绑定为operation的current attempt；空绑定走bind，队列重试（前一
+  // 重试绑定在场）走rebind；绑定走SECURITY DEFINER窄入口（worker对
+  // kb_operations无任何UPDATE权限），其他绑定形态已被INSERT取消门拒绝。
+  if (retryClaim) {
+    await rebindOperationAttempt(transaction, job, envelope)
+  } else {
+    await bindOperationAttempt(transaction, job, envelope)
+  }
   // 认领行必须能被队列信封协议复核通过，才算完成认领。
   return resolveQueueBuild(transaction, job, envelope)
 }
@@ -161,7 +188,8 @@ export async function writeBuildContent(
     await transaction.query(
       `INSERT INTO knowledge.kb_chunks
          (owner_id, build_id, id, ordinal, text, text_hash, token_count, search_vector)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::tsvector)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, coalesce(nullif($8, '')::tsvector, to_tsvector('simple', $5)))`,
+      // searchVector 为空串表示由数据库端按 chunk 文本计算，实际检索索引不落空。
       [
         context.ownerId,
         context.buildId,
@@ -231,7 +259,13 @@ export async function sealBuild(
 }
 
 // 发布、容量转正与存储事实只能走同一窄入口，锁序由数据库统一维护。
-export async function publishBuild(transaction: KnowledgeTransaction, context: QueueBuildContext) {
+export async function publishBuild(
+  transaction: KnowledgeTransaction,
+  context: Pick<
+    QueueBuildContext,
+    'ownerId' | 'documentId' | 'operationId' | 'versionId' | 'buildId' | 'indexProfileId'
+  >,
+) {
   const { rows } = await transaction.query(
     'SELECT knowledge.publish_reserved_build($1, $2, $3, $4, $5, $6) AS status',
     [

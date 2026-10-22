@@ -2,8 +2,10 @@ import { KnowledgePolicyError } from '../errors'
 import { parseKnowledgeRuntimeConfig } from './config'
 import { startKnowledgeApi } from './api'
 import { startKnowledgeWorker } from './worker'
+import { parseKnowledgeMaintenanceConfig } from './maintenance-config'
+import { maintainKnowledgeQueue } from './maintenance'
 
-export async function runKnowledgeCommand(role: 'api' | 'worker') {
+export async function runKnowledgeCommand(role: 'api' | 'worker' | 'maintenance') {
   const shutdown = new AbortController()
   let watchdog: ReturnType<typeof setTimeout> | undefined
   const stop = () => {
@@ -13,6 +15,13 @@ export async function runKnowledgeCommand(role: 'api' | 'worker') {
   process.on('SIGINT', stop)
   process.on('SIGTERM', stop)
   try {
+    if (role === 'maintenance') {
+      await maintainKnowledgeQueue(parseKnowledgeMaintenanceConfig(process.env), {
+        signal: shutdown.signal,
+      })
+      console.info('knowledge-maintenance complete')
+      return
+    }
     const config = parseKnowledgeRuntimeConfig(process.env, role)
     const options = { signal: shutdown.signal }
     const runtime =

@@ -2,6 +2,7 @@ import { Pool } from 'pg'
 import { deny, KnowledgePolicyError } from '../errors'
 import type { KnowledgeRuntimeConfig } from './config'
 import type { KnowledgePrincipal } from '../identity'
+import { createKnowledgeQueue } from './queue'
 import {
   withKnowledgeTransaction,
   type KnowledgeTransaction,
@@ -9,7 +10,7 @@ import {
 } from './transaction'
 
 export interface KnowledgeDatabasePool extends KnowledgeTransactionPool {
-  query: (sql: string) => Promise<{ rows: unknown[] }>
+  query: (sql: string, values?: unknown[]) => Promise<{ rows: unknown[] }>
   end: () => Promise<void>
   on: (event: 'error', listener: () => void) => unknown
 }
@@ -37,17 +38,36 @@ export function createKnowledgeDatabase(
   return {
     signal: failure.signal,
     healthy,
+    queue(name: string) {
+      if (!healthy()) deny('SERVICE_UNAVAILABLE')
+      return createKnowledgeQueue(
+        {
+          async query(statement, values) {
+            // 巡检可与轮询并行；已验证身份仅在连接失败或关闭后失效。
+            if (closed || failure.signal.aborted) deny('SERVICE_UNAVAILABLE')
+            return pool.query(statement, values)
+          },
+        },
+        name,
+      )
+    },
     async transaction<Result>(
       principal: KnowledgePrincipal,
       work: (transaction: KnowledgeTransaction) => Promise<Result>,
+      { now }: { now?: () => number } = {},
     ) {
       if (!healthy()) deny('SERVICE_UNAVAILABLE')
-      return withKnowledgeTransaction(pool, principal, async (transaction) => {
-        if (!healthy()) deny('SERVICE_UNAVAILABLE')
-        const result = await work(transaction)
-        if (!healthy()) deny('SERVICE_UNAVAILABLE')
-        return result
-      })
+      return withKnowledgeTransaction(
+        pool,
+        principal,
+        async (transaction) => {
+          if (!healthy()) deny('SERVICE_UNAVAILABLE')
+          const result = await work(transaction)
+          if (!healthy()) deny('SERVICE_UNAVAILABLE')
+          return result
+        },
+        { now },
+      )
     },
     async verify() {
       if (closed || failure.signal.aborted) deny('SERVICE_UNAVAILABLE')

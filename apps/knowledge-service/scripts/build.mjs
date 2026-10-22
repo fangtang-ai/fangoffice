@@ -19,6 +19,7 @@ const runtimeFiles = [
   'package-lock.json',
   'api.env.example',
   'worker.env.example',
+  'maintenance.env.example',
   'OPERATIONS.md',
 ]
 const expectedRuntime = {
@@ -27,8 +28,12 @@ const expectedRuntime = {
   private: true,
   type: 'module',
   engines: manifest.engines,
-  scripts: { 'start:api': 'node api.mjs', 'start:worker': 'node worker.mjs' },
-  dependencies: { pg: manifest.dependencies.pg },
+  scripts: {
+    'start:api': 'node api.mjs',
+    'start:worker': 'node worker.mjs',
+    'maintain:queue': 'node maintenance.mjs',
+  },
+  dependencies: { pg: manifest.dependencies.pg, 'pg-boss': manifest.dependencies['pg-boss'] },
 }
 // Fail before bundling if release inputs drift from the service's fixed runtime contract.
 if (
@@ -44,6 +49,7 @@ const result = await build({
   entryPoints: {
     api: 'src/api-main.ts',
     worker: 'src/worker-main.ts',
+    maintenance: 'src/maintenance-main.ts',
     'check-config': 'src/check-config.ts',
     parser: 'src/parsing/index.ts',
     'text-worker': 'src/parsing/text-worker.ts',
@@ -55,7 +61,7 @@ const result = await build({
   platform: 'node',
   target: `node${nodeTarget}`,
   format: 'esm',
-  external: ['pg'],
+  external: Object.keys(expectedRuntime.dependencies),
   metafile: true,
   legalComments: 'eof',
 })
@@ -102,6 +108,7 @@ const sha256 = (content) => createHash('sha256').update(content).digest('hex')
 const filenames = [
   'api.mjs',
   'worker.mjs',
+  'maintenance.mjs',
   'check-config.mjs',
   'parser.mjs',
   'text-worker.mjs',
@@ -122,7 +129,7 @@ await writeFile(
       serviceVersion: manifest.version,
       lockSha256: sha256(await readFile(new URL('../../../package-lock.json', import.meta.url))),
       sourceSha256: source.digest('hex'),
-      externalDependencies: { pg: manifest.dependencies.pg },
+      externalDependencies: expectedRuntime.dependencies,
       artifacts,
     },
     null,

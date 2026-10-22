@@ -3,18 +3,12 @@ import { isLoopback, port, setting, type KnowledgeEnvironment } from './config-v
 
 export function dedicatedDatabase(
   env: KnowledgeEnvironment,
-  role: 'api' | 'worker',
+  role: 'api' | 'worker' | 'maintenance',
   isolated: boolean,
 ) {
   const database = setting(env.KNOWLEDGE_DATABASE_NAME, 63)
-  const user = setting(
-    env[role === 'api' ? 'KNOWLEDGE_API_DATABASE_ROLE' : 'KNOWLEDGE_WORKER_DATABASE_ROLE'],
-    63,
-  )
-  const raw = setting(
-    env[role === 'api' ? 'KNOWLEDGE_API_DATABASE_URL' : 'KNOWLEDGE_WORKER_DATABASE_URL'],
-    4096,
-  )
+  const user = setting(env[`KNOWLEDGE_${role.toUpperCase()}_DATABASE_ROLE`], 63)
+  const raw = setting(env[`KNOWLEDGE_${role.toUpperCase()}_DATABASE_URL`], 4096)
   const url = new URL(raw)
   if (
     !['postgres:', 'postgresql:'].includes(url.protocol) ||

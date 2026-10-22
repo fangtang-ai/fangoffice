@@ -56,12 +56,16 @@ export async function resolveQueueBuild(
   job: QueueJobRef,
   envelope: QueueEnvelope,
 ): Promise<QueueBuildContext> {
+  // UUID按数据库类型比较，避免标准小写回读与合法的大写输入被字符串比较误判。
   const { rows } = await transaction.query(
     `SELECT b.id::text AS build_id, b.operation_id::text AS operation_id,
             b.document_id::text AS document_id, b.version_id::text AS version_id,
             b.index_profile_id::text AS index_profile_id, b.status::text AS status,
             b.gc_state::text AS gc_state, b.expected_generation::text AS expected_generation,
             o.kind::text AS operation_kind, o.phase::text AS operation_phase,
+            (o.current_build_id = b.id AND o.current_job_id = b.job_id
+              AND o.current_retry_count = b.retry_count
+              AND o.current_receipt_id = r.id) AS current_attempt,
             r.status::text AS receipt_status
        FROM knowledge.kb_builds b
        JOIN knowledge.kb_operations o
@@ -91,6 +95,7 @@ export async function resolveQueueBuild(
         expected_generation: string
         operation_kind: string
         operation_phase: string
+        current_attempt: boolean | null
         receipt_status: string | null
       }
     | undefined
@@ -99,6 +104,7 @@ export async function resolveQueueBuild(
     deny('FORBIDDEN')
   if (row.receipt_status === null) deny('NOT_FOUND')
   if (row.receipt_status !== 'pending') deny('FORBIDDEN')
+  if (row.current_attempt !== true) deny('FORBIDDEN')
   return {
     ownerId: envelope.ownerId,
     buildId: row.build_id,
@@ -110,5 +116,75 @@ export async function resolveQueueBuild(
     operationKind: row.operation_kind,
     operationPhase: row.operation_phase,
     receiptStatus: row.receipt_status,
+  }
+}
+
+// B6.3 绑定入口：认领成功后把本次 attempt 绑定为 operation 的 current
+// attempt（空绑定→绑定，同 attempt→幂等复核，其他 attempt→拒绝）。
+// 走 SECURITY DEFINER 窄入口：worker 对 kb_operations 没有任何 UPDATE
+// 权限，绑定写入与阶段推进一样只能由数据库窄入口完成。
+export async function bindOperationAttempt(
+  transaction: KnowledgeTransaction,
+  job: QueueJobRef,
+  envelope: QueueEnvelope,
+) {
+  const { rows } = await transaction.query(
+    'SELECT knowledge.bind_operation_attempt($1, $2, $3, $4, $5, $6) AS status',
+    [
+      envelope.ownerId,
+      envelope.operationId,
+      envelope.buildId,
+      job.id,
+      job.retryCount,
+      envelope.receiptId,
+    ],
+  )
+  const status = (rows[0] as { status?: unknown } | undefined)?.status
+  switch (status) {
+    case 'BOUND':
+      return
+    case 'UNAUTHENTICATED':
+    case 'INVALID_REQUEST':
+    case 'NOT_FOUND':
+    case 'VERSION_CONFLICT':
+    case 'FORBIDDEN':
+      return deny(status)
+    default:
+      return deny('SERVICE_UNAVAILABLE')
+  }
+}
+
+// B6.4 重试换绑入口：队列对同一 job 的重投递（retryCount+1）在认领新构建行
+// 后把 operation 的 current 绑定从前一 attempt 原子转移到本次 attempt；数据库
+// 端仅接受同 job 且 retry 恰好 -1 的转移，其余绑定形态一律拒绝。
+export async function rebindOperationAttempt(
+  transaction: KnowledgeTransaction,
+  job: QueueJobRef,
+  envelope: QueueEnvelope,
+) {
+  const { rows } = await transaction.query(
+    'SELECT knowledge.rebind_operation_attempt($1, $2, $3, $4, $5, $6) AS status',
+    [
+      envelope.ownerId,
+      envelope.operationId,
+      envelope.buildId,
+      job.id,
+      job.retryCount,
+      envelope.receiptId,
+    ],
+  )
+  const status = (rows[0] as { status?: unknown } | undefined)?.status
+  switch (status) {
+    case 'REBOUND':
+    case 'REPLAYED':
+      return
+    case 'UNAUTHENTICATED':
+    case 'INVALID_REQUEST':
+    case 'NOT_FOUND':
+    case 'VERSION_CONFLICT':
+    case 'FORBIDDEN':
+      return deny(status)
+    default:
+      return deny('SERVICE_UNAVAILABLE')
   }
 }

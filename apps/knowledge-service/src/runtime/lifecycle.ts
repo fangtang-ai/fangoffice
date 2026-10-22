@@ -33,7 +33,7 @@ export async function withinShutdown(action: () => Promise<unknown>, timeout: nu
 }
 
 export async function openKnowledgeDatabase(
-  config: KnowledgeRuntimeConfig,
+  config: Pick<KnowledgeRuntimeConfig, 'database'>,
   options: KnowledgeServiceOptions,
 ) {
   const timeout = shutdownTimeout(options)

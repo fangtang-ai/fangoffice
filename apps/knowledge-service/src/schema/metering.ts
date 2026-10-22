@@ -140,6 +140,15 @@ export const kbMeteringEvents = knowledge
       uniqueIndex('kb_metering_events_sequence_unique')
         .on(table.ownerId, table.sequence)
         .where(sql`${table.eventType} = 'capacity_change'`),
+      uniqueIndex('kb_metering_events_storage_window_unique')
+        .on(table.ownerId, table.windowStart)
+        .where(sql`${table.subjectKind} = 'storage_window' AND ${table.eventType} = 'observation'`),
+      index('kb_metering_events_embedding_attempt_idx')
+        .on(table.ownerId, table.attemptId, table.id)
+        .where(sql`${table.dimension} = 'embedding'`),
+      uniqueIndex('kb_metering_events_embedding_successor_unique')
+        .on(table.ownerId, table.supersedesEventId)
+        .where(sql`${table.dimension} = 'embedding' AND ${table.eventType} = 'correction'`),
       index('kb_metering_events_time_idx').on(
         table.ownerId,
         table.occurredAt,
