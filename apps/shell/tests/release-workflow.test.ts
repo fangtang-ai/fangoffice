@@ -23,6 +23,20 @@ describe('release workflow contract', () => {
     expect(release).toMatch(/build:\s*\n\s+needs: verify/)
   })
 
+  it('checks new English prose against the merge parent or push baseline without disabling audits', async () => {
+    const ci = await readFile(join(workflows, 'ci.yml'), 'utf8')
+    const step = ci
+      .split('- name: Check comments/docs are English-only')[1]
+      ?.split('\n      - name:')[0]
+    expect(step).toContain("ENGLISH_COMMENT_BASE_REF: ${{ github.event.before || 'HEAD^' }}")
+    expect(step).toContain('ENGLISH_COMMENT_BASE_REF=$(git rev-parse HEAD^1)')
+    expect(step).toContain('[[ "$ENGLISH_COMMENT_BASE_REF" =~ ^0+$ ]]')
+    expect(step).toContain('ENGLISH_COMMENT_BASE_REF=HEAD^')
+    expect(step).toContain('npm run check:english-comments')
+    expect(step).not.toContain('continue-on-error')
+    expect(step).not.toContain('|| true')
+  })
+
   it('serializes publishing by channel across refs without canceling a running upload', async () => {
     const release = await readFile(join(workflows, 'release.yml'), 'utf8')
     const publisher = release.slice(release.indexOf('\n  publish:'))

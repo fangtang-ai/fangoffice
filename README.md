@@ -251,11 +251,11 @@ mcpServers: erp, wiki # 可选：该技能可调用的内置 MCP 服务器
 
 `FANGTANG_BUILD_ENV` defaults to `test`. Test builds use
 `apps/shell/resources/fangtang-defaults.json`, the `com.fangtang.app.test` app ID,
-and the `方塘Office-Test` product name. Production builds require
+and a product name with the `-Test` suffix. Production builds require
 `FANGTANG_BUILD_ENV=production` and the gitignored
 `apps/shell/resources/fangtang-defaults.prod.json`; CI creates that file from
 the `FANGTANG_DEFAULTS_PROD_JSON` secret. The production app ID and product name
-remain `com.fangtang.app` and `方塘Office`.
+remain unchanged, with the app ID set to `com.fangtang.app`.
 
 The packaged product names select separate Electron user-data directories, so
 login sessions, settings, recent files, Chromium storage and single-instance
