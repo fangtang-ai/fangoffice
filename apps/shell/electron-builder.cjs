@@ -354,71 +354,74 @@ const config = {
   // register the same extensions, whoever installs last steals the OS
   // default handler (double-clicking a .docx would open the test app), and
   // uninstalling one line orphans the associations.
-  fileAssociations: buildEnv === 'test' ? [] : [
-    {
-      ext: 'docx',
-      name: 'Word Document',
-      role: 'Editor',
-      icon: 'docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    },
-    {
-      ext: 'xlsx',
-      name: 'Excel Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    },
-    {
-      ext: 'xlsm',
-      name: 'Excel Macro-Enabled Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
-    },
-    {
-      ext: 'pptx',
-      name: 'PowerPoint Presentation',
-      role: 'Editor',
-      icon: 'pptx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    },
-    {
-      ext: 'xls',
-      name: 'Excel 97-2003 Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.ms-excel',
-    },
-    {
-      ext: 'csv',
-      name: 'CSV Document',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'text/csv',
-    },
-    {
-      ext: 'pdf',
-      name: 'PDF Document',
-      role: 'Editor',
-      icon: 'pdf',
-      mimeType: 'application/pdf',
-    },
-    {
-      ext: 'md',
-      name: 'Markdown Document',
-      role: 'Editor',
-      icon: 'md',
-      mimeType: 'text/markdown',
-    },
-    {
-      ext: 'markdown',
-      name: 'Markdown Document',
-      role: 'Editor',
-      icon: 'md',
-      mimeType: 'text/markdown',
-    },
-  ],
+  fileAssociations:
+    buildEnv === 'test'
+      ? []
+      : [
+          {
+            ext: 'docx',
+            name: 'Word Document',
+            role: 'Editor',
+            icon: 'docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+          {
+            ext: 'xlsx',
+            name: 'Excel Workbook',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          },
+          {
+            ext: 'xlsm',
+            name: 'Excel Macro-Enabled Workbook',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
+          },
+          {
+            ext: 'pptx',
+            name: 'PowerPoint Presentation',
+            role: 'Editor',
+            icon: 'pptx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          },
+          {
+            ext: 'xls',
+            name: 'Excel 97-2003 Workbook',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'application/vnd.ms-excel',
+          },
+          {
+            ext: 'csv',
+            name: 'CSV Document',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'text/csv',
+          },
+          {
+            ext: 'pdf',
+            name: 'PDF Document',
+            role: 'Editor',
+            icon: 'pdf',
+            mimeType: 'application/pdf',
+          },
+          {
+            ext: 'md',
+            name: 'Markdown Document',
+            role: 'Editor',
+            icon: 'md',
+            mimeType: 'text/markdown',
+          },
+          {
+            ext: 'markdown',
+            name: 'Markdown Document',
+            role: 'Editor',
+            icon: 'md',
+            mimeType: 'text/markdown',
+          },
+        ],
   npmRebuild: false,
   mac: {
     // Two separate arch packages (NOT universal): arm64 keeps the exact
