@@ -48,6 +48,7 @@ vi.mock('@genoffice/electron-utils', () => ({
     rechargeUrl: fixture.rechargeUrl,
   }),
   setAccountManagedDefaults: vi.fn(),
+  setAccountManagedDefaultsLoader: vi.fn(),
   setAccountManagedDefaultsPending: vi.fn(),
   setAccountManagedTokenProvider: vi.fn(),
 }))
