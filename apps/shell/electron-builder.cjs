@@ -17,10 +17,22 @@
  * Official release jobs inject it through extraMetadata so the endpoint stays
  * out of source. Without it, font download prompts/catalog entries are hidden;
  * users can still install local font files.
+ *
+ * FANGTANG_BUILD_ENV — which deployment line the package targets: "test"
+ * (default) bakes the committed test-site factory config
+ * (resources/fangtang-defaults.json); "production" swaps the extraResources
+ * source to the gitignored resources/fangtang-defaults.prod.json (CI writes
+ * it from a repository secret; for local production builds create it once —
+ * same JSON shape, production endpoints). Both land as
+ * Resources/fangtang-defaults.json inside the app, so runtime resolution is
+ * untouched. Production builds hard-fail when the prod file is missing.
+ * Update URLs must end in /test for test builds or /stable or /beta for
+ * production builds. The test application has its own install/profile identity.
  */
 
 const { execFileSync } = require('node:child_process')
 const { copyFileSync, existsSync, rmSync } = require('node:fs')
+const { writeFile } = require('node:fs/promises')
 const { join } = require('node:path')
 
 function normalizeHttpsBaseUrl(name, value) {
@@ -36,11 +48,43 @@ function normalizeHttpsBaseUrl(name, value) {
   }
 }
 
-const updateUrl = process.env.FANGTANG_UPDATE_URL
-const fontCdnUrl = normalizeHttpsBaseUrl(
-  'FANGTANG_FONT_CDN_URL',
-  process.env.FANGTANG_FONT_CDN_URL,
-)
+const updateUrl = normalizeHttpsBaseUrl('FANGTANG_UPDATE_URL', process.env.FANGTANG_UPDATE_URL)
+
+// FANGTANG_BUILD_ENV — "test" (default) | "production"; see header comment.
+const buildEnv = process.env.FANGTANG_BUILD_ENV || 'test'
+if (buildEnv !== 'test' && buildEnv !== 'production') {
+  throw new Error(`FANGTANG_BUILD_ENV must be "test" or "production", got "${buildEnv}"`)
+}
+const productName = buildEnv === 'test' ? '方塘Office-Test' : '方塘Office'
+const linuxPackageName = buildEnv === 'test' ? 'fangtang-office-test' : 'fangtang-office'
+const factoryDefaultsFile =
+  buildEnv === 'production'
+    ? 'resources/fangtang-defaults.prod.json'
+    : 'resources/fangtang-defaults.json'
+if (buildEnv === 'production' && !existsSync(join(__dirname, factoryDefaultsFile))) {
+  throw new Error(
+    'production build requires apps/shell/resources/fangtang-defaults.prod.json ' +
+      '(gitignored; CI writes it from the FANGTANG_DEFAULTS_PROD_JSON secret) — ' +
+      'refusing to package the test-site config',
+  )
+}
+// Validate the parsed channel in both directions, not an untrusted URL suffix.
+if (updateUrl) {
+  const channel = new URL(updateUrl).pathname.split('/').at(-1)
+  const allowed = buildEnv === 'test' ? ['test'] : ['stable', 'beta']
+  if (!allowed.includes(channel)) {
+    throw new Error(
+      `FANGTANG_UPDATE_URL must end in /${allowed.join(' or /')} for ${buildEnv} builds`,
+    )
+  }
+}
+// fixed artifact directory (repo-root dist/; BUILD_DIR still takes priority)
+const outputDir = process.env.BUILD_DIR || join(__dirname, '../../dist')
+// A failed rebuild must not leave an earlier successful build certified.
+rmSync(join(outputDir, 'fangtang-build-env.txt'), { force: true })
+rmSync(join(outputDir, 'fangtang-build-env.pending.txt'), { force: true })
+
+const fontCdnUrl = normalizeHttpsBaseUrl('FANGTANG_FONT_CDN_URL', process.env.FANGTANG_FONT_CDN_URL)
 
 // FANGTANG_MAC_X64=1 — opt into packaging the Intel (x64) dmg/zip alongside
 // arm64. Off by default: Intel packages must only ever ship signed with the
@@ -217,15 +261,14 @@ function assertModuleTreesPresent() {
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.fangtang.app',
-  productName: '方塘Office',
+  appId: buildEnv === 'test' ? 'com.fangtang.app.test' : 'com.fangtang.app',
+  productName,
   // Resolved from the installed electron package so dependency bumps can
   // never leave a stale hard-coded pin behind (packaging would silently ship
   // the old runtime).
   electronVersion: require('electron/package.json').version,
   directories: {
-    // Fixed artifact directory: repo-root dist/ (BUILD_DIR still takes priority)
-  output: process.env.BUILD_DIR || join(__dirname, '../../dist'),
+    output: outputDir,
   },
   files: ['out/**'],
   extraResources: [
@@ -264,9 +307,11 @@ const config = {
       to: 'wasm/pdfium.wasm',
     },
     // Deployment-supplied factory config (AI endpoint, MCP servers); read from
-    // Resources/ when packaged (packages/electron-utils/src/factory-defaults.ts)
+    // Resources/ when packaged (packages/electron-utils/src/factory-defaults.ts).
+    // The source file follows FANGTANG_BUILD_ENV (test-site config vs prod); the
+    // destination name is constant so runtime resolution is untouched.
     {
-      from: 'resources/fangtang-defaults.json',
+      from: factoryDefaultsFile,
       to: 'fangtang-defaults.json',
     },
     {
@@ -305,71 +350,78 @@ const config = {
   // bare 方塘Office logo instead of a per-type document icon. The icns/ico
   // pairs are generated from the shell renderer's file-type tiles by
   // tools/gen-file-association-icons.mjs.
-  fileAssociations: [
-    {
-      ext: 'docx',
-      name: 'Word Document',
-      role: 'Editor',
-      icon: 'docx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    },
-    {
-      ext: 'xlsx',
-      name: 'Excel Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    },
-    {
-      ext: 'xlsm',
-      name: 'Excel Macro-Enabled Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
-    },
-    {
-      ext: 'pptx',
-      name: 'PowerPoint Presentation',
-      role: 'Editor',
-      icon: 'pptx',
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    },
-    {
-      ext: 'xls',
-      name: 'Excel 97-2003 Workbook',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'application/vnd.ms-excel',
-    },
-    {
-      ext: 'csv',
-      name: 'CSV Document',
-      role: 'Editor',
-      icon: 'xlsx',
-      mimeType: 'text/csv',
-    },
-    {
-      ext: 'pdf',
-      name: 'PDF Document',
-      role: 'Editor',
-      icon: 'pdf',
-      mimeType: 'application/pdf',
-    },
-    {
-      ext: 'md',
-      name: 'Markdown Document',
-      role: 'Editor',
-      icon: 'md',
-      mimeType: 'text/markdown',
-    },
-    {
-      ext: 'markdown',
-      name: 'Markdown Document',
-      role: 'Editor',
-      icon: 'md',
-      mimeType: 'text/markdown',
-    },
-  ],
+  // Test-line builds claim no document types: both install lines would
+  // register the same extensions, whoever installs last steals the OS
+  // default handler (double-clicking a .docx would open the test app), and
+  // uninstalling one line orphans the associations.
+  fileAssociations:
+    buildEnv === 'test'
+      ? []
+      : [
+          {
+            ext: 'docx',
+            name: 'Word Document',
+            role: 'Editor',
+            icon: 'docx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          },
+          {
+            ext: 'xlsx',
+            name: 'Excel Workbook',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          },
+          {
+            ext: 'xlsm',
+            name: 'Excel Macro-Enabled Workbook',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'application/vnd.ms-excel.sheet.macroEnabled.12',
+          },
+          {
+            ext: 'pptx',
+            name: 'PowerPoint Presentation',
+            role: 'Editor',
+            icon: 'pptx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          },
+          {
+            ext: 'xls',
+            name: 'Excel 97-2003 Workbook',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'application/vnd.ms-excel',
+          },
+          {
+            ext: 'csv',
+            name: 'CSV Document',
+            role: 'Editor',
+            icon: 'xlsx',
+            mimeType: 'text/csv',
+          },
+          {
+            ext: 'pdf',
+            name: 'PDF Document',
+            role: 'Editor',
+            icon: 'pdf',
+            mimeType: 'application/pdf',
+          },
+          {
+            ext: 'md',
+            name: 'Markdown Document',
+            role: 'Editor',
+            icon: 'md',
+            mimeType: 'text/markdown',
+          },
+          {
+            ext: 'markdown',
+            name: 'Markdown Document',
+            role: 'Editor',
+            icon: 'md',
+            mimeType: 'text/markdown',
+          },
+        ],
   npmRebuild: false,
   mac: {
     // Two separate arch packages (NOT universal): arm64 keeps the exact
@@ -447,7 +499,7 @@ const config = {
     // generated fangtang-office.desktop match the WM_CLASS Electron reports (it
     // takes that from the executable basename), so the running window links
     // back to its launcher entry.
-    executableName: 'fangtang-office',
+    executableName: linuxPackageName,
     // Electron takes its X11 app_id from package.json "desktopName"
     // (fangtang-office.desktop); syncDesktopName makes electron-builder name the
     // .desktop file and its StartupWMClass from the same value. Without it
@@ -471,8 +523,8 @@ const config = {
   // install, breaking upgrades. Without it, fpm receives productName
   // "GenOffice" and only happens to downcase it to the right value.
   deb: {
-    artifactName: 'fangtang-office_${version}_${arch}.deb',
-    packageName: 'fangtang-office',
+    artifactName: `${linuxPackageName}_\${version}_\${arch}.deb`,
+    packageName: linuxPackageName,
   },
   // Same "@genoffice/shell" naming problem as deb: spell the artifact name
   // out (${arch} expands to the rpm arch string, x86_64) and pin the rpm
@@ -486,8 +538,8 @@ const config = {
   // latest-linux.yml keeps listing exactly what the CDN pipeline uploads
   // (AppImage + deb) and the promote workflow needs no rpm alias.
   rpm: {
-    artifactName: 'fangtang-office-${version}.${arch}.rpm',
-    packageName: 'fangtang-office',
+    artifactName: `${linuxPackageName}-\${version}.\${arch}.rpm`,
+    packageName: linuxPackageName,
     publish: null,
   },
   nsis: {
@@ -495,6 +547,8 @@ const config = {
     allowToChangeInstallationDirectory: true,
   },
   beforePack: async (context) => {
+    rmSync(join(context.outDir, 'fangtang-build-env.txt'), { force: true })
+    rmSync(join(context.outDir, 'fangtang-build-env.pending.txt'), { force: true })
     assertModuleTreesPresent()
     if (context.electronPlatformName === 'darwin' && includeMacX64) {
       assertUniversalSidecar()
@@ -523,13 +577,22 @@ const config = {
       }
       return
     }
+    // test builds only: a production pack must never carry the developer's
+    // test-endpoint overrides (fangtang-defaults.local.json, AGENTS.md)
+    if (buildEnv !== 'test') return
     const local = join(__dirname, 'resources/fangtang-defaults.local.json')
     if (existsSync(local)) copyFileSync(local, packedLocal)
   },
   dmg: {
     sign: true,
   },
-  afterAllArtifactBuild: 'build/notarize-dmg.js',
+  afterAllArtifactBuild: async (result) => {
+    const additional = await require('./build/notarize-dmg.js').default(result)
+    // Record the actual builder configuration, including electron-builder.env.
+    // The post-build command certifies it only after update-feed tasks succeed.
+    await writeFile(join(result.outDir, 'fangtang-build-env.pending.txt'), buildEnv)
+    return additional
+  },
 }
 
 // Windows in-package code signing. Security features that judge every PE
@@ -569,7 +632,7 @@ if (updateUrl) {
   config.publish = [
     {
       provider: 'generic',
-      url: updateUrl.replace(/\/+$/, ''),
+      url: updateUrl,
       channel: 'latest',
     },
   ]
@@ -577,8 +640,15 @@ if (updateUrl) {
 
 // CI's "-c.extraMetadata.version=..." CLI override deep-merges with this block,
 // so the version and all injected feature settings survive together.
-const extraMetadata = {}
+// Electron derives userData from the packaged productName; builder derives
+// its updater cache from name. Both identities must differ for the test app.
+const extraMetadata = {
+  productName,
+  ...(buildEnv === 'test'
+    ? { name: '@genoffice/shell-test', desktopName: 'fangtang-office-test.desktop' }
+    : {}),
+}
 if (fontCdnUrl) extraMetadata.genofficeFontCdn = { baseUrl: fontCdnUrl }
-if (Object.keys(extraMetadata).length) config.extraMetadata = extraMetadata
+config.extraMetadata = extraMetadata
 
 module.exports = config

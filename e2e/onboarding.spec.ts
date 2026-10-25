@@ -10,11 +10,18 @@ test.describe('first-run onboarding', () => {
     try {
       const overlay = page.locator('.onb-overlay')
       await expect(overlay).toBeVisible()
-      await expect(page.locator('.onb-slide.active .onb-title')).toHaveText('Welcome to 方塘Office')
+      await expect(page.locator('.onb-slide.active .onb-title')).toHaveText(
+        'Welcome to FangtangOffice',
+      )
       await page.screenshot({ path: screenshotPath('onboarding-slide-1') })
 
       await page.locator('.onb-next').click()
-      await expect(page.locator('.onb-slide.active .onb-offer')).toBeVisible()
+      await expect(page.locator('.onb-slide.active .onb-title')).toHaveText(
+        'This is just the beginning',
+      )
+      await expect(page.locator('.onb-slide.active .onb-subtitle')).toContainText(
+        'chats are billed by usage',
+      )
       await page.screenshot({ path: screenshotPath('onboarding-slide-2') })
 
       await page.locator('.onb-next').click()

@@ -17,6 +17,7 @@ import {
   getAccountManagedDefaults,
   loadFangTangAccountConfig,
   setAccountManagedDefaults,
+  setAccountManagedDefaultsLoader,
   setAccountManagedDefaultsPending,
   setAccountManagedTokenProvider,
   type AccountManagedDefaults,
@@ -492,6 +493,7 @@ async function recordAccountAiEndpointOutcome(outcome: string): Promise<void> {
 }
 
 export function registerAccountIpc(): void {
+  setAccountManagedDefaultsLoader(applyAccountAiEndpoint)
   // the fangtang billing proxy authenticates with the user's live Logto access
   // token; the ai:stream handlers (docs bundle, same process) read it per request
   setAccountManagedTokenProvider(() => currentSession()?.accessToken ?? null)
@@ -560,6 +562,7 @@ export function registerAccountIpc(): void {
           ? (payload as Record<string, unknown>)
           : null
       if (!account) return null
+      if (!getAccountManagedDefaults()) void applyAccountAiEndpoint()
       return { ...account, monthUsedCny: account.monthChargedCny }
     } catch {
       return null

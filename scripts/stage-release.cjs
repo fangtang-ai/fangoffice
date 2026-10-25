@@ -8,25 +8,42 @@
  *
  * Usage:
  *   node scripts/stage-release.cjs [--artifacts dist] [--channel stable] [--publish] [--force]
+ *   node scripts/stage-release.cjs --channel test --publish --initial-release
+ *   node scripts/stage-release.cjs --artifacts dist --channel test --check-env
  *
  * Without --publish it only stages (renames + rewrites + verifies) — handy
  * for a local dry run after dist:win.
+ * --check-env validates the required build marker without staging or uploading.
+ * --initial-release permits confirmed HTTP 404 feeds only, never unknown state.
+ *
+ * channel=test stages/uploads with a Test infix (FangTangOffice-Test-Setup-…)
+ * so the test-site release line can never be confused with the stable one.
  *
  * OSS layout (bucket: fangtang-office-updates, region cn-hangzhou):
  *   <channel>/latest.yml  <channel>/latest-mac.yml  <channel>/latest-linux.yml
  *   <channel>/FangTangOffice-Setup-<v>.exe (+ .exe.blockmap)
+ *   <channel=test>/FangTangOffice-Test-Setup-<v>.exe (+ .exe.blockmap)
  *   <channel>/FangTangOffice-<v>-arm64.dmg / .zip (+ .zip.blockmap)
  *   <channel>/fangtang-office_<v>_amd64.deb / .x86_64.rpm / *.AppImage
  *
  * The script writes ONLY into this bucket (same guard as publish-update.ps1
- * — every other bucket on the account is off-limits). Uploads are skipped
- * with a warning when the aliyun CLI or credentials are missing, so a
- * release can still go out via GitHub while OSS upload is being fixed.
+ * — every other bucket on the account is off-limits). Missing aliyun CLI or
+ * credentials is a hard failure with --publish: auto-updaters and the
+ * download page read the OSS feeds, so a GitHub-only release would be
+ * invisible to every installed client.
  */
 
 const { execFileSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
-const { existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } = require('node:fs')
+const {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} = require('node:fs')
 const { join, isAbsolute } = require('node:path')
 const { ymlVersion, releaseUploadDecision } = require('./update-feed-utils.cjs')
 
@@ -41,22 +58,61 @@ function arg(name, fallback) {
 }
 const hasFlag = (name) => args.includes(`--${name}`)
 
+async function publishedVersion(url, initialRelease) {
+  // Unknown remote state must never become permission to overwrite a channel.
+  const response = await fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(30000),
+  })
+  if (response.status === 404 && initialRelease) return null
+  if (!response.ok) throw new Error(`remote feed HTTP ${response.status}: ${url}`)
+  if (initialRelease) throw new Error(`remote feed already exists: ${url}`)
+  const version = ymlVersion(await response.text())
+  if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`remote feed has no valid published version: ${url}`)
+  }
+  return version
+}
+
 async function main() {
   const artifacts = arg('artifacts', 'dist')
   const dir = isAbsolute(artifacts) ? artifacts : join(process.cwd(), artifacts)
   const channel = arg('channel', 'stable')
   const publish = hasFlag('publish')
   const force = hasFlag('force')
-  if (!['stable', 'beta'].includes(channel)) throw new Error(`bad channel: ${channel}`)
+  const initialRelease = hasFlag('initial-release')
+  if (!['stable', 'beta', 'test'].includes(channel)) throw new Error(`bad channel: ${channel}`)
   if (!existsSync(dir)) throw new Error(`artifacts dir not found: ${dir}`)
+
+  // deployment-line guard: refuse to publish a test-env build to a production
+  // channel (or the reverse) — see the marker written by electron-builder.cjs
+  const markerPath = join(dir, 'fangtang-build-env.txt')
+  if (!existsSync(markerPath)) {
+    throw new Error(`missing build environment marker in ${dir} — rebuild before publishing`)
+  }
+  const built = readFileSync(markerPath, 'utf8').trim()
+  const need = channel === 'test' ? 'test' : 'production'
+  if (built !== need) {
+    throw new Error(
+      `artifacts in ${dir} were built for the "${built}" line but --channel ${channel} ` +
+        `publishes the "${need}" line — rebuild with matching FANGTANG_BUILD_ENV`,
+    )
+  }
+  if (hasFlag('check-env')) {
+    console.log(`[stage] build environment verified: ${built}`)
+    return
+  }
 
   // --- 1. rename Chinese-named artifacts to ASCII and rewrite feeds --------
   // electron-builder default names embed the Chinese productName; OSS/URLs
   // and the download page stay encoding-safe when everything is ASCII. The
   // FangTangOffice-Setup name matches the already-published stable feed.
+  // test-channel artifacts carry a Test infix so the two release lines are
+  // never confusable in the bucket or on a download page
+  const ascii = channel === 'test' ? 'FangTangOffice-Test' : 'FangTangOffice'
   const renames = [
-    [/^方塘Office Setup (.+)\.exe(\.blockmap)?$/, 'FangTangOffice-Setup-$1.exe$2'],
-    [/^方塘Office-(.+)\.(dmg|zip|AppImage)(\.blockmap)?$/, 'FangTangOffice-$1.$2$3'],
+    [/^方塘Office(?:-Test)? Setup (.+)\.exe(\.blockmap)?$/, `${ascii}-Setup-$1.exe$2`],
+    [/^方塘Office(?:-Test)?-(.+)\.(dmg|zip|AppImage)(\.blockmap)?$/, `${ascii}-$1.$2$3`],
   ]
   const staged = readdirSync(dir)
   const nameMap = []
@@ -94,7 +150,8 @@ async function main() {
   // --- 2. verify every feed entry against the staged bytes -----------------
   // sha512 in the yml is base64 of the raw file bytes; a mismatch here would
   // brick auto-updates, so fail before anything is uploaded.
-  const files = readdirSync(dir)
+  // Keep provenance for retries, but never publish the local build marker.
+  const files = readdirSync(dir).filter((name) => name !== 'fangtang-build-env.txt')
   const feeds = ['latest.yml', 'latest-mac.yml', 'latest-linux.yml'].filter((f) =>
     files.includes(f),
   )
@@ -108,7 +165,12 @@ async function main() {
   for (const feed of feeds) {
     const text = readFileSync(join(dir, feed), 'utf8')
     const version = ymlVersion(text)
-    if (!version) throw new Error(`${feed}: no version line`)
+    if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
+      throw new Error(`${feed}: no valid version line`)
+    }
+    if (feedVersion && feedVersion !== version) {
+      throw new Error(`platform feeds have different versions: ${feedVersion} != ${version}`)
+    }
     // top-level path/sha512 (latest.yml) plus the files: list entries
     const entries = []
     const topPath = text.match(/^path:\s*(\S+)/m)?.[1]
@@ -158,30 +220,20 @@ async function main() {
     )
     return
   }
-  if (!aliyunOnPath()) {
-    console.warn('[stage] aliyun CLI not on PATH — skipping OSS upload (staged only)')
-    return
-  }
+  // hard failure, not a degrade: a GitHub-only release is invisible to
+  // auto-updaters and the download page (they read the OSS feeds)
+  if (!aliyunOnPath()) throw new Error('aliyun CLI not on PATH — install it to publish to OSS')
   if (!process.env.ALIBABA_CLOUD_ACCESS_KEY_ID || !process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET) {
-    console.warn('[stage] no ALIBABA_CLOUD_* credentials — skipping OSS upload (staged only)')
-    return
+    throw new Error('ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET not set — cannot publish to OSS')
   }
 
-  // forward-only guard: never overwrite or roll back the published channel
-  try {
-    const res = await fetch(`${HTTP_BASE}/${channel}/latest.yml`)
-    if (res.ok) {
-      const current = ymlVersion(await res.text())
-      const decision = releaseUploadDecision(feedVersion, current, { force })
-      if (decision.action === 'reject') throw new Error(decision.reason)
-    }
-  } catch (err) {
-    // network/absence of a current feed is fine (first publish); an explicit
-    // reject from the guard must still stop the release
-    if (String(err.message).includes('not newer than')) throw err
-    console.warn(
-      `[stage] could not read current ${channel} feed (${err.message}) — uploading anyway`,
-    )
+  // forward-only guard: never overwrite or roll back the published channel.
+  // Checked per-platform feed — a republish could otherwise roll back one
+  // platform (e.g. latest-mac.yml) while latest.yml stays ahead.
+  for (const feed of feeds) {
+    const current = await publishedVersion(`${HTTP_BASE}/${channel}/${feed}`, initialRelease)
+    const decision = releaseUploadDecision(feedVersion, current, { force })
+    if (decision.action === 'reject') throw new Error(decision.reason)
   }
 
   // region is fixed for this bucket (see header); newer aliyun CLI builds
