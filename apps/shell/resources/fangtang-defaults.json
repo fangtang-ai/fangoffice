@@ -11,6 +11,7 @@
     "logtoClientId": "vmijhkhq960aa82fmvhjk",
     "logtoApiResource": "https://api.fang-tang.cn/api",
     "accountApiBase": "https://test.fang-tang.cn",
+    "knowledgeApiBase": "https://test.fang-tang.cn/api/knowledge",
     "rechargeUrl": "https://test.fang-tang.cn/account/office-recharge"
   }
 }

@@ -9,9 +9,13 @@ name: Release
 # Publishing (scripts/stage-release.cjs) renames Chinese-named artifacts to
 # ASCII, rewrites the electron-updater feeds, uploads installers first and
 # feeds last to the OSS update bucket, then verifies both anonymously. The
-# GitHub Release gets the same staged files. OSS upload degrades to a
-# warning when the ALIBABA_CLOUD_* secrets are not configured, so a release
-# can still go out via GitHub while OSS access is being fixed.
+# GitHub Release gets the same staged files. OSS upload is mandatory: the
+# script hard-fails when the aliyun CLI or credentials are missing, because
+# auto-updaters and the download page read the OSS feeds — a GitHub-only
+# release would be invisible to every installed client. Only the stable
+# channel creates a GitHub Release: beta shares the production factory
+# config but must never clobber stable assets on the same v<version> tag,
+# and test ships to the test site only.
 
 on:
   push:
@@ -19,14 +23,16 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'OSS update channel (baked into the auto-update feed URL)'
+        description: >-
+          OSS update channel (baked into the auto-update feed URL). test =
+          test-site line (test factory config, FangTangOffice-Test-* artifacts, no
+          GitHub release); beta = production line without a GitHub release
+          (same config, avoids clobbering stable assets on the shared tag);
+          stable = production line with GitHub release (needs the
+          FANGTANG_DEFAULTS_PROD_JSON secret).
         type: choice
         default: stable
-        options: [stable, beta]
-
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+        options: [stable, beta, test]
 
 permissions:
   contents: write
@@ -35,7 +41,34 @@ env:
   OSS_HTTP_BASE: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com
 
 jobs:
+  check:
+    name: verify release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+    steps:
+      - name: Checkout release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Check release source and version
+        run: node scripts/check-release-ref.cjs
+
+  verify:
+    needs: check
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: verify
     name: build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -49,6 +82,8 @@ jobs:
     env:
       BUILD_DIR: ${{ github.workspace }}/dist-${{ matrix.platform }}
       FANGTANG_UPDATE_URL: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/${{ github.event.inputs.channel || 'stable' }}
+      # tag pushes (empty input) are production; channel=test packages the test site
+      FANGTANG_BUILD_ENV: ${{ github.event.inputs.channel == 'test' && 'test' || 'production' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -72,6 +107,20 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Write production factory defaults from secret
+        # electron-builder.cjs hard-fails when this file is missing in a
+        # production build, so the test-site config can never ship to prod
+        if: env.FANGTANG_BUILD_ENV == 'production'
+        env:
+          FANGTANG_DEFAULTS_PROD_JSON: ${{ secrets.FANGTANG_DEFAULTS_PROD_JSON }}
+        shell: bash
+        run: |
+          if [ -z "$FANGTANG_DEFAULTS_PROD_JSON" ]; then
+            echo "::error::secret FANGTANG_DEFAULTS_PROD_JSON is not set — production builds refuse to package the test-site config" >&2
+            exit 1
+          fi
+          printf '%s' "$FANGTANG_DEFAULTS_PROD_JSON" > apps/shell/resources/fangtang-defaults.prod.json
 
       - name: Build macOS (arm64 dmg + zip, universal sidecar/OCR)
         if: matrix.platform == 'mac'
@@ -107,6 +156,9 @@ jobs:
     # ~1.1GB of installers from a US runner to OSS cn-hangzhou: v0.9.4's publish
     # died twice at exactly 30:19 on the old 30-min cap, half-uploaded.
     timeout-minutes: 90
+    concurrency:
+      group: release-${{ github.event.inputs.channel || 'stable' }}
+      cancel-in-progress: false
     env:
       CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
       GH_TOKEN: ${{ github.token }}
@@ -126,15 +178,6 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Verify tag matches packaged version
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          VERSION=$(node -p "require('./apps/shell/package.json').version")
-          if [ "v$VERSION" != "${{ github.ref_name }}" ]; then
-            echo "tag ${{ github.ref_name }} != packaged version v$VERSION" >&2
-            exit 1
-          fi
-
       - name: Install aliyun CLI
         run: |
           curl -fsSL https://aliyuncli.alicdn.com/aliyun-cli-linux-latest-amd64.tgz -o /tmp/aliyun.tgz
@@ -148,10 +191,14 @@ jobs:
         run: node scripts/stage-release.cjs --artifacts dist --channel "$CHANNEL" --publish
 
       - name: Publish GitHub release
+        # stable only: beta and stable share the v<version> tag, and a beta
+        # upload with --clobber would swap the public stable assets; test
+        # builds ship to the test site only
+        if: env.CHANNEL == 'stable'
         run: |
           VERSION=$(node -p "require('./apps/shell/package.json').version")
           TAG="v$VERSION"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --target "$GITHUB_SHA" --title "方塘Office $TAG" --generate-notes
           fi
-          gh release upload "$TAG" dist/* --clobber
+          find dist -maxdepth 1 -type f ! -name 'fangtang-build-env.txt' -exec gh release upload "$TAG" --clobber {} +

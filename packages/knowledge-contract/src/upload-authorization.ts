@@ -1,6 +1,6 @@
-import { parseKnowledgeUploadPreparation } from './uploads'
-import type { KnowledgeDocumentTarget } from './requests'
-import { invalid, literal, object, sha256, text, timestamp } from './validation'
+import { parseKnowledgeUploadPreparation } from './uploads.js'
+import type { KnowledgeDocumentTarget } from './requests.js'
+import { invalid, literal, object, sha256, text, timestamp } from './validation.js'
 
 const fields = object({
   key: text(128),

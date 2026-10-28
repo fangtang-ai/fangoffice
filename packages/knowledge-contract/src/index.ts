@@ -1,8 +1,27 @@
-export { KnowledgeContractError } from './validation'
+export { KnowledgeContractError } from './validation.js'
+export {
+  parseKnowledgeDocumentDeletionRequest,
+  parseKnowledgeDocumentDeletion,
+  type KnowledgeDocumentDeletionRequest,
+  type KnowledgeDocumentDeletion,
+} from './deletion.js'
+export {
+  parseKnowledgeSearchRequest,
+  parseKnowledgeSearchResult,
+  type KnowledgeSearchRequest,
+  type KnowledgeSearchResult,
+  type KnowledgeSearchHit,
+} from './search.js'
+export {
+  parseKnowledgeSourceUnit,
+  parseKnowledgeSourceUnitTarget,
+  type KnowledgeSourceUnit,
+  type KnowledgeSourceUnitTarget,
+} from './source-unit.js'
 export {
   parseKnowledgeUploadAuthorization,
   type KnowledgeUploadAuthorization,
-} from './upload-authorization'
+} from './upload-authorization.js'
 export {
   parseKnowledgeUploadRequest,
   parseKnowledgeUploadPreparation,
@@ -12,38 +31,38 @@ export {
   type KnowledgeUploadPreparation,
   type KnowledgeUploadCompletionRequest,
   type KnowledgeUploadCompletion,
-} from './uploads'
-export { parseKnowledgeMeteringEvent, type KnowledgeMeteringEvent } from './commerce/metering'
+} from './uploads.js'
+export { parseKnowledgeMeteringEvent, type KnowledgeMeteringEvent } from './commerce/metering.js'
 export {
   parseKnowledgeSettlementSnapshot,
   type KnowledgeSettlementSnapshot,
-} from './commerce/settlement'
-export { parseKnowledgeBillingReceipt, type KnowledgeBillingReceipt } from './commerce/receipt'
-export { parseKnowledgeBudget, type KnowledgeBudget } from './commerce/budget'
-export { parseKnowledgePromoGrant, type KnowledgePromoGrant } from './commerce/promo'
+} from './commerce/settlement.js'
+export { parseKnowledgeBillingReceipt, type KnowledgeBillingReceipt } from './commerce/receipt.js'
+export { parseKnowledgeBudget, type KnowledgeBudget } from './commerce/budget.js'
+export { parseKnowledgePromoGrant, type KnowledgePromoGrant } from './commerce/promo.js'
 export {
   parseKnowledgeConfirmation,
   type KnowledgeConfirmation,
   type KnowledgeConflictCandidate,
-} from './decisions/confirmation'
-export { parseKnowledgeDecision, type KnowledgeDecision } from './decisions/decision'
-export { parseKnowledgeQuantity, type KnowledgeQuantity } from './quantities'
+} from './decisions/confirmation.js'
+export { parseKnowledgeDecision, type KnowledgeDecision } from './decisions/decision.js'
+export { parseKnowledgeQuantity, type KnowledgeQuantity } from './quantities.js'
 export {
   parseKnowledgeCoverage,
   type KnowledgeCoverage,
   type KnowledgeCoverageContext,
-} from './coverage'
-export { type KnowledgeParseWarning, type KnowledgeParseWarningCode } from './warnings'
+} from './coverage.js'
+export { type KnowledgeParseWarning, type KnowledgeParseWarningCode } from './warnings.js'
 export {
   parseKnowledgeLocator,
   type KnowledgeLocator,
   type KnowledgeLocatorContext,
-} from './locators'
+} from './locators/index.js'
 export {
   parseKnowledgeCodePointRange,
   sliceKnowledgeCodePoints,
   type KnowledgeCodePointRange,
-} from './code-points'
+} from './code-points.js'
 export {
   parseKnowledgeSpace,
   parseKnowledgeDocument,
@@ -51,21 +70,21 @@ export {
   type KnowledgeSpace,
   type KnowledgeDocument,
   type KnowledgeVersion,
-} from './core'
+} from './core.js'
 export {
   parseKnowledgeBuild,
   parseKnowledgeOperation,
   type KnowledgeBuild,
   type KnowledgeOperation,
-} from './lifecycle'
-export { parseKnowledgeError, type KnowledgeError, type KnowledgeErrorCode } from './errors'
+} from './lifecycle.js'
+export { parseKnowledgeError, type KnowledgeError, type KnowledgeErrorCode } from './errors.js'
 export {
   parseKnowledgeQuota,
   parseKnowledgeCapacity,
   type KnowledgeQuota,
   type KnowledgeCapacity,
-} from './quota'
-export { parseKnowledgePage, type KnowledgePage } from './pages'
+} from './quota.js'
+export { parseKnowledgePage, type KnowledgePage } from './pages.js'
 export {
   parseKnowledgeSpaceInput,
   parseKnowledgeDocumentInput,
@@ -87,4 +106,4 @@ export {
   type KnowledgeMutationTarget,
   type KnowledgeScope,
   type KnowledgePagination,
-} from './requests'
+} from './requests.js'

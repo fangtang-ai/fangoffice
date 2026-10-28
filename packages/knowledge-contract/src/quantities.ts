@@ -1,4 +1,4 @@
-import { choice, counter, invalid, object, record, type Decoder } from './validation'
+import { choice, counter, invalid, object, record, type Decoder } from './validation.js'
 
 const numeric38: Decoder<string> = (input, path) => {
   if (typeof input !== 'string' || !/^(0|[1-9][0-9]{0,37})$/.test(input)) invalid(path)

@@ -1,1 +1,0 @@
-CREATE INDEX "kb_operations_staging_idx" ON "knowledge"."kb_operations" USING btree ("owner_id","id") WHERE "knowledge"."kb_operations"."staging_key" IS NOT NULL;

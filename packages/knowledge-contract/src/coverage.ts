@@ -1,5 +1,5 @@
-import { knowledgeSourceFormat } from './core'
-import { blockingWarningCodes, parseWarning, xlsxWarningCodes } from './warnings'
+import { knowledgeSourceFormat } from './core.js'
+import { blockingWarningCodes, parseWarning, xlsxWarningCodes } from './warnings.js'
 import {
   choice,
   integer,
@@ -11,7 +11,7 @@ import {
   sha256,
   text,
   unique,
-} from './validation'
+} from './validation.js'
 
 const coverageSource = {
   format: knowledgeSourceFormat,

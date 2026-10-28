@@ -1,4 +1,4 @@
-import { literal, nullable, object, sha256, text, timestamp, uuid } from '../validation'
+import { literal, nullable, object, sha256, text, timestamp, uuid } from '../validation.js'
 
 export const conflictCandidate = object({
   id: uuid,

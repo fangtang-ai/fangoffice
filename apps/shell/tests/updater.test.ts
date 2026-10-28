@@ -7,7 +7,7 @@ import type { UpdateUiState } from '../src/shared/update-api'
  * Install / Later actions come back through update-window.ts callbacks.
  */
 
-const appState = { isPackaged: true }
+const appState = { isPackaged: true, name: '方塘Office' }
 
 const openExternal = vi.hoisted(() => vi.fn())
 const readFileSyncMock = vi.hoisted(() => vi.fn<(...args: unknown[]) => string>())
@@ -18,6 +18,7 @@ vi.mock('electron', () => ({
       return appState.isPackaged
     },
     getVersion: () => '0.1.0',
+    getName: () => appState.name,
   },
   shell: {
     openExternal: (url: string) => openExternal(url),
@@ -129,6 +130,7 @@ beforeEach(() => {
   vi.resetModules()
   vi.useFakeTimers()
   appState.isPackaged = true
+  appState.name = '方塘Office'
   delete process.env.FANGTANG_FAKE_UPDATE
   updaterState.listeners.clear()
   updaterState.autoDownload = true
@@ -464,9 +466,7 @@ describe('manual download fallback', () => {
     readFileSyncMock.mockReturnValue('url: http://cdn.example.com/mac\n')
     const actions = await failTwiceIntoManual(macFiles)
     actions.onOpenDownload()
-    expect(openExternal).toHaveBeenCalledWith(
-      'https://fang-tang.cn',
-    )
+    expect(openExternal).toHaveBeenCalledWith('https://fang-tang.cn')
   })
 
   it('falls back to the generic download page when the feed base cannot be read', async () => {
@@ -475,9 +475,32 @@ describe('manual download fallback', () => {
       { url: 'https://attacker.example/GenOffice-0.2.0-arm64.dmg' },
     ])
     actions.onOpenDownload()
-    expect(openExternal).toHaveBeenCalledWith(
-      'https://fang-tang.cn',
-    )
+    expect(openExternal).toHaveBeenCalledWith('https://fang-tang.cn')
+  })
+
+  it('derives the matching test DMG from a ZIP-only macOS update feed', async () => {
+    appState.name = '方塘Office-Test'
+    readFileSyncMock.mockReturnValue('url: https://cdn.example.com/test\n')
+    const restoreArch = setArch('arm64')
+    try {
+      const actions = await failTwiceIntoManual([
+        { url: 'FangTangOffice-Test-0.2.0-arm64-mac.zip' },
+        { url: 'FangTangOffice-Test-0.2.0-mac.zip' },
+      ])
+      actions.onOpenDownload()
+      expect(openExternal).toHaveBeenCalledWith(
+        'https://cdn.example.com/test/FangTangOffice-Test-0.2.0-arm64.dmg',
+      )
+    } finally {
+      restoreArch()
+    }
+  })
+
+  it('keeps the test download page when the baked feed is unavailable', async () => {
+    appState.name = '方塘Office-Test'
+    const actions = await failTwiceIntoManual([])
+    actions.onOpenDownload()
+    expect(openExternal).toHaveBeenCalledWith('https://test.fang-tang.cn')
   })
 })
 

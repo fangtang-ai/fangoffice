@@ -328,7 +328,9 @@ const MANUAL_FALLBACK_AFTER = 2
 // and signing track, so a stable/legacy-track user could land on the wrong
 // build. Preferred is the CDN installer derived from the user's own update
 // feed (see manualDownloadUrlFor), which matches channel, track, and arch.
-const DOWNLOAD_PAGE_URL = 'https://fang-tang.cn'
+function downloadPageUrl() {
+  return app.getName() === '方塘Office-Test' ? 'https://test.fang-tang.cn' : 'https://fang-tang.cn'
+}
 
 /// Trusted HTTPS base URL baked into resources/app-update.yml. Manual download
 /// links are always rebuilt from this base rather than trusting URLs supplied
@@ -370,6 +372,12 @@ function manualDownloadUrlFor(info: UpdateInfo): string | null {
     basenames.find(match) ?? null
   let chosen: string | null
   if (process.platform === 'darwin') {
+    // DMGs are download-only; updater feeds normally list only the matching ZIPs.
+    basenames.push(
+      ...basenames
+        .filter((name) => name.endsWith('-mac.zip'))
+        .map((name) => name.replace(/-mac\.zip$/, '.dmg')),
+    )
     const arm =
       pick((name) => name.endsWith('-arm64.dmg')) ?? pick((name) => name.endsWith('-universal.dmg'))
     const x64 = pick((name) => name.endsWith('.dmg') && !/-(arm64|universal)\.dmg$/.test(name))
@@ -513,7 +521,7 @@ export function initAutoUpdater(
       closeUpdateWindow()
     },
     onOpenDownload: () => {
-      void shell.openExternal(manualDownloadUrl ?? DOWNLOAD_PAGE_URL)
+      void shell.openExternal(manualDownloadUrl ?? downloadPageUrl())
     },
   }
 

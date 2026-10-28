@@ -1,2 +1,0 @@
-ALTER TABLE "knowledge"."kb_reservations" ADD COLUMN "projected_chunks" bigint;--> statement-breakpoint
-ALTER TABLE "knowledge"."kb_reservations" ADD CONSTRAINT "kb_reservations_projection_check" CHECK (("knowledge"."kb_reservations"."base_build_id" IS NULL OR "knowledge"."kb_reservations"."projected_chunks" IS NOT NULL) AND ("knowledge"."kb_reservations"."projected_chunks" IS NULL OR "knowledge"."kb_reservations"."projected_chunks" >= 0));

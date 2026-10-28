@@ -6,7 +6,7 @@ import {
   type KnowledgeDocumentTarget,
   type KnowledgeSpaceTarget,
   type KnowledgeVersionTarget,
-} from './requests'
+} from './requests.js'
 import {
   choice,
   counter,
@@ -19,7 +19,7 @@ import {
   timestamp,
   unique,
   uuid,
-} from './validation'
+} from './validation.js'
 
 export const knowledgeSourceFormat = choice(['txt', 'md', 'docx', 'pdf', 'xlsx'])
 

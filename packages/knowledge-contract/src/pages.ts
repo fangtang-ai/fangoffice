@@ -1,5 +1,5 @@
-import { parseKnowledgePagination, type KnowledgePagination } from './requests'
-import { invalid, list, nullable, object, unique, uuid } from './validation'
+import { parseKnowledgePagination, type KnowledgePagination } from './requests.js'
+import { invalid, list, nullable, object, unique, uuid } from './validation.js'
 
 export function parseKnowledgePage<Item extends { id: string }>(
   input: unknown,

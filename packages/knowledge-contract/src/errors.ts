@@ -1,4 +1,4 @@
-import { choice, nullable, object, uuid } from './validation'
+import { choice, nullable, object, uuid } from './validation.js'
 
 export const knowledgeError = object({
   code: choice([

@@ -25,6 +25,7 @@ export interface AccountManagedDefaults {
 
 let current: AccountManagedDefaults | null = null
 let pending: Promise<void> | null = null
+let defaultsLoader: (() => Promise<void>) | null = null
 
 export function setAccountManagedDefaults(value: AccountManagedDefaults | null): void {
   current = value
@@ -39,9 +40,16 @@ export function setAccountManagedDefaultsPending(value: Promise<void> | null): v
   pending = value
 }
 
-/** Wait for the existing provisioning request; this function never starts I/O. */
+/** The shell owns provisioning; standalone editors register no loader. */
+export function setAccountManagedDefaultsLoader(load: (() => Promise<void>) | null) {
+  defaultsLoader = load
+}
+
+/** Reuse an in-flight load, or retry missing defaults once per AI request. */
 export function waitForAccountManagedDefaults(): Promise<void> {
-  return pending ?? Promise.resolve()
+  if (pending) return pending
+  if (!current && defaultsLoader) return defaultsLoader()
+  return Promise.resolve()
 }
 
 /**

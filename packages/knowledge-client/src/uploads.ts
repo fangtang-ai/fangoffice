@@ -4,12 +4,12 @@ import {
   parseKnowledgeUploadAuthorization,
   parseKnowledgeUploadRequest,
 } from '@genoffice/knowledge-contract'
-import { KnowledgeClientError } from './errors'
-import { createRequestLifetime } from './lifetime'
-import { cancelResponse } from './response'
-import { bindAccount } from './session'
-import type { createKnowledgeTransport } from './transport'
-import type { KnowledgeAccountAccess, KnowledgeRequestOptions } from './types'
+import { KnowledgeClientError } from './errors.js'
+import { createRequestLifetime } from './lifetime.js'
+import { cancelResponse } from './response.js'
+import { bindAccount } from './session.js'
+import type { createKnowledgeTransport } from './transport.js'
+import type { KnowledgeAccountAccess, KnowledgeRequestOptions } from './types.js'
 
 export function createKnowledgeUploads(
   request: ReturnType<typeof createKnowledgeTransport>,
@@ -63,7 +63,7 @@ export function createKnowledgeUploads(
             throw new KnowledgeClientError('knowledge:request-failed')
           const form = new FormData()
           for (const [key, value] of Object.entries(grant.upload.fields)) form.set(key, value)
-          // 对象请求不复用账号transport/headers；file必须最后，边界由原生FormData生成。
+          // Object uploads never reuse account transport headers; native FormData puts the file last.
           form.set('file', content, 'upload.bin')
           const response = await globalThis.fetch(grant.upload.url, {
             method: 'POST',

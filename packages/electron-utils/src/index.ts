@@ -49,6 +49,7 @@ export {
 } from './factory-defaults'
 export {
   getAccountManagedDefaults,
+  setAccountManagedDefaultsLoader,
   setAccountManagedDefaultsPending,
   waitForAccountManagedDefaults,
   setAccountManagedDefaults,

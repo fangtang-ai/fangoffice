@@ -1,9 +1,9 @@
-import { invalid, record } from '../validation'
-import { locatorContext } from './common'
-import { parseDocxLocator } from './docx'
-import { parsePdfLocator } from './pdf'
-import { parseTextLocator } from './text'
-import { parseXlsxLocator } from './xlsx'
+import { invalid, record } from '../validation.js'
+import { locatorContext } from './common.js'
+import { parseDocxLocator } from './docx.js'
+import { parsePdfLocator } from './pdf.js'
+import { parseTextLocator } from './text.js'
+import { parseXlsxLocator } from './xlsx.js'
 
 function decodeLocator(input: unknown) {
   const source = record(input, 'locator')
@@ -30,4 +30,4 @@ export function parseKnowledgeLocator(input: unknown, context: unknown) {
 }
 
 export type KnowledgeLocator = ReturnType<typeof parseKnowledgeLocator>
-export type { KnowledgeLocatorContext } from './common'
+export type { KnowledgeLocatorContext } from './common.js'

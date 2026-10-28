@@ -1,0 +1,102 @@
+.knowledge-panel {
+  padding: 28px;
+  color: var(--text);
+}
+.knowledge-panel header,
+.knowledge-toolbar,
+.knowledge-documents li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.knowledge-panel h1 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+.knowledge-panel p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.knowledge-toolbar {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+.knowledge-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.knowledge-panel select,
+.knowledge-panel input {
+  padding: 8px;
+  max-width: 340px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.knowledge-documents {
+  padding: 0;
+  list-style: none;
+}
+.knowledge-documents li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.knowledge-panel [data-source] {
+  max-height: 240px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.knowledge-documents .knowledge-search-hit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+.knowledge-search-hit > span {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.knowledge-search-hit label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.knowledge-search-hit select {
+  min-width: 0;
+  flex: 1;
+}
+.knowledge-search-hit button {
+  white-space: nowrap;
+}
+.knowledge-wallet {
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.knowledge-wallet h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.knowledge-wallet dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+}
+.knowledge-wallet dt {
+  color: var(--text-muted);
+}
+.knowledge-wallet dd {
+  margin: 8px 0 0;
+  font-variant-numeric: tabular-nums;
+}

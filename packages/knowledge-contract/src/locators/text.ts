@@ -1,5 +1,5 @@
-import { integer, invalid, literal, object, record } from '../validation'
-import { headingPath, locatorFields } from './common'
+import { integer, invalid, literal, object, record } from '../validation.js'
+import { headingPath, locatorFields } from './common.js'
 
 const textFields = {
   ...locatorFields,

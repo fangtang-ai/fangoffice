@@ -1,4 +1,4 @@
-import { KnowledgeClientError } from './errors'
+import { KnowledgeClientError } from './errors.js'
 
 export interface KnowledgeEndpointConfig {
   apiBase: unknown

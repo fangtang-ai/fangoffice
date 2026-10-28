@@ -1,5 +1,5 @@
-import { choice, integer, invalid, literal, object, text } from '../validation'
-import { locatorFields } from './common'
+import { choice, integer, invalid, literal, object, text } from '../validation.js'
+import { locatorFields } from './common.js'
 
 const xlsxLocator = object({
   ...locatorFields,

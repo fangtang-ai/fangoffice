@@ -69,6 +69,15 @@ marked `alwaysAvailable` join every chat; otherwise a preset skill declares
 the servers it uses via `mcpServers`, and those tools join the conversation
 only while that skill is selected.
 
+**Cloud knowledge (controlled testing).** The home screen supports account-bound spaces,
+documents, quota, TXT/Markdown/DOCX/text-PDF upload, search, and source inspection.
+The test service has real upload, model, search, and source evidence; the existing 0.9.7
+test installer also passes NSIS installation and clean-profile login/read-only checks.
+Access is limited to provisioned test accounts. The installer remains unsigned and has
+not been distributed. See the [desktop guide](docs/knowledge-desktop.md) for limits.
+The backend and its deployment CI live in `fangtang-ai/fangtang-knowledge`; Office keeps
+only its desktop adapter and private client/contract workspace mirrors.
+
 ## Engine packages
 
 All pure TypeScript, no Electron dependency, unit-tested (except the UI kit):
@@ -246,6 +255,74 @@ mcpServers: erp, wiki # 可选：该技能可调用的内置 MCP 服务器
 ```
 
 无 frontmatter 时，文件名（去 `.md`）即 id 与显示名。某应用目录存在任意 `.md` 文件时整体替换该应用内置技能；`userData/presets/<app>/*.md` 按 id 覆盖/新增，无需重打包。各应用的启用/停用开关在 设置 → 技能。
+
+## Release Environments
+
+`FANGTANG_BUILD_ENV` defaults to `test`. Test builds use
+`apps/shell/resources/fangtang-defaults.json`, the `com.fangtang.app.test` app ID,
+and a product name with the `-Test` suffix. Production builds require
+`FANGTANG_BUILD_ENV=production` and the gitignored
+`apps/shell/resources/fangtang-defaults.prod.json`; CI creates that file from
+the `FANGTANG_DEFAULTS_PROD_JSON` secret. The production app ID and product name
+remain unchanged, with the app ID set to `com.fangtang.app`.
+
+The packaged product names select separate Electron user-data directories, so
+login sessions, settings, recent files, Chromium storage and single-instance
+locks are independent. The test build also uses a separate updater cache,
+Linux executable, desktop entry and `fangtang-office-test` package name. Existing
+test installs that used the production identity are not migrated automatically;
+new test builds start with a separate profile.
+
+When auto-update is enabled, `FANGTANG_UPDATE_URL` must be an HTTPS base URL
+without credentials, query parameters or fragments. Its final path component
+must be `test` for a test build, or `stable` / `beta` for a production build.
+Leaving the URL unset disables auto-update. Manual-update fallbacks preserve
+the deployment line, including macOS feeds that list ZIPs but omit DMGs.
+
+Use `npm run dist:win`, `npm run dist:mac` or `npm run dist:linux` to package a
+release. These commands write `fangtang-build-env.txt` only after the builder
+and its update-feed tasks succeed. Calling `electron-builder` directly does
+not certify a release. Both `scripts/stage-release.cjs` and
+`scripts/publish-update.ps1` refuse artifacts with a missing or mismatched
+marker, including publish-only runs. Staging retains the marker for retries,
+but neither OSS nor GitHub Releases receive it. Old unmarked artifacts must
+be rebuilt rather than reused.
+
+The Office trunk is `release/fangtang`; `main` is not a release source. Manual
+`stable` / `beta` releases must select that branch. A pushed `v<version>` tag
+must match `apps/shell/package.json` and point to a commit already contained in
+`release/fangtang`. Test releases may select a feature branch. Source validation
+and the complete reusable CI gate run before packaging.
+
+All staged platform feeds must have the same plain `x.y.z` version. Publishing
+requires a version newer than every existing platform feed. Bump the package
+version before the next production release; do not reuse `0.9.6` for new bytes.
+Network failures, HTTP errors and malformed remote feeds stop publishing before
+any upload. For a genuinely new channel only, `--initial-release` permits feeds
+confirmed absent with HTTP 404; it refuses existing feeds and never bypasses
+403 or network failures. `--force` also cannot bypass unknown remote state.
+
+The Windows PowerShell entry point delegates to the same publisher and accepts
+`-InitialRelease` for explicit initialization. Both entry points require the
+aliyun CLI and `ALIBABA_CLOUD_ACCESS_KEY_ID` /
+`ALIBABA_CLOUD_ACCESS_KEY_SECRET` environment variables.
+
+CI serializes the complete publish job by channel, including GitHub Release
+uploads. Local publishing must not run concurrently with CI or another local
+publisher: the GitHub concurrency group does not cover local processes.
+Before production approval, verify packaged account/API/recharge endpoints,
+side-by-side installation and channel-specific updates. A code revert does not
+restore uploaded feeds or installed clients; prefer a forward patch release.
+
+For example, in PowerShell:
+
+```powershell
+# Local test build without publishing.
+$env:FANGTANG_BUILD_ENV = 'test'
+$env:FANGTANG_UPDATE_URL = 'https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test'
+npm run dist:win
+node scripts/stage-release.cjs --artifacts dist --channel test
+```
 
 ## FAQ
 

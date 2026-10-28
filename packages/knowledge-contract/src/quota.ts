@@ -1,4 +1,4 @@
-import { counter, choice, invalid, nullable, object, text, timestamp, uuid } from './validation'
+import { counter, choice, invalid, nullable, object, text, timestamp, uuid } from './validation.js'
 
 const capacity = object({ files: counter, bytes: counter, chunks: counter })
 export function parseKnowledgeCapacity(input: unknown) {

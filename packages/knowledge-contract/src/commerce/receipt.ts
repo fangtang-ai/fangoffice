@@ -8,9 +8,9 @@ import {
   timestamp,
   uuid,
   type Decoder,
-} from '../validation'
-import { empty, matchSnapshot } from './common'
-import { parseKnowledgeSettlementSnapshot } from './settlement'
+} from '../validation.js'
+import { empty, matchSnapshot } from './common.js'
+import { parseKnowledgeSettlementSnapshot } from './settlement.js'
 
 const fields = {
   schemaVersion: literal(1),

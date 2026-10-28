@@ -1,4 +1,4 @@
-import { choice, integer, nullable, object } from './validation'
+import { choice, integer, nullable, object } from './validation.js'
 
 export const parseWarning = object({
   code: choice([

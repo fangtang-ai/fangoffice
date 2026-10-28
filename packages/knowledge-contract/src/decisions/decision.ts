@@ -9,10 +9,10 @@ import {
   text,
   timestamp,
   uuid,
-} from '../validation'
-import { empty, matchSnapshot } from '../commerce/common'
-import { parseKnowledgeConfirmation } from './confirmation'
-import { conflictCandidate } from './conflict'
+} from '../validation.js'
+import { empty, matchSnapshot } from '../commerce/common.js'
+import { parseKnowledgeConfirmation } from './confirmation.js'
+import { conflictCandidate } from './conflict.js'
 
 const decisionFields = {
   schemaVersion: literal(1),

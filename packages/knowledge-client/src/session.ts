@@ -1,5 +1,5 @@
-import { KnowledgeClientError } from './errors'
-import type { KnowledgeAccountAccess, KnowledgeAccountBinding } from './types'
+import { KnowledgeClientError } from './errors.js'
+import type { KnowledgeAccountAccess, KnowledgeAccountBinding } from './types.js'
 
 export function bindAccount(access: KnowledgeAccountAccess) {
   try {

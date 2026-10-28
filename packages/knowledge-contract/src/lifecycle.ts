@@ -1,5 +1,5 @@
-import { matchDocumentParent } from './core'
-import { knowledgeError } from './errors'
+import { matchDocumentParent } from './core.js'
+import { knowledgeError } from './errors.js'
 import {
   parseKnowledgeBuildTarget,
   parseKnowledgeDocumentTarget,
@@ -9,7 +9,7 @@ import {
   type KnowledgeBuildTarget,
   type KnowledgeOperationTarget,
   type KnowledgeVersionTarget,
-} from './requests'
+} from './requests.js'
 import {
   choice,
   counter,
@@ -20,7 +20,7 @@ import {
   sha256,
   text,
   uuid,
-} from './validation'
+} from './validation.js'
 
 const build = object({
   id: uuid,

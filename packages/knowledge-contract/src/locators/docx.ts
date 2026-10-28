@@ -1,5 +1,5 @@
-import { integer, literal, nullable, object } from '../validation'
-import { headingPath, locatorFields } from './common'
+import { integer, literal, nullable, object } from '../validation.js'
+import { headingPath, locatorFields } from './common.js'
 
 const docxLocator = object({
   ...locatorFields,

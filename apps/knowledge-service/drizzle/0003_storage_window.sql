@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX "kb_metering_events_storage_window_unique" ON "knowledge"."kb_metering_events" USING btree ("owner_id","window_start") WHERE "knowledge"."kb_metering_events"."subject_kind" = 'storage_window' AND "knowledge"."kb_metering_events"."event_type" = 'observation';

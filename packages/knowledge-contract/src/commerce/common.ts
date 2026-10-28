@@ -1,4 +1,4 @@
-import { parseKnowledgeQuantity } from '../quantities'
+import { parseKnowledgeQuantity } from '../quantities.js'
 import {
   counter,
   invalid,
@@ -8,7 +8,7 @@ import {
   timestamp,
   uuid,
   type Decoder,
-} from '../validation'
+} from '../validation.js'
 
 export const product = literal('knowledge_base')
 export const empty: Decoder<null> = (input, path) => {

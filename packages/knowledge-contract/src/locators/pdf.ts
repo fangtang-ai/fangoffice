@@ -1,5 +1,5 @@
-import { integer, invalid, literal, nullable, object, type Decoder } from '../validation'
-import { locatorFields } from './common'
+import { integer, invalid, literal, nullable, object, type Decoder } from '../validation.js'
+import { locatorFields } from './common.js'
 
 const point: Decoder<number> = (input, path) => {
   if (typeof input !== 'number' || !Number.isFinite(input) || input < 0 || input > 10000000) {

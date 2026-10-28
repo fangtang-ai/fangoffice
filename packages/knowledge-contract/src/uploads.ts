@@ -1,6 +1,6 @@
-import { parseKnowledgeOperation } from './lifecycle'
-import { knowledgeSourceFormat } from './core'
-import { parseKnowledgeDocumentTarget, type KnowledgeDocumentTarget } from './requests'
+import { parseKnowledgeOperation } from './lifecycle.js'
+import { knowledgeSourceFormat } from './core.js'
+import { parseKnowledgeDocumentTarget, type KnowledgeDocumentTarget } from './requests.js'
 import {
   counter,
   invalid,
@@ -10,7 +10,7 @@ import {
   text,
   timestamp,
   uuid,
-} from './validation'
+} from './validation.js'
 
 const uploadFields = {
   operationId: uuid,
@@ -42,12 +42,23 @@ export function parseKnowledgeUploadCompletionRequest(input: unknown) {
   return completionRequest(input, 'uploadCompletionRequest')
 }
 
-export function parseKnowledgeUploadCompletion(input: unknown, parent: KnowledgeDocumentTarget, requestInput: unknown) {
+export function parseKnowledgeUploadCompletion(
+  input: unknown,
+  parent: KnowledgeDocumentTarget,
+  requestInput: unknown,
+) {
   const target = parseKnowledgeDocumentTarget(parent)
   const expected = parseKnowledgeUploadCompletionRequest(requestInput)
-  const result = object({ operation: (value) => parseKnowledgeOperation(value, { ...target, operationId: expected.operationId }) })(input, 'uploadCompletion')
-  if (result.operation.kind !== 'upload' || result.operation.expectedGeneration !== expected.expectedGeneration ||
-      !['queued', 'parsing', 'indexing', 'publishing', 'ready'].includes(result.operation.phase)) invalid('uploadCompletion.operation')
+  const result = object({
+    operation: (value) =>
+      parseKnowledgeOperation(value, { ...target, operationId: expected.operationId }),
+  })(input, 'uploadCompletion')
+  if (
+    result.operation.kind !== 'upload' ||
+    result.operation.expectedGeneration !== expected.expectedGeneration ||
+    !['queued', 'parsing', 'indexing', 'publishing', 'ready'].includes(result.operation.phase)
+  )
+    invalid('uploadCompletion.operation')
   return result
 }
 
@@ -75,6 +86,8 @@ export function parseKnowledgeUploadPreparation(
 }
 
 export type KnowledgeUploadRequest = ReturnType<typeof parseKnowledgeUploadRequest>
-export type KnowledgeUploadCompletionRequest = ReturnType<typeof parseKnowledgeUploadCompletionRequest>
+export type KnowledgeUploadCompletionRequest = ReturnType<
+  typeof parseKnowledgeUploadCompletionRequest
+>
 export type KnowledgeUploadCompletion = ReturnType<typeof parseKnowledgeUploadCompletion>
 export type KnowledgeUploadPreparation = ReturnType<typeof parseKnowledgeUploadPreparation>

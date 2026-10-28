@@ -1,5 +1,15 @@
-import { invalid, list, literal, object, record, sha256, text, unique, uuid } from '../validation'
-import { parseStorageWindow, product, storageQuantity, tokenQuantity } from './common'
+import {
+  invalid,
+  list,
+  literal,
+  object,
+  record,
+  sha256,
+  text,
+  unique,
+  uuid,
+} from '../validation.js'
+import { parseStorageWindow, product, storageQuantity, tokenQuantity } from './common.js'
 
 const fields = {
   schemaVersion: literal(1),

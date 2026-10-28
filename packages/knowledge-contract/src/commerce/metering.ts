@@ -1,6 +1,6 @@
-import { invalid } from '../validation'
-import { matchSnapshot } from './common'
-import { decodeMeteringEvent } from './metering-shapes'
+import { invalid } from '../validation.js'
+import { matchSnapshot } from './common.js'
+import { decodeMeteringEvent } from './metering-shapes.js'
 
 export function parseKnowledgeMeteringEvent(input: unknown, previous: unknown = null) {
   const result = decodeMeteringEvent(input)

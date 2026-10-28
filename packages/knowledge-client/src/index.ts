@@ -1,9 +1,9 @@
-export { KnowledgeClientError } from './errors'
-export { resolveKnowledgeEndpoint, type KnowledgeEndpointConfig } from './endpoint'
-export { createKnowledgeClient, type KnowledgeClient } from './client'
+export { KnowledgeClientError } from './errors.js'
+export { resolveKnowledgeEndpoint, type KnowledgeEndpointConfig } from './endpoint.js'
+export { createKnowledgeClient, type KnowledgeClient } from './client.js'
 export type {
   KnowledgeAccountAccess,
   KnowledgeAccountBinding,
   KnowledgeClientOptions,
   KnowledgeRequestOptions,
-} from './types'
+} from './types.js'

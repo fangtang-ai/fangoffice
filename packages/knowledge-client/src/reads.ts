@@ -7,14 +7,24 @@ import {
   parseKnowledgePage,
   parseKnowledgePagination,
   parseKnowledgeQuota,
+  parseKnowledgeSourceUnit,
+  parseKnowledgeSourceUnitTarget,
   parseKnowledgeVersion,
   parseKnowledgeVersionTarget,
 } from '@genoffice/knowledge-contract'
-import type { createKnowledgeTransport } from './transport'
-import type { KnowledgeRequestOptions } from './types'
+import type { createKnowledgeTransport } from './transport.js'
+import type { KnowledgeRequestOptions } from './types.js'
 
 export function createHistoryReads(request: ReturnType<typeof createKnowledgeTransport>) {
   return {
+    async getSourceUnit(input: unknown, options: KnowledgeRequestOptions = {}) {
+      const target = parseKnowledgeSourceUnitTarget(input)
+      return request(
+        `/spaces/${target.spaceId}/documents/${target.documentId}/versions/${target.versionId}/builds/${target.buildId}/sources/${target.sourceUnitId}`,
+        (value) => parseKnowledgeSourceUnit(value, target),
+        options,
+      )
+    },
     async listVersions(
       input: unknown,
       pageInput: unknown = {},

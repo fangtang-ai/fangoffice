@@ -1,9 +1,9 @@
-import { resolveKnowledgeEndpoint } from './endpoint'
-import { KnowledgeClientError } from './errors'
-import { createRequestLifetime } from './lifetime'
-import { cancelResponse, parseResponse } from './response'
-import { bindAccount, readToken } from './session'
-import type { KnowledgeAccountAccess, KnowledgeRequestOptions } from './types'
+import { resolveKnowledgeEndpoint } from './endpoint.js'
+import { KnowledgeClientError } from './errors.js'
+import { createRequestLifetime } from './lifetime.js'
+import { cancelResponse, parseResponse } from './response.js'
+import { bindAccount, readToken } from './session.js'
+import type { KnowledgeAccountAccess, KnowledgeRequestOptions } from './types.js'
 
 export function createKnowledgeTransport(
   access: KnowledgeAccountAccess,
@@ -20,14 +20,14 @@ export function createKnowledgeTransport(
     path: string,
     parse: (input: unknown) => Value,
     options: KnowledgeRequestOptions = {},
-    mutation?: { method: 'PUT' | 'POST'; body: object },
+    mutation?: { method: 'PUT' | 'POST' | 'DELETE'; body: object },
   ) => {
     if (closed.aborted) throw new KnowledgeClientError('knowledge:closed')
     const root = endpoint()
     const url = new URL(`${root.href}${path}`)
     const binding = bindAccount(access)
     const lifetime = createRequestLifetime(access, binding, closed, options.signal, timeoutMs)
-    // 认证重试只重发同一快照，不因调用方修改输入而改变幂等请求。
+    // Authentication retries reuse one snapshot so caller mutations cannot change an idempotent request.
     const body = mutation ? JSON.stringify(mutation.body) : undefined
     const check = () => {
       lifetime.check()

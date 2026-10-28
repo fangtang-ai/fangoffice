@@ -1,8 +1,12 @@
 import {
   KnowledgeContractError,
+  parseKnowledgeSearchRequest,
+  parseKnowledgeSearchResult,
   parseKnowledgeDocument,
   parseKnowledgeDocumentInput,
   parseKnowledgeDocumentTarget,
+  parseKnowledgeDocumentDeletionRequest,
+  parseKnowledgeDocumentDeletion,
   parseKnowledgeSpace,
   parseKnowledgeSpaceInput,
   parseKnowledgeSpaceTarget,
@@ -11,12 +15,36 @@ import {
   parseKnowledgeUploadCompletionRequest,
   parseKnowledgeUploadCompletion,
 } from '@genoffice/knowledge-contract'
-import type { createKnowledgeTransport } from './transport'
-import type { KnowledgeRequestOptions } from './types'
+import type { createKnowledgeTransport } from './transport.js'
+import type { KnowledgeRequestOptions } from './types.js'
 
 export function createKnowledgeMutations(request: ReturnType<typeof createKnowledgeTransport>) {
   return {
-    async completeUpload(input: unknown, declaration: unknown, options: KnowledgeRequestOptions = {}) {
+    async deleteDocument(input: unknown, identity: unknown, options: KnowledgeRequestOptions = {}) {
+      const target = parseKnowledgeDocumentTarget(input)
+      const declaration = parseKnowledgeDocumentDeletionRequest(identity)
+      return request(
+        '/deletions',
+        (value) => parseKnowledgeDocumentDeletion(value, declaration),
+        options,
+        {
+          method: 'DELETE',
+          body: { id: declaration.intentId, scope: { kind: 'document', ...target } },
+        },
+      )
+    },
+    async search(input: unknown, options: KnowledgeRequestOptions = {}) {
+      const body = parseKnowledgeSearchRequest(input)
+      return request('/search', (value) => parseKnowledgeSearchResult(value, body), options, {
+        method: 'POST',
+        body,
+      })
+    },
+    async completeUpload(
+      input: unknown,
+      declaration: unknown,
+      options: KnowledgeRequestOptions = {},
+    ) {
       const target = parseKnowledgeDocumentTarget(input)
       const body = parseKnowledgeUploadCompletionRequest(declaration)
       return request(

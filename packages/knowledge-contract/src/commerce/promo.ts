@@ -8,8 +8,8 @@ import {
   text,
   timestamp,
   uuid,
-} from '../validation'
-import { matchSnapshot, product } from './common'
+} from '../validation.js'
+import { matchSnapshot, product } from './common.js'
 
 const policyFields = {
   grantRevision: text(128),

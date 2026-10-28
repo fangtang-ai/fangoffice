@@ -6,15 +6,15 @@ import {
   parseKnowledgeSpace,
   parseKnowledgeSpaceTarget,
 } from '@genoffice/knowledge-contract'
-import { createKnowledgeTransport } from './transport'
-import { createHistoryReads } from './reads'
-import { createKnowledgeMutations } from './mutations'
-import { createKnowledgeUploads } from './uploads'
+import { createKnowledgeTransport } from './transport.js'
+import { createHistoryReads } from './reads.js'
+import { createKnowledgeMutations } from './mutations.js'
+import { createKnowledgeUploads } from './uploads.js'
 import type {
   KnowledgeAccountAccess,
   KnowledgeClientOptions,
   KnowledgeRequestOptions,
-} from './types'
+} from './types.js'
 
 export function createKnowledgeClient(
   access: KnowledgeAccountAccess,

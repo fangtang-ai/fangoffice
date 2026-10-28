@@ -1,5 +1,5 @@
-import { choice, literal, object, record } from '../validation'
-import { empty, storageQuantity, tokenQuantity } from './common'
+import { choice, literal, object, record } from '../validation.js'
+import { empty, storageQuantity, tokenQuantity } from './common.js'
 
 const unknownUsage = object({ source: literal('unknown'), quantity: empty })
 const storageUsage = object({

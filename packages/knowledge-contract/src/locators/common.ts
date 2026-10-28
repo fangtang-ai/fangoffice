@@ -1,6 +1,6 @@
-import { parseKnowledgeCodePointRange } from '../code-points'
-import { knowledgeSourceFormat } from '../core'
-import { integer, list, literal, object, sha256, text } from '../validation'
+import { parseKnowledgeCodePointRange } from '../code-points.js'
+import { knowledgeSourceFormat } from '../core.js'
+import { integer, list, literal, object, sha256, text } from '../validation.js'
 
 export const locatorFields = {
   schemaVersion: literal(1),

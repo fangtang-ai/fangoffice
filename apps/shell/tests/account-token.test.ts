@@ -60,6 +60,7 @@ vi.mock('@genoffice/electron-utils', () => ({
     }
   },
   setAccountManagedDefaults: vi.fn(),
+  setAccountManagedDefaultsLoader: vi.fn(),
   setAccountManagedDefaultsPending: vi.fn(),
   setAccountManagedTokenProvider: vi.fn(),
 }))

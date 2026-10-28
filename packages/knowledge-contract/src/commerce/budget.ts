@@ -10,8 +10,8 @@ import {
   text,
   timestamp,
   uuid,
-} from '../validation'
-import { empty, product, storageQuantity, tokenQuantity } from './common'
+} from '../validation.js'
+import { empty, product, storageQuantity, tokenQuantity } from './common.js'
 
 const budgetFields = {
   schemaVersion: literal(1),

@@ -1,6 +1,6 @@
-import { KnowledgeClientError } from './errors'
-import { assertBinding } from './session'
-import type { KnowledgeAccountAccess, KnowledgeAccountBinding } from './types'
+import { KnowledgeClientError } from './errors.js'
+import { assertBinding } from './session.js'
+import type { KnowledgeAccountAccess, KnowledgeAccountBinding } from './types.js'
 
 export function createRequestLifetime(
   access: KnowledgeAccountAccess,

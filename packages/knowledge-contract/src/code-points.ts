@@ -1,4 +1,4 @@
-import { integer, invalid, literal, object } from './validation'
+import { integer, invalid, literal, object } from './validation.js'
 
 export const codePointRange = object({
   unit: literal('unicode_code_point'),

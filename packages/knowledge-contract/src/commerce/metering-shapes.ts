@@ -8,9 +8,9 @@ import {
   text,
   timestamp,
   uuid,
-} from '../validation'
-import { parseStorageWindow, product } from './common'
-import { parseEmbeddingUsage, parseStorageUsage } from './usage'
+} from '../validation.js'
+import { parseStorageWindow, product } from './common.js'
+import { parseEmbeddingUsage, parseStorageUsage } from './usage.js'
 
 const eventFields = {
   schemaVersion: literal(1),

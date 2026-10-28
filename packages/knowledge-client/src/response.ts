@@ -1,5 +1,5 @@
 import { parseKnowledgeError } from '@genoffice/knowledge-contract'
-import { KnowledgeClientError } from './errors'
+import { KnowledgeClientError } from './errors.js'
 
 export function cancelResponse(response: Response) {
   void response.body?.cancel().catch(() => undefined)

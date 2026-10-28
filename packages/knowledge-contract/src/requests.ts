@@ -11,7 +11,7 @@ import {
   text,
   unique,
   uuid,
-} from './validation'
+} from './validation.js'
 
 export const documentTarget = object({ spaceId: uuid, documentId: uuid })
 const spaceTarget = object({ spaceId: uuid })

@@ -8,6 +8,7 @@ import type {
   OfficeBillingProduct,
 } from '@genoffice/agent-core'
 import type { UpdateChannel } from './update-api'
+import type { KnowledgeApi } from './knowledge-api'
 
 /** UI language; kept self-contained here (mirrors Lang in @genoffice/i18n) */
 export type UiLanguage =
@@ -96,6 +97,7 @@ export interface RecentPage {
 }
 
 export interface HomeApi {
+  knowledge: KnowledgeApi
   /** unified recents across document types, newest first (paged) */
   recents(query?: RecentQuery): Promise<RecentPage>
   /** starred files (independent of the recent list), newest first (paged) */

@@ -8,8 +8,8 @@ import {
   timestamp,
   unique,
   uuid,
-} from '../validation'
-import { conflictCandidate } from './conflict'
+} from '../validation.js'
+import { conflictCandidate } from './conflict.js'
 
 const confirmation = object({
   schemaVersion: literal(1),
@@ -36,4 +36,4 @@ export function parseKnowledgeConfirmation(input: unknown) {
 }
 
 export type KnowledgeConfirmation = ReturnType<typeof parseKnowledgeConfirmation>
-export type { KnowledgeConflictCandidate } from './conflict'
+export type { KnowledgeConflictCandidate } from './conflict.js'

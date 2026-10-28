@@ -60,6 +60,13 @@ export const uuid: Decoder<string> = (input, path) => {
   return input
 }
 
+export const contentUuid: Decoder<string> = (input, path) => {
+  // Parser hashes use UUID-shaped identifiers without RFC bits; business resources still require uuid.
+  if (typeof input !== 'string' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(input))
+    invalid(path)
+  return input
+}
+
 export function nullable<Value>(decode: Decoder<Value>): Decoder<Value | null> {
   return (input, path) => (input === null ? null : decode(input, path))
 }
