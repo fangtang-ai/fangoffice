@@ -1,4 +1,4 @@
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { KnowledgeChatApi, PresetSkillDef } from '@genoffice/agent-core'
 import type {
   McpCallContext,
   McpCallResult,
@@ -112,6 +112,7 @@ export interface ImageData {
 
 /** API exposed by preload to the renderer (window.markdownApi) */
 export interface MarkdownApi {
+  knowledge?: KnowledgeChatApi
   /** Take the md path pending for this view (queued at tab creation); null = new untitled document */
   consumePending(): Promise<string | null>
   /** Read the file as UTF-8 text. Only paths granted to this view are allowed */

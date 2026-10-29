@@ -1,4 +1,5 @@
 export { ProjectStore } from './store.js'
+export { createScopedChatStore } from './scoped-chat.js'
 export type {
   ChatMessage,
   ChatMeta,

@@ -4,7 +4,13 @@ import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 
 import { AgentLoop, composeSkills, createPresetSkill } from '@genoffice/agent-core'
 import { createMcpPresetHooks } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider'
-import { AiComposer, AiTypingIndicator, Markdown, useAiSkills } from '@genoffice/ui'
+import {
+  AiComposer,
+  AiTypingIndicator,
+  Markdown,
+  useAiSkills,
+  useKnowledgeChat,
+} from '@genoffice/ui'
 import type { Editor } from '@tiptap/core'
 import { aiLangDirective, t as tGlobal, useI18n } from '../i18n/locale'
 import sendEnterOn from '../assets/send-enter-on.png'
@@ -226,6 +232,19 @@ export function AiPanel({
   }
 
   // The loop is built once; every mutable value goes through a ref getter
+  const {
+    skill: knowledgeSkill,
+    version: knowledgeVersion,
+    capture: captureKnowledgeAccount,
+  } = useKnowledgeChat(window.markdownApi?.knowledge, () => {
+    stop()
+    loopRef.current?.reset()
+    setBusy(false)
+    setChat([])
+    chatIdsRef.current = null
+    pendingPersistRef.current = []
+    runToolsRef.current = []
+  })
   const loopRef = useRef<AgentLoop<DocSnapshot> | null>(null)
   if (!loopRef.current) {
     loopRef.current = new AgentLoop<DocSnapshot>({
@@ -234,6 +253,7 @@ export function AiPanel({
         () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
       ),
       skill: composeSkills('markdown+search', '', [
+        knowledgeSkill,
         createMarkdownSkill(() => depsRef.current.getEditor(), {
           read: () => depsRef.current.getFrontmatter(),
           write: (inner) => depsRef.current.setFrontmatter(inner),
@@ -362,12 +382,14 @@ export function AiPanel({
 
   // ── chat-history persistence: bind to the file, restore prior transcript ──
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const api = window.projectApi
     if (!api) return
     const tempChatId = `unsaved-${Date.now()}`
     void api
       .resolveChat({ filePath: filePathRef.current ?? null, tempChatId })
       .then((ids) => {
+        if (!isCurrent()) throw new Error('knowledge:account-changed')
         chatIdsRef.current = ids
         for (const msg of pendingPersistRef.current.splice(0)) {
           persistMessage(msg.role, msg.text, msg.tools)
@@ -375,7 +397,7 @@ export function AiPanel({
         return api.loadChat({ projectId: ids.projectId, chatId: ids.chatId, limit: 200 })
       })
       .then((msgs) => {
-        if (msgs.length === 0) return
+        if (!isCurrent() || msgs.length === 0) return
         // the user may have sent a message while history was loading — never
         // replace a live transcript (and don't clobber the loop context)
         let applied = false
@@ -400,22 +422,23 @@ export function AiPanel({
       .catch(() => {
         /* history load failures are silent */
       })
-  }, [])
+  }, [knowledgeVersion, captureKnowledgeAccount])
 
   /** after an untitled document's first save, bind the unsaved-* history to the real path */
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     filePathRef.current = filePath
     const ids = chatIdsRef.current
-    if (!window.projectApi || !ids || !filePath || !ids.chatId.startsWith('unsaved-')) return
+    if (!window.projectApi || !ids || !filePath || !/(^|-)unsaved-/.test(ids.chatId)) return
     void window.projectApi
       .rebindChat({ projectId: ids.projectId, tempChatId: ids.chatId, newFilePath: filePath })
       .then((r) => {
-        if (r?.chatId) chatIdsRef.current = r
+        if (isCurrent() && r?.chatId) chatIdsRef.current = r
       })
       .catch(() => {
         /* silent */
       })
-  }, [filePath])
+  }, [filePath, captureKnowledgeAccount])
 
   useEffect(() => {
     if (stickToBottomRef.current) {
@@ -430,6 +453,7 @@ export function AiPanel({
   }
 
   const send = (text: string, displayText?: string): void => {
+    const isCurrent = captureKnowledgeAccount()
     const instruction = text.trim()
     const loop = loopRef.current
     if (!instruction || !loop || loop.busy) return
@@ -451,10 +475,10 @@ export function AiPanel({
     void (async () => {
       try {
         settingsRef.current = await window.markdownApi.getAiSettings()
-        if (!mountedRef.current) return
+        if (!mountedRef.current || !isCurrent()) return
         await loop.run(instruction)
       } catch (err) {
-        if (!mountedRef.current) return
+        if (!mountedRef.current || !isCurrent()) return
         patchLast({
           streaming: false,
           text: err instanceof Error ? err.message : String(err),

@@ -1,5 +1,6 @@
 import type {
   McpCallContext,
+  KnowledgeChatApi,
   McpCallResult,
   McpServerInfo,
   McpToolInfo,
@@ -2675,6 +2676,7 @@ export interface RecoveryPromptPayload {
 }
 
 export interface DesktopApi {
+  knowledge?: KnowledgeChatApi
   /** current UI language (persisted by the shell in app-settings.json) */
   getLanguage(): Promise<'zh' | 'en' | 'ja' | 'ko' | 'fr' | 'de' | 'es' | 'th' | 'id' | 'ru' | 'ar'>
   /** language switched from the shell home page */

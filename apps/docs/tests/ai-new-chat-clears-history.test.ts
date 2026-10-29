@@ -8,6 +8,7 @@ import { Editor } from '@tiptap/core'
 import { editorExtensions } from '../src/renderer/editor/extensions'
 import { AiPanel } from '../src/renderer/ai/AiPanel'
 import { AI_PROVIDERS, type AiSettings } from '../src/shared/ipc'
+import type { KnowledgeChatApi } from '@genoffice/agent-core'
 
 const settings: AiSettings = {
   provider: 'anthropic',
@@ -87,6 +88,66 @@ beforeAll(() => {
 })
 
 describe('AiPanel new chat', () => {
+  it('drops old-account history arriving after an account switch and restores only the new account transcript', async () => {
+    const previousDesktop = Object.getOwnPropertyDescriptor(window, 'desktop')
+    const previousProject = Object.getOwnPropertyDescriptor(window, 'projectApi')
+    let notify = () => {}
+    let userId = 'account-A'
+    let resolveOld!: (value: Array<{ role: 'assistant'; text: string }>) => void
+    const oldHistory = new Promise<Array<{ role: 'assistant'; text: string }>>((resolve) => {
+      resolveOld = resolve
+    })
+    const unavailable = async () => ({
+      ok: false as const,
+      code: 'knowledge:account-required' as const,
+    })
+    const knowledge: KnowledgeChatApi = {
+      session: unavailable,
+      listSpaces: unavailable,
+      listDocuments: unavailable,
+      getOperation: unavailable,
+      search: unavailable,
+      getSourceUnit: unavailable,
+      onSessionChanged: (listener) => {
+        notify = listener
+        return () => {
+          notify = () => {}
+        }
+      },
+    }
+    Object.defineProperty(window, 'desktop', { configurable: true, value: { knowledge } })
+    Object.defineProperty(window, 'projectApi', {
+      configurable: true,
+      value: {
+        resolveChat: vi.fn(async () => ({ projectId: 'p', chatId: userId })),
+        loadChat: vi.fn(async ({ chatId }: { chatId: string }) =>
+          chatId === 'account-A' ? oldHistory : [{ role: 'assistant', text: 'B账号的当前资料' }],
+        ),
+      },
+    })
+    const editor = createEditor()
+    const { container, cleanup } = mount(createElement(AiPanel, panelProps(editor)))
+    try {
+      await flush()
+      act(() => {
+        userId = 'account-B'
+        notify()
+      })
+      resolveOld([{ role: 'assistant', text: 'A账号的私密知识原文' }])
+      await flush()
+      await flush()
+      expect(container.textContent).not.toContain('A账号的私密知识原文')
+      expect(container.textContent).toContain('B账号的当前资料')
+    } finally {
+      cleanup()
+      editor.destroy()
+      if (previousDesktop) Object.defineProperty(window, 'desktop', previousDesktop)
+      else Reflect.deleteProperty(window, 'desktop')
+      if (previousProject) Object.defineProperty(window, 'projectApi', previousProject)
+      else Reflect.deleteProperty(window, 'projectApi')
+    }
+  })
+
   it('clears the restored history transcript along with the live turn', async () => {
     const restoreApi = mockProjectApi()
     try {

@@ -1,4 +1,5 @@
 export { AiComposer } from './AiComposer'
+export { useKnowledgeChat } from './knowledge-chat'
 export {
   ColorPicker,
   THEME_COLORS,

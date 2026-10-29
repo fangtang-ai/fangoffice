@@ -186,6 +186,17 @@ function invalidateAccountSession() {
   for (const listener of accountInvalidationListeners) listener()
 }
 
+export function onAccountSessionInvalidated(listener: () => void) {
+  accountInvalidationListeners.add(listener)
+  return () => {
+    accountInvalidationListeners.delete(listener)
+  }
+}
+
+export function getAccountUserId() {
+  return currentSession()?.userId ?? null
+}
+
 export function getAccountKnowledgeAccess() {
   // Pin deployment configuration once; request boundary checks must not repeat synchronous file IO.
   const config = loadFangTangAccountConfig()

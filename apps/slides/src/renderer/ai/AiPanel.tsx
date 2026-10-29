@@ -40,7 +40,7 @@ import {
   settingsSupportVision,
 } from './slide-qc'
 import { useI18n, t as tGlobal, aiLangDirective, type TFunc } from '../i18n/locale'
-import { AiSkillPicker, Markdown, useAiSkills } from '@genoffice/ui'
+import { AiSkillPicker, Markdown, useAiSkills, useKnowledgeChat } from '@genoffice/ui'
 import { AiMark } from '../components/icons'
 import sendEnterOn from '../assets/send-enter-on.png'
 import sendEnterOff from '../assets/send-enter-off.png'
@@ -507,6 +507,15 @@ export function AiPanel({
   const stickToBottomRef = useRef(true)
   /** Current chat's projectId/chatId, set after resolve succeeds */
   const chatRefIds = useRef<{ projectId: string; chatId: string } | null>(null)
+  const {
+    skill: knowledgeSkill,
+    version: knowledgeVersion,
+    capture: captureKnowledgeAccount,
+  } = useKnowledgeChat(window.slidesApi?.knowledge, () => {
+    newChat()
+    chatRefIds.current = null
+    runToolsRef.current = []
+  })
 
   // The loop instance survives across renders; closures read refs for the latest state
   const slidesRef = useRef(slides)
@@ -574,17 +583,19 @@ export function AiPanel({
   // ── Chat history persistence ──────────────────────────────────────────────
   /** Resolve chatId and load history on first mount (AiPanel resets by key; no need to watch currentFilePath changes) */
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const api = (window as Window & { projectApi?: typeof window.projectApi }).projectApi
     if (!api) return
     const tempChatId = `unsaved-${Date.now()}`
     void api
       .resolveChat({ filePath: currentFilePath ?? null, tempChatId })
       .then((ids) => {
+        if (!isCurrent()) throw new Error('knowledge:account-changed')
         chatRefIds.current = ids
         return api.loadChat({ projectId: ids.projectId, chatId: ids.chatId, limit: 200 })
       })
       .then((msgs) => {
-        if (msgs.length === 0) return
+        if (!isCurrent() || msgs.length === 0) return
         setHistoricChat(
           msgs.map((m) => ({
             role: m.role,
@@ -613,13 +624,14 @@ export function AiPanel({
         /* History load failures are silent */
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [knowledgeVersion, captureKnowledgeAccount])
 
   /** After an unsaved draft lands and gets a real path, bind the unsaved-* history to that file (recoverable by path on reopen) */
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const ids = chatRefIds.current
     const api = (window as Window & { projectApi?: typeof window.projectApi }).projectApi
-    if (!api || !ids || !currentFilePath || !ids.chatId.startsWith('unsaved-')) return
+    if (!api || !ids || !currentFilePath || !/(^|-)unsaved-/.test(ids.chatId)) return
     void api
       .rebindChat({
         projectId: ids.projectId,
@@ -627,12 +639,12 @@ export function AiPanel({
         newFilePath: currentFilePath,
       })
       .then((r) => {
-        if (r?.chatId) chatRefIds.current = r
+        if (isCurrent() && r?.chatId) chatRefIds.current = r
       })
       .catch(() => {
         /* Silent */
       })
-  }, [currentFilePath])
+  }, [currentFilePath, captureKnowledgeAccount])
 
   /** Persist one message (fails silently). tools include args/output (truncated by the store layer); attachments store metadata only. */
   const persistMessage = (
@@ -1293,6 +1305,7 @@ export function AiPanel({
       ),
       systemSuffix: aiLangDirective,
       skill: composeSkills('slides+files', '', [
+        knowledgeSkill,
         createSlidesSkill(access),
         createFilesSkill(availableAttachments, (path) => readAttachmentPathsRef.current.add(path)),
         createPresetSkill(
@@ -1537,6 +1550,7 @@ export function AiPanel({
     // otherwise two sets of bubbles get pushed and the earlier assistant placeholder stays at "thinking" forever.
     // qcRunningRef: the post-generation QC pass edits the deck outside the main loop — no concurrent runs
     if (!instruction || !loop || loop.busy || runStartingRef.current || qcRunningRef.current) return
+    const isCurrent = captureKnowledgeAccount()
     runStartingRef.current = true
     setInput('')
     // The message consumes the composer attachments: they ride along (echoed on the
@@ -1575,6 +1589,7 @@ export function AiPanel({
     persistMessage('user', shown, undefined, sentAtts)
     void collectImageAttachments(sentAtts)
       .then(async (images) => {
+        if (!isCurrent()) return
         // AI Beautify sends the current slide's rendering along, so the model sees what it edits;
         // the note rides on the model instruction only — the chat bubble stays the localized preset text
         let modelInstruction = instruction
@@ -1588,10 +1603,16 @@ export function AiPanel({
         // Clear the flag before run: loop.run sets running synchronously, leaving no re-entry window
         runStartingRef.current = false
         await onBeforeRunRef.current?.()
+        if (!isCurrent()) return
         if (await window.slidesApi.beginHistoryBatch()) historyBatchActiveRef.current = true
+        if (!isCurrent()) {
+          await finishHistoryBatch()
+          return
+        }
         loop.run(modelInstruction, images)
       })
       .catch(() => {
+        if (!isCurrent()) return
         runStartingRef.current = false
         void finishHistoryBatch().finally(() => setBusy(false))
       })

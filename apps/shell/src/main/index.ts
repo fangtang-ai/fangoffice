@@ -145,8 +145,9 @@ import { HOME_CHANNELS } from '../shared/home-api'
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
-import { getAccountMcpAccess, registerAccountIpc } from './auth'
+import { getAccountMcpAccess, getAccountUserId, registerAccountIpc } from './auth'
 import { registerKnowledgeIpc } from './knowledge-ipc'
+import { registerKnowledgeChatIpc } from './knowledge-chat-ipc'
 import { normalizeRecentQuery, pageRecentPaths, statPathEntries } from './recent-files'
 import { isSameFile, isValidRenameName } from './rename-validation'
 import { TabManager } from './tab-manager'
@@ -3597,10 +3598,11 @@ const mcpHub = new McpHub(
 )
 registerAccountMcpSettings(mcpHub, APP_SETTINGS_PATH())
 registerMcpIpc(mcpHub)
-registerProjectIpc()
+registerProjectIpc({ accountId: getAccountUserId })
 registerDocsIpc()
 registerAccountIpc()
 registerKnowledgeIpc(() => shellWindow)
+registerKnowledgeChatIpc(() => tabManager?.editorContents() ?? [])
 registerHomeIpc()
 registerTabsIpc()
 registerDroppedFilesIpc()

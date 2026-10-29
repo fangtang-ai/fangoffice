@@ -1,11 +1,12 @@
 # Cloud knowledge desktop guide
 
-Status: 2026-10-28. The isolated test service supports four upload formats with an
+Status: 2026-10-29. The isolated test service supports four upload formats with an
 8 MiB single-file limit. Actual upload, private object storage, embedding, Chinese
-search, and source inspection have been verified. The existing 0.9.7 test installer
-also passes current-user NSIS installation and clean-profile login/read-only checks.
-This is controlled testing, not production publication or completed distribution.
-The installer remains `NotSigned`.
+search, and source inspection have existing acceptance evidence. Test version 0.9.7
+was published on October 29; its knowledge panel supports manual search, not AI chat.
+The new built-in chat integration described below is source-level work awaiting
+real-account conversation acceptance and a new, strictly higher test release.
+The installer remains `NotSigned`; production channels are unchanged.
 
 ## Repository ownership
 
@@ -28,8 +29,44 @@ source. Registry publication is not required for the current desktop integration
   not rewritten. Complex fonts and all multilingual layouts are not fully covered.
 - XLSX sheet/range selection is not connected to upload/build, despite an existing
   parser in the independent service. The desktop does not offer XLSX upload.
-- Scanned-PDF OCR and automatic document RAG are not connected. Passing a source
-  into a real conversation is not evidence of an automatic RAG pipeline.
+- Scanned-PDF OCR is not connected. The unreleased chat integration retrieves
+  knowledge on demand through built-in tools; it does not attach the entire library
+  to every ordinary message or prove that every document has been fully read.
+
+## Built-in AI knowledge chat (unreleased)
+
+Docs, Sheets, Slides, PDF, and Markdown share one read-only knowledge skill. It is
+independent of MCP presets and uses the signed-in account through the main process.
+No MCP server, pasted source, special prompt template, or repeated upload is required.
+
+- Ask whether the library contains a document: `list_knowledge_spaces` and
+  `list_knowledge_documents` inspect the actual account catalog. Both preserve
+  pagination; an unfinished page or empty semantic search is not proof of absence.
+- File status comes from published builds and desired operations. `not_ready` means
+  no published searchable build; `get_knowledge_status` reads the real operation
+  before describing a file as queued, parsing, failed, or cancelled.
+- Ask a content question: `search_knowledge` targets catalog spaces or documents,
+  then `read_knowledge_source` retrieves the original passage. Replies must use
+  returned citation IDs such as `[K1]`, the file title, and its block/page/line locator.
+  Search snippets alone are not presented as verified original passages.
+- Follow-up source questions reuse the same document/version/build/source-unit
+  reference. Long original passages are paged by Unicode code point, with an explicit
+  next offset; retrieved content is reference data, not executable instructions.
+- Missing login, forbidden access, service failures, unready files, and no search
+  hits remain distinct outcomes. The tools do not create, upload, or delete files.
+
+Account changes cancel/reset the visible and model conversation and discard stale
+history and tool replies. New local chat transcripts and project timelines are
+account-scoped, including saved drafts and file moves between projects. Existing
+unscoped local transcripts remain on disk but are not silently assigned to a user.
+This isolates chat context, not local document files or the shared project catalog.
+
+Local tests cover the normal agent loop, preload, owned-editor IPC, account client,
+source locators, and account-switch history restoration. These use synthetic data;
+they do not prove that the user's Zhongyuan University DOCX is ready or that an
+actual model has answered from it. That three-question live check remains a release
+gate. Local policy currently rejects starting the acceptance client; no alternate
+execution path or replacement upload is used to bypass that gate.
 
 ## Account and security boundaries
 

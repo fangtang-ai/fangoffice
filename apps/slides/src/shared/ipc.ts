@@ -7,7 +7,7 @@
  * renderer sends edit intents (text/geometry changes) back to the main process, which applies
  * them to the model and rebuilds the RenderSlide.
  */
-import type { PresetSkillDef } from '@genoffice/agent-core'
+import type { KnowledgeChatApi, PresetSkillDef } from '@genoffice/agent-core'
 import type { RenderSlide } from '@genoffice/pptx-render'
 import type { SlideComment, SectionInfo } from '@genoffice/pptx-engine'
 import type { AiSettings, AiStreamChunk, AiStreamRequest } from '@genoffice/ai-provider'
@@ -1161,6 +1161,7 @@ export type MenuCommand =
   | 'paste'
 
 export interface SlidesApi {
+  knowledge?: KnowledgeChatApi
   /** current UI language (persisted by the shell in app-settings.json) */
   getLanguage: () => Promise<
     'zh' | 'en' | 'ja' | 'ko' | 'fr' | 'de' | 'es' | 'th' | 'id' | 'ru' | 'ar'
