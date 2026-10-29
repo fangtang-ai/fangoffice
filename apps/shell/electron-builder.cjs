@@ -646,9 +646,8 @@ if (updateUrl) {
 // its updater cache from name. Both identities must differ for the test app.
 const extraMetadata = {
   productName,
-  ...(buildEnv === 'test'
-    ? { name: '@genoffice/shell-test', desktopName: 'fangtang-office-test.desktop' }
-    : {}),
+  name: linuxPackageName,
+  ...(buildEnv === 'test' ? { desktopName: 'fangtang-office-test.desktop' } : {}),
 }
 if (fontCdnUrl) extraMetadata.genofficeFontCdn = { baseUrl: fontCdnUrl }
 config.extraMetadata = extraMetadata

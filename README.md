@@ -273,6 +273,12 @@ Linux executable, desktop entry and `fangtang-office-test` package name. Existin
 test installs that used the production identity are not migrated automatically;
 new test builds start with a separate profile.
 
+Packaged application names are `fangtang-office` and `fangtang-office-test`.
+Fresh Windows installations use these branded directory names, and updater
+caches use the matching names with an `-updater` suffix. Product names and app
+IDs stay unchanged. Upgrades retain an existing installation's recorded path;
+changing the default does not rename or move an already installed copy.
+
 When auto-update is enabled, `FANGTANG_UPDATE_URL` must be an HTTPS base URL
 without credentials, query parameters or fragments. Its final path component
 must be `test` for a test build, or `stable` / `beta` for a production build.

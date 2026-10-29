@@ -2,6 +2,9 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { runInNewContext } from 'node:vm'
+import { AppInfo } from 'app-builder-lib/out/appInfo'
+import type { Packager } from 'app-builder-lib/out/packager'
+import { getWindowsInstallationDirName } from 'app-builder-lib/out/targets/targetUtil'
 import type { AfterPackContext, Configuration } from 'electron-builder'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -186,7 +189,7 @@ describe('deployment-specific application identity', () => {
     expect(config.productName).toBe('方塘Office-Test')
     expect(config.extraMetadata).toMatchObject({
       productName: '方塘Office-Test',
-      name: '@genoffice/shell-test',
+      name: 'fangtang-office-test',
       desktopName: 'fangtang-office-test.desktop',
     })
     expect(config.linux?.executableName).toBe('fangtang-office-test')
@@ -209,4 +212,26 @@ describe('deployment-specific application identity', () => {
     expect(config.deb).toMatchObject({ packageName: 'fangtang-office' })
     expect(config.rpm).toMatchObject({ packageName: 'fangtang-office' })
   })
+
+  it.each([
+    { environment: 'test', directory: 'fangtang-office-test', productName: '方塘Office-Test' },
+    { environment: 'production', directory: 'fangtang-office', productName: '方塘Office' },
+  ])(
+    'brands the $environment Windows install directory and updater cache',
+    async ({ environment, directory, productName }) => {
+      const { config } = await loadBuilder({ FANGTANG_BUILD_ENV: environment })
+      const manifest: { name: string; version: string } = JSON.parse(
+        await readFile(join(__dirname, '../package.json'), 'utf8'),
+      )
+      const metadata = {
+        ...manifest,
+        ...(config.extraMetadata as { name?: string; productName?: string }),
+      }
+      const appInfo = new AppInfo({ metadata, config } as Packager, undefined, config.win)
+      expect(getWindowsInstallationDirName(appInfo, true)).toBe(directory)
+      expect(appInfo.updaterCacheDirName).toBe(`${directory}-updater`)
+      expect(appInfo.productName).toBe(productName)
+      expect(appInfo.id).toBe(environment === 'test' ? 'com.fangtang.app.test' : 'com.fangtang.app')
+    },
+  )
 })
