@@ -12,7 +12,7 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { join } from 'node:path'
-import type { OfficeBillingProduct } from '@genoffice/agent-core'
+import type { OfficeRechargeProduct } from '../shared/home-api'
 import type { KnowledgeAccountAccess } from '@genoffice/knowledge-client'
 import {
   getAccountManagedDefaults,
@@ -594,7 +594,7 @@ export function registerAccountIpc(): void {
     }
   })
 
-  ipcMain.handle(HOME_CHANNELS.openRecharge, (_event, product: OfficeBillingProduct) => {
+  ipcMain.handle(HOME_CHANNELS.openRecharge, (_event, product: OfficeRechargeProduct) => {
     // remember whose wallet the user went to top up; a different user on the
     // next published session view gets flagged once (rechargeMismatchView)
     const userId = currentSession()?.userId

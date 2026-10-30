@@ -1,9 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import type { AccountView } from '../src/shared/home-api'
-import { rechargeMismatchView } from '../src/main/account-recharge'
+import { accountRechargeUrl, rechargeMismatchView } from '../src/main/account-recharge'
 
 const view = (userId: string | undefined): AccountView =>
   userId === undefined ? { loggedIn: false } : { loggedIn: true, userId }
+
+it.each(['https://test.fang-tang.cn', 'https://fang-tang.cn'])(
+  'preserves %s and binds knowledge recharge to the desktop account',
+  (origin) => {
+    const url = new URL(
+      accountRechargeUrl(
+        `${origin}/account/office-recharge`,
+        'knowledge_base',
+        'office-test-subject',
+      ),
+    )
+    expect(url.origin).toBe(origin)
+    expect(url.pathname).toBe('/account/office-recharge')
+    expect(url.searchParams.get('product')).toBe('knowledge_base')
+    expect(url.searchParams.get('accountId')).toBe('office-test-subject')
+  },
+)
 
 describe('rechargeMismatchView', () => {
   it('passes the view through when no recharge was opened', () => {

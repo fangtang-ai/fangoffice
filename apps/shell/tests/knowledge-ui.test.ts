@@ -10,6 +10,7 @@ let host: HTMLDivElement
 let root: Root
 const login = vi.fn()
 const refreshAccount = vi.fn()
+const openRecharge = vi.fn<() => Promise<void>>()
 const funds = {
   product: 'knowledge_base',
   available: true,
@@ -54,12 +55,33 @@ beforeEach(() => {
   api.listSpaces.mockResolvedValue({ ok: true, value: { items: [space], nextCursor: null } })
   api.listDocuments.mockResolvedValue({ ok: true, value: { items: [], nextCursor: null } })
   api.getQuota.mockResolvedValue({ ok: false, code: 'NOT_CONFIGURED' })
-  Object.defineProperty(window, 'aiOffice', { configurable: true, value: { knowledge: api } })
+  openRecharge.mockResolvedValue()
+  Object.defineProperty(window, 'aiOffice', {
+    configurable: true,
+    value: { knowledge: api, openRecharge },
+  })
 })
 afterEach(() => {
   act(() => root.unmount())
   host.remove()
   vi.unstubAllGlobals()
+})
+
+it('opens the existing recharge flow for knowledge rather than the AI wallet', async () => {
+  await render({ loggedIn: true, userId: 'owner-a' }, { knowledge: funds })
+  const button = host.querySelector<HTMLButtonElement>('[data-knowledge-recharge]')
+  expect(button).not.toBeNull()
+  await act(async () => button!.click())
+  expect(openRecharge).toHaveBeenCalledWith('knowledge_base')
+})
+
+it('shows a safe retry message when the knowledge recharge page cannot open', async () => {
+  openRecharge.mockRejectedValueOnce(new Error('private-electron-error'))
+  await render({ loggedIn: true, userId: 'owner-a' }, { knowledge: funds })
+  await act(async () => host.querySelector<HTMLButtonElement>('[data-knowledge-recharge]')!.click())
+  expect(host.querySelector('[role="alert"]')?.textContent).toBe('暂时无法打开充值页，请稍后重试。')
+  expect(host.textContent).not.toContain('private-electron-error')
+  expect(openRecharge).toHaveBeenCalledTimes(1)
 })
 async function render(session: AccountView, usage: AccountUsage | null = null) {
   await act(async () =>
@@ -131,6 +153,8 @@ it('shows unconfigured knowledge as disabled rather than an authorized zero bala
   expect(wallet?.textContent).not.toContain('知识预算已配置')
   expect(wallet?.textContent).not.toContain('单次查询预留上限')
   expect(wallet?.textContent).not.toContain('余额不足')
+  expect(host.querySelector('[data-knowledge-recharge]')).toBeNull()
+  expect(openRecharge).not.toHaveBeenCalled()
 })
 
 it('uses available funds rather than total funds for the query hold warning', async () => {
@@ -162,7 +186,7 @@ it('uses available funds rather than total funds for the query hold warning', as
   expect(host.querySelector('[data-knowledge-wallet]')?.textContent).not.toContain('余额不足')
 })
 
-it('shows an unopened wallet without creating a recharge path for another product', async () => {
+it('shows an unopened wallet and offers only the knowledge recharge path without automatically opening it', async () => {
   await render(
     { loggedIn: true, userId: 'A' },
     {
@@ -176,7 +200,8 @@ it('shows an unopened wallet without creating a recharge path for another produc
     },
   )
   expect(host.textContent).toContain('知识钱包尚未开户')
-  expect(host.querySelector('[data-knowledge-wallet] button')).toBeNull()
+  expect(host.querySelector('[data-knowledge-recharge]')?.textContent).toContain('知识库明细与充值')
+  expect(openRecharge).not.toHaveBeenCalled()
 })
 
 it.each([
@@ -193,6 +218,7 @@ it.each([
   const wallet = host.querySelector('[data-knowledge-wallet]')
   expect(wallet?.textContent).toContain('暂未获取知识资金状态')
   expect(wallet?.querySelector('dl')).toBeNull()
+  expect(host.querySelector('[data-knowledge-recharge]')).toBeNull()
 })
 
 it('refreshes the existing account usage together with the knowledge view', async () => {

@@ -1,5 +1,6 @@
 import type { AccountUsage } from '../../shared/home-api'
 import { knowledgeText } from './knowledge-text'
+import { useState } from 'react'
 
 function amountText(value: unknown) {
   return typeof value === 'string' && /^(?:0|[1-9]\d{0,7})\.\d{2}$/.test(value) ? value : null
@@ -37,6 +38,37 @@ function readWallet(usage: AccountUsage | null) {
   }
 }
 
+function WalletAmounts({
+  wallet,
+  text,
+}: {
+  wallet: NonNullable<ReturnType<typeof readWallet>>
+  text: ReturnType<typeof knowledgeText>
+}) {
+  return (
+    <dl>
+      <div>
+        <dt>{text.walletBalance}</dt>
+        <dd>¥{wallet.balance}</dd>
+      </div>
+      <div>
+        <dt>{text.walletReserved}</dt>
+        <dd>¥{wallet.reserved}</dd>
+      </div>
+      <div>
+        <dt>{text.walletAvailable}</dt>
+        <dd>¥{wallet.available}</dd>
+      </div>
+      {wallet.enabled && wallet.queryReserve !== null && (
+        <div>
+          <dt>{text.walletQueryReserve}</dt>
+          <dd>¥{wallet.queryReserve}</dd>
+        </div>
+      )}
+    </dl>
+  )
+}
+
 export function KnowledgeWallet({
   usage,
   language,
@@ -46,6 +78,15 @@ export function KnowledgeWallet({
 }) {
   const text = knowledgeText(language)
   const wallet = readWallet(usage)
+  const [rechargeFailed, setRechargeFailed] = useState(false)
+  const recharge = async () => {
+    setRechargeFailed(false)
+    try {
+      await window.aiOffice.openRecharge('knowledge_base')
+    } catch {
+      setRechargeFailed(true)
+    }
+  }
   const insufficient =
     wallet?.enabled &&
     wallet.queryReserve !== null &&
@@ -59,27 +100,18 @@ export function KnowledgeWallet({
         <>
           <p role="status">{wallet.enabled ? text.walletConfigured : text.walletDisabled}</p>
           {!wallet.opened && <p>{text.walletNotOpened}</p>}
-          <dl>
-            <div>
-              <dt>{text.walletBalance}</dt>
-              <dd>¥{wallet.balance}</dd>
-            </div>
-            <div>
-              <dt>{text.walletReserved}</dt>
-              <dd>¥{wallet.reserved}</dd>
-            </div>
-            <div>
-              <dt>{text.walletAvailable}</dt>
-              <dd>¥{wallet.available}</dd>
-            </div>
-            {wallet.enabled && wallet.queryReserve !== null && (
-              <div>
-                <dt>{text.walletQueryReserve}</dt>
-                <dd>¥{wallet.queryReserve}</dd>
-              </div>
-            )}
-          </dl>
+          <WalletAmounts wallet={wallet} text={text} />
           {insufficient && <p role="status">{text.walletInsufficient}</p>}
+          {wallet.enabled && (
+            <button
+              className="btn btn-secondary"
+              data-knowledge-recharge
+              onClick={() => void recharge()}
+            >
+              {text.walletRecharge}
+            </button>
+          )}
+          {rechargeFailed && <p role="alert">{text.walletRechargeFailed}</p>}
         </>
       )}
       <p>{text.walletNote}</p>

@@ -47,7 +47,9 @@ const zh = {
   walletReserved: '预占款',
   walletAvailable: '可用余额',
   walletQueryReserve: '单次查询预留上限',
-  walletInsufficient: '知识可用余额不足以预留一次查询，请联系管理员。',
+  walletInsufficient: '知识可用余额不足以预留一次查询，请查看知识库充值页。',
+  walletRecharge: '知识库明细与充值',
+  walletRechargeFailed: '暂时无法打开充值页，请稍后重试。',
   walletNote:
     '知识资金不与 AI/MCP 互通；预占不等于已收费。文档入库按块数另行预留，容量与服务状态分别校验。',
 }
@@ -92,6 +94,8 @@ const en = {
   moreDocuments: 'Load more documents',
   moreSpaces: 'Load more spaces',
   walletTitle: 'Knowledge funds',
+  walletRecharge: 'Knowledge usage and recharge',
+  walletRechargeFailed: 'Could not open recharge. Please try again.',
   walletUnknown: 'Knowledge funds are not available yet. AI/MCP balances are not a substitute.',
   walletConfigured:
     'Knowledge budget is configured; this is not a live cloud-service health check.',

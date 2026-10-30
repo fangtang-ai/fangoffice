@@ -147,6 +147,24 @@ had no download-zone marker and showed no SmartScreen/UAC interaction; that does
 not verify behavior after an internet download. No protection was disabled, and
 no uninstall, public release, updater-feed change, or distribution was performed.
 
+## Knowledge billing candidate (2026-10-30)
+
+The configured knowledge wallet now offers **知识库明细与充值** through the existing
+account recharge bridge with `product=knowledge_base`. It retains the configured
+test/production website and account-mismatch checks; unknown or disabled knowledge
+policy has no purchase button. Failed browser opening shows a generic retry message.
+
+The website candidate adds a Knowledge tab to the original recharge page, not a
+second payment system. Knowledge funds remain a product balance in the existing
+wallet. No default knowledge price or gift is created. Document customer fees accrue
+only after publication; exact sub-cent usage carries forward instead of charging a
+one-cent minimum. AI answers use the AI product; daily storage charging is not enabled.
+
+This is a local three-repository candidate. Website migration 0022 and the website/
+knowledge worker must be reviewed and deployed together before customer use. The
+desktop source build is not a new installer or test-channel release. Historical
+supplier receipts and the released 0.9.8 test build above do not include these changes.
+
 ## Local checks
 
 ```sh
