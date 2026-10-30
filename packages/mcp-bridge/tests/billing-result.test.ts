@@ -25,6 +25,20 @@ const meta = (billing: Record<string, unknown>) => ({
 })
 
 describe('mcpProblemText', () => {
+  it.each([
+    'account:mcp-disabled',
+    'insufficient_balance',
+    'quota_exceeded',
+    'invalid_access_token',
+    'account:required',
+    'call_in_progress',
+    'idempotency_conflict',
+    'replay_unavailable',
+    'mystery_code',
+  ])('uses the Fangtang brand in the user-facing message for %s', (code) => {
+    expect(mcpProblemText(problem(code))).toMatch(/^方塘/)
+  })
+
   it('maps every billing failure class to a stable user-facing sentence', () => {
     expect(mcpProblemText(problem('insufficient_balance'))).toContain('余额不足')
     expect(mcpProblemText(problem('quota_exceeded'))).toContain('安全请求限额')
@@ -37,7 +51,7 @@ describe('mcpProblemText', () => {
 
   it('falls back to a generic sentence for unknown codes without leaking internals', () => {
     expect(mcpProblemText(problem('mystery_code'))).toBe(
-      '方糖MCP 调用未完成（mystery_code）；已停止自动重试。',
+      '方塘MCP 调用未完成（mystery_code）；已停止自动重试。',
     )
   })
 })

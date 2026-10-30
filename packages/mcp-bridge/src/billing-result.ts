@@ -65,16 +65,16 @@ export function mcpProblemText(problem: OfficeBillingProblem) {
   if (problem.code === 'account:mcp-disabled')
     return '方塘 MCP 已关闭，请在设置 → 账号中启用后重新发起。'
   if (problem.code === 'insufficient_balance')
-    return '方糖MCP 余额不足，请充值后由用户重新发起；不会自动重跑或确认到账。'
+    return '方塘MCP 余额不足，请充值后由用户重新发起；不会自动重跑或确认到账。'
   if (problem.code === 'quota_exceeded')
-    return '方糖MCP 达到安全请求限额，请等待恢复；充值不会解除该限制。'
+    return '方塘MCP 达到安全请求限额，请等待恢复；充值不会解除该限制。'
   if (problem.code === 'invalid_access_token' || problem.code === 'account:required')
-    return '方糖账号登录已失效，请重新登录。'
+    return '方塘账号登录已失效，请重新登录。'
   if (problem.code === 'call_in_progress')
-    return '方糖MCP 调用仍在处理中；如重试必须沿用原逻辑调用标识。'
+    return '方塘MCP 调用仍在处理中；如重试必须沿用原逻辑调用标识。'
   if (problem.code === 'idempotency_conflict' || problem.code === 'replay_unavailable')
-    return '方糖MCP 调用标识冲突或结果不可重放，不会自动创建新调用收费。'
-  return `方糖MCP 调用未完成（${problem.code}）；已停止自动重试。`
+    return '方塘MCP 调用标识冲突或结果不可重放，不会自动创建新调用收费。'
+  return `方塘MCP 调用未完成（${problem.code}）；已停止自动重试。`
 }
 
 export function readMcpBillingMetadata(
