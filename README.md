@@ -71,12 +71,16 @@ only while that skill is selected.
 
 **Cloud knowledge (controlled testing).** The home screen supports account-bound spaces,
 documents, quota, TXT/Markdown/DOCX/text-PDF upload, search, and source inspection.
-The test service has real upload, model, search, and source evidence; the existing 0.9.7
-test installer also passes NSIS installation and clean-profile login/read-only checks.
-Access is limited to provisioned test accounts. The installer remains unsigned and has
-not been distributed. See the [desktop guide](docs/knowledge-desktop.md) for limits.
+The test service has real upload, model, search, and source evidence. Test 0.9.9 includes
+built-in knowledge chat without MCP and the existing account recharge bridge; the user
+has confirmed the test experience. Access is limited to provisioned accounts, and
+knowledge recharge products are not yet listed. Windows remains unsigned; historical
+0.9.7 installation checks do not prove a new 0.9.9 installation. See the
+[desktop guide](docs/knowledge-desktop.md) for the dated evidence and limits.
 The backend and its deployment CI live in `fangtang-ai/fangtang-knowledge`; Office keeps
 only its desktop adapter and private client/contract workspace mirrors.
+This work stays on `feat/cloud-knowledge-base`, outside `main` and the default
+`release/fangtang` branch. Production website and Office stable remain unchanged.
 
 ## Engine packages
 

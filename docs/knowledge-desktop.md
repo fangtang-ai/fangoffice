@@ -1,12 +1,37 @@
 # Cloud knowledge desktop guide
 
-Status: 2026-10-29. The isolated test service supports four upload formats with an
-8 MiB single-file limit. Actual upload, private object storage, embedding, Chinese
-search, and source inspection have existing acceptance evidence. Test version 0.9.7
-was published on October 29; its knowledge panel supports manual search, not AI chat.
-The new built-in chat integration described below is source-level work awaiting
-real-account conversation acceptance and a new, strictly higher test release.
-The installer remains `NotSigned`; production channels are unchanged.
+Status: 2026-10-31. Office test **0.9.9** is published from `02c24589` through release
+`41029633126`, completed on 2026-10-30 and independently checked on 2026-10-31.
+The user has confirmed the test experience. Built-in knowledge chat and the existing
+knowledge recharge bridge are included; they are not unreleased source-only work.
+The service supports four upload formats with an 8 MiB single-file limit, with real
+upload, private storage, embedding, Chinese search, and source acceptance evidence.
+Windows remains `NotSigned`; the new 0.9.9 installer was hash-checked, not reinstalled
+by this audit. Historical 0.9.7 installation evidence below has a narrower scope.
+
+Website test `fd1748c` and knowledge API/worker `4622507` (runtime source prefix
+`df3a34d7f1b6`) were deployed together on 2026-10-30, including website migration 0022. Do not repeat initialization, migration, deployment, or paid calls because an
+older report says they are pending. Later documentation commits are not deployed
+source snapshots. Production website and stable 0.9.7 remain unchanged.
+
+## Branch and shared-service boundaries
+
+- Office stays on `feat/cloud-knowledge-base`. Do not merge into `main` or the
+  default `release/fangtang` branch, and do not publish stable for this work.
+- Knowledge uses the existing shared service and account-owned data, not a required
+  production/test database split. Verified JWT `sub`, owner checks, and RLS isolate
+  accounts. The same trusted account can share its library across clients; a client
+  channel does not automatically create a separate library.
+- Account isolation does not select a billing ledger. The service's website budget
+  base URL and machine credential currently target the test website. Production
+  integration needs a separate trusted billing-source decision, not client-reported
+  environment routing; it is outside this documentation update.
+- The website has clean `feat/knowledge-main-baseline` and
+  `feat/knowledge-main-integration` candidates rooted in remote `main`, with one SQL
+  migration per future PR. Existing test branches stay separate; no main/test merge
+  or website production deployment is authorized here.
+- The independent knowledge PR remains a draft pending a separate merge decision.
+  Registry publication is still unfinished and is not a prerequisite for this test.
 
 ## Repository ownership
 
@@ -29,11 +54,11 @@ source. Registry publication is not required for the current desktop integration
   not rewritten. Complex fonts and all multilingual layouts are not fully covered.
 - XLSX sheet/range selection is not connected to upload/build, despite an existing
   parser in the independent service. The desktop does not offer XLSX upload.
-- Scanned-PDF OCR is not connected. The unreleased chat integration retrieves
+- Scanned-PDF OCR is not connected. The built-in chat integration retrieves
   knowledge on demand through built-in tools; it does not attach the entire library
   to every ordinary message or prove that every document has been fully read.
 
-## Built-in AI knowledge chat (unreleased)
+## Built-in AI knowledge chat (test 0.9.9)
 
 Docs, Sheets, Slides, PDF, and Markdown share one read-only knowledge skill. It is
 independent of MCP presets and uses the signed-in account through the main process.
@@ -106,7 +131,7 @@ is not a persistent cross-restart billing or deletion ledger.
 6. Delete only your own designated test document after confirmation. Retain physical
    reservation/debt distinctions and do not promise immediate cleanup or refunds.
 
-## Current evidence and open boundaries
+## Historical cloud evidence (2026-10-28) and open boundaries
 
 The test API/worker was updated to PDF parser v2 on 2026-10-28. One new two-page PDF
 passed actual upload/search and original-file verification. Its 12 pt fact line on
@@ -120,7 +145,7 @@ Generic metering delivery, unknown-cost recovery, and periodic storage billing
 remain separate unfinished commercialization work. Do not repeat initialization,
 old migrations, deployment, or paid calls to establish desktop installation.
 
-## Installer verification
+## Historical installer verification (0.9.7, 2026-10-28)
 
 The fixed candidate is the 0.9.7 test NSIS installer in `dist/`, 136848380 bytes,
 SHA256 `ebc8dec8495172adc689f80852db6138342b39b01f01e8c277d62f11d2f5eec1`.
@@ -147,23 +172,25 @@ had no download-zone marker and showed no SmartScreen/UAC interaction; that does
 not verify behavior after an internet download. No protection was disabled, and
 no uninstall, public release, updater-feed change, or distribution was performed.
 
-## Knowledge billing candidate (2026-10-30)
+## Knowledge billing in test 0.9.9
 
 The configured knowledge wallet now offers **知识库明细与充值** through the existing
 account recharge bridge with `product=knowledge_base`. It retains the configured
 test/production website and account-mismatch checks; unknown or disabled knowledge
 policy has no purchase button. Failed browser opening shows a generic retry message.
 
-The website candidate adds a Knowledge tab to the original recharge page, not a
+The deployed test website adds a Knowledge tab to the original recharge page, not a
 second payment system. Knowledge funds remain a product balance in the existing
 wallet. No default knowledge price or gift is created. Document customer fees accrue
 only after publication; exact sub-cent usage carries forward instead of charging a
 one-cent minimum. AI answers use the AI product; daily storage charging is not enabled.
 
-This is a local three-repository candidate. Website migration 0022 and the website/
-knowledge worker must be reviewed and deployed together before customer use. The
-desktop source build is not a new installer or test-channel release. Historical
-supplier receipts and the released 0.9.8 test build above do not include these changes.
+Website migration 0022, the website, and the knowledge worker were deployed in the
+approved test maintenance window on 2026-10-30. Office test 0.9.9 includes the bridge.
+No knowledge packages are currently configured for sale; pricing, listing, and actual
+knowledge-product payment acceptance remain separate approvals. Existing captured
+supplier/website evidence does not prove a real recharge payment under the new rules.
+Generic metering/storage pending records are not unpaid bills to charge again.
 
 ## Local checks
 
