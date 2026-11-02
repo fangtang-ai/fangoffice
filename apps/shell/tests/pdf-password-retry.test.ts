@@ -98,10 +98,17 @@ describe('convertWithPasswordRetry (pure state machine)', () => {
 })
 
 describe('integration: testPassword4Spaces.pdf through the real converter', () => {
-  it('fails closed without a password', async () => {
-    await expect(convertPdfFileToDocxLocal(FIXTURE)).rejects.toMatchObject({
-      code: 'password-required',
-    })
+  it('fails closed without a password when the program path contains Chinese characters', async () => {
+    const previousProgram = process.argv[1]
+    process.argv[1] = '/中文目录/方塘Office/main.js'
+    try {
+      await expect(convertPdfFileToDocxLocal(FIXTURE)).rejects.toMatchObject({
+        code: 'password-required',
+      })
+    } finally {
+      if (previousProgram === undefined) delete process.argv[1]
+      else process.argv[1] = previousProgram
+    }
   })
 
   it('wrong password → retry prompt → correct password produces a docx', async () => {

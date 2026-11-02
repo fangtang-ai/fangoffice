@@ -67,13 +67,13 @@ export function createPresetSkill(active: ActivePreset, hooks?: PresetSkillHooks
     },
     get systemPrompt() {
       const preset = active.current
-      if (!preset) return ''
-      let prompt =
-        `\n\n# Active skill: ${preset.name} (${preset.id})\n` +
-        'The user selected this skill for the current request — follow its playbook precisely.\n' +
-        preset.systemPrompt
+      let prompt = preset
+        ? `\n\n# Active skill: ${preset.name} (${preset.id})\n` +
+          'The user selected this skill for the current request — follow its playbook precisely.\n' +
+          preset.systemPrompt
+        : ''
       if (hooks?.getTools && hooks.describeTools) {
-        const description = hooks.describeTools(hooks.getTools(preset.mcpServers ?? []))
+        const description = hooks.describeTools(hooks.getTools(preset?.mcpServers ?? []))
         if (description) prompt += description
       }
       return prompt
