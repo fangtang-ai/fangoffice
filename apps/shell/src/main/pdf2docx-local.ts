@@ -63,7 +63,9 @@ export function ensurePdfium(): Promise<PdfiumModule> {
     const raw = readFileSync(pdfiumWasmPath())
     // exact slice: Buffer.buffer may be a shared pool larger than the file
     const wasmBinary = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
-    const wrapped = (await init({ wasmBinary })) as { pdfium?: unknown }
+    const wrapped = (await init({ wasmBinary, thisProgram: 'genoffice-pdf2docx' })) as {
+      pdfium?: unknown
+    }
     const m = (wrapped.pdfium ?? wrapped) as PdfiumModule & { _PDFiumExt_Init(): void }
     m._PDFiumExt_Init()
     return m

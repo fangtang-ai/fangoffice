@@ -1,6 +1,13 @@
 import type { AgentToolDef } from './types'
 import type { PresetSkillHooks } from './preset'
 import type { McpBillingInfo, McpCallContext } from './billing'
+import {
+  isPolicyEvidenceTool,
+  POLICY_EVIDENCE_GUIDANCE,
+  policyEvidenceInput,
+  policyEvidenceOutput,
+  policyEvidenceSchema,
+} from './policy-evidence'
 
 /**
  * Renderer-side bridge between the chat's preset skill and the main-process
@@ -152,7 +159,7 @@ export function createMcpPresetHooks(
         tools.push({
           name: mcpToolName(server, tool.name),
           description: `[${server} MCP] ${tool.description ?? tool.name}`,
-          inputSchema: tool.inputSchema,
+          inputSchema: policyEvidenceSchema(tool.name, tool.inputSchema),
         })
       }
     }
@@ -270,11 +277,15 @@ export function createMcpPresetHooks(
           budget.used += 1
         }
       }
+      const schema = toolCache
+        .get(parsed.server)
+        ?.tools.find((t) => t.name === parsed.tool)?.inputSchema
+      const input = policyEvidenceInput(parsed.tool, schema, call.input)
       const result = context
-        ? await api.callTool(parsed.server, parsed.tool, call.input, context)
-        : await api.callTool(parsed.server, parsed.tool, call.input)
+        ? await api.callTool(parsed.server, parsed.tool, input, context)
+        : await api.callTool(parsed.server, parsed.tool, input)
       return {
-        output: result.text || '(empty result)',
+        output: policyEvidenceOutput(parsed.tool, result.text || '(empty result)', result.isError),
         isError: result.isError,
         summary: `${parsed.server}:${parsed.tool}`,
         ...(result.billing ? { billing: result.billing } : {}),
@@ -286,7 +297,10 @@ export function createMcpPresetHooks(
         '\n\n## Additional tools from the organization (MCP)\n' +
         'These tools call internal systems. Prefer them when the request touches those systems; ' +
         'pass only the arguments each schema asks for, never invent values:\n' +
-        tools.map((t) => `- ${t.name}: ${t.description}`).join('\n')
+        tools.map((t) => `- ${t.name}: ${t.description}`).join('\n') +
+        (tools.some((t) => isPolicyEvidenceTool(parseMcpToolName(t.name)?.tool ?? ''))
+          ? '\n' + POLICY_EVIDENCE_GUIDANCE
+          : '')
       )
     },
   }
