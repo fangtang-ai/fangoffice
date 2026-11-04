@@ -1,8 +1,4 @@
-import {
-  webSearchKnowledgeFallback,
-  type AgentSkill,
-  type ToolDisplay,
-} from '@genoffice/agent-core'
+import { webSearchPolicyFallback, type AgentSkill, type ToolDisplay } from '@genoffice/agent-core'
 import type {
   GroupRenderNode,
   PictureRenderNode,
@@ -1423,7 +1419,7 @@ async function executeTool(
       if (!query) return fail(t('aiFailWebSearch'), 'query must not be empty')
       const r = await window.slidesApi.webSearch(query, Number(call.input.maxResults) || 6)
       if (r.method === 'error' || r.results.length === 0) {
-        return webSearchKnowledgeFallback(t('aiFailWebSearch'))
+        return webSearchPolicyFallback(t('aiFailWebSearch'))
       }
       if (state) state.webSearched = true
       // output for the LLM: title+URL+summary (each summary truncated to 120 chars to stay lean)
