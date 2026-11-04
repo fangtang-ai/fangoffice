@@ -11,9 +11,9 @@
  *   "apiKey": "",
  *   "model": "",
  *   "maxOutputTokens": 32768,
+ *   "aliyunIqsApiKey": "",         // optional: preferred web search via Alibaba Cloud IQS
  *   "serperApiKey": "",            // optional: web/image search via Serper (google results)
- *   "tavilyApiKey": "",            // optional: web search via Tavily; with neither,
- *                                  // search falls back to keyless DuckDuckGo
+ *   "tavilyApiKey": "",            // optional: web search via Tavily
  *   "account": {                   // optional: 方塘 account / AI billing (V1)
  *     "logtoEndpoint": "",         // Logto tenant origin, e.g. https://logto.fang-tang.cn
  *     "logtoClientId": "",         // Logto native-app client id for this Office build
@@ -34,6 +34,7 @@ export interface FangTangDefaultsFile {
   apiKey?: string
   model?: string
   maxOutputTokens?: number
+  aliyunIqsApiKey?: string
   serperApiKey?: string
   tavilyApiKey?: string
   account?: FangTangAccountConfig
@@ -102,6 +103,9 @@ export function loadFangTangDefaults(): FangTangDefaultsFile {
   const env = process.env
   const file = readDefaultsFile()
   return {
+    ...(file.aliyunIqsApiKey || env.ALIYUN_IQS_API_KEY
+      ? { aliyunIqsApiKey: env.ALIYUN_IQS_API_KEY || file.aliyunIqsApiKey }
+      : {}),
     ...(file.serperApiKey || env.SERPER_API_KEY
       ? { serperApiKey: env.SERPER_API_KEY || file.serperApiKey }
       : {}),
@@ -151,11 +155,12 @@ export function loadFangTangAccountConfig(): FangTangAccountConfig {
 
 /**
  * Feeds the deployment's search keys into @genoffice/ai-search, which reads
- * SERPER_API_KEY / TAVILY_API_KEY from the environment. Real environment
+ * ALIYUN_IQS_API_KEY / SERPER_API_KEY / TAVILY_API_KEY from the environment. Real environment
  * variables always win (??= semantics). Call once at startup, before any AI
  * IPC can run a search.
  */
 export function applySearchProviderEnv(factory: FangTangDefaultsFile): void {
+  if (factory.aliyunIqsApiKey) process.env.ALIYUN_IQS_API_KEY ??= factory.aliyunIqsApiKey
   if (factory.serperApiKey) process.env.SERPER_API_KEY ??= factory.serperApiKey
   if (factory.tavilyApiKey) process.env.TAVILY_API_KEY ??= factory.tavilyApiKey
 }

@@ -1,4 +1,4 @@
-import type { AgentSkill } from '@genoffice/agent-core'
+import { webSearchKnowledgeFallback, type AgentSkill } from '@genoffice/agent-core'
 import { t } from '../i18n/locale'
 
 const SEARCH_SYSTEM_PROMPT = `## Web search
@@ -34,13 +34,8 @@ export function createSearchSkill(): AgentSkill {
         return { output: 'query must not be empty', isError: true, summary: t('aiToolWebSearch') }
       }
       const r = await window.markdownApi.webSearch(query, Number(call.input.maxResults) || 6)
-      // a backend failure must not read as "no results" — the model would fabricate conclusions
-      if (r.method === 'error') {
-        return {
-          output: `web search failed (service error, not an empty result — you may retry): ${r.error ?? 'unknown error'}`,
-          isError: true,
-          summary: t('aiToolWebSearch'),
-        }
+      if (r.method === 'error' || r.results.length === 0) {
+        return webSearchKnowledgeFallback(t('aiToolWebSearch'))
       }
       const lines: string[] = []
       if (r.answer) lines.push(`Direct answer: ${r.answer}\n`)

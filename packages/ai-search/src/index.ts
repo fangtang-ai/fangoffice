@@ -1,8 +1,6 @@
 /**
- * Search utilities (main process) — Serper Google API first, then Tavily,
- * with DuckDuckGo as the keyless last resort. Runs in the main process
- * (Node fetch) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY,
- * the Tavily key reuses TAVILY_API_KEY.
+ * Search utilities (main process) — Alibaba Cloud IQS first for web search,
+ * then Serper/Tavily and keyless DuckDuckGo. Keys stay in the main process.
  */
 
 import {
@@ -17,6 +15,7 @@ export type { ImageSearchResult, WebSearchResult } from './shared'
 
 const SERPER_KEY = () => process.env.SERPER_API_KEY ?? ''
 const TAVILY_KEY = () => process.env.TAVILY_API_KEY ?? ''
+const IQS_KEY = () => process.env.ALIYUN_IQS_API_KEY?.trim() ?? ''
 
 // ── Web search ──────────────────────────────────────────────────────
 
@@ -29,6 +28,44 @@ export async function webSearch(
   method: string
   error?: string
 }> {
+  query = query.trim()
+  if (!query || query.length > 1024) {
+    return { results: [], method: 'error', error: 'query must contain 1–1024 characters' }
+  }
+  maxResults = Number.isFinite(maxResults) ? Math.max(1, Math.min(50, Math.trunc(maxResults))) : 6
+  const iqsKey = IQS_KEY()
+  if (iqsKey) {
+    try {
+      // IQS API keys are separate from DashScope keys and RAM access keys.
+      const resp = await fetchWithTimeout('https://cloud-iqs.aliyuncs.com/search/unified', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${iqsKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          engineType: 'LiteAdvanced',
+          contents: { mainText: false, markdownText: false, summary: false },
+          advancedParams: { numResults: maxResults },
+        }),
+        timeoutMs: FALLBACK_TIMEOUT_MS,
+      })
+      if (resp.ok) {
+        const data = asRecord(await resp.json())
+        const items: unknown[] = Array.isArray(data.pageItems) ? data.pageItems : []
+        const results: WebSearchResult[] = []
+        for (const item of items) {
+          const page = asRecord(item)
+          const title = stripTags(String(page.title ?? ''))
+          const url = String(page.link ?? '').trim()
+          if (!title || !/^https?:\/\//i.test(url) || !safeHost(url)) continue
+          results.push({ title, url, snippet: stripTags(String(page.snippet ?? '')) })
+          if (results.length >= maxResults) break
+        }
+        if (results.length) return { results, method: 'aliyun-iqs' }
+      }
+    } catch {
+      // Network, quota and malformed-response failures try the next backend.
+    }
+  }
   const key = SERPER_KEY()
   if (key) {
     try {
@@ -234,13 +271,9 @@ async function fetchWithTimeout(
   url: string,
   init: RequestInit & { timeoutMs?: number } = {},
 ): Promise<Response> {
-  const controller = new AbortController()
-  const t = setTimeout(() => controller.abort(), init.timeoutMs ?? 15000)
-  try {
-    return await fetch(url, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(t)
-  }
+  const { timeoutMs = 15000, ...request } = init
+  // Keep the deadline active while the caller reads the response body, too.
+  return fetch(url, { ...request, signal: AbortSignal.timeout(timeoutMs) })
 }
 
 function stripTags(s: string): string {

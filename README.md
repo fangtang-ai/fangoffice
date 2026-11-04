@@ -95,7 +95,7 @@ All pure TypeScript, no Electron dependency, unit-tested (except the UI kit):
   every app.
 - `packages/ai-provider` — provider abstraction and streaming for the model
   backends.
-- `packages/ai-search` — web/image search tools (Serper / Tavily /
+- `packages/ai-search` — web/image search tools (Alibaba Cloud IQS / Serper / Tavily /
   DuckDuckGo).
 - `packages/mcp-bridge` — MCP client bridge (stdio + streamable HTTP) that
   exposes built-in MCP tools to the agent.
@@ -137,7 +137,7 @@ automatically.
 读取优先级：
 
 - **AI 端点**：环境变量 `FANGTANG_AI_*`（逐字段） > `fangtang-defaults.local.json` > `fangtang-defaults.json`
-- **搜索 key**：环境变量 `SERPER_API_KEY` / `TAVILY_API_KEY` > 配置文件对应字段
+- **Search keys**: `ALIYUN_IQS_API_KEY` / `SERPER_API_KEY` / `TAVILY_API_KEY` environment variables override their deployment-file fields. Web search prefers Alibaba Cloud IQS, then Serper, Tavily and keyless DuckDuckGo.
 - **MCP 服务器**：`userData/fangtang-mcp.json` 同名服务器整体覆盖内置配置；所有字符串字段支持 `${VAR}` 环境变量展开
 - **技能**：`userData/presets/<app>/*.md` 按 id 覆盖内置；某应用目录存在任意 `.md` 时整体替换该应用内置技能
 
@@ -154,8 +154,9 @@ automatically.
 | `FANGTANG_LOGTO_API_RESOURCE`              | Office API 的访问令牌 audience                                                                                                                                          |
 | `FANGTANG_ACCOUNT_API_BASE`                | 方塘账户及受管服务 API 地址                                                                                                                                             |
 | `FANGTANG_ACCOUNT_RECHARGE_URL`            | 充值页地址；客户端附加当前产品与账户标识                                                                                                                                |
-| `SERPER_API_KEY`                           | 联网/图片搜索用 Serper（Google 结果，推荐）                                                                                                                             |
-| `TAVILY_API_KEY`                           | 联网搜索用 Tavily；两者都不配时回退免 key DuckDuckGo                                                                                                                    |
+| `ALIYUN_IQS_API_KEY`                       | Preferred web search via Alibaba Cloud IQS (a separate IQS API key, not a DashScope or RAM key)                                                                         |
+| `SERPER_API_KEY`                           | Optional Serper web/image search                                                                                                                                        |
+| `TAVILY_API_KEY`                           | Optional Tavily web search; DuckDuckGo is the last backend                                                                                                              |
 | `FANGTANG_UPDATE_URL`                      | 自动更新源（HTTPS 前缀）；不设则关闭自动更新                                                                                                                            |
 | `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` | 主进程出网代理（访问境外 LLM/搜索 API 时需要）                                                                                                                          |
 | `FANGTANG_USER_DATA`                       | （开发调试）指定独立的 userData 目录                                                                                                                                    |
@@ -184,12 +185,46 @@ macOS/Linux（launchd / systemd / shell profile）同名变量，按各环境标
   "apiKey": "sk-xxxx",
   "model": "qwen3.8-max",
   "maxOutputTokens": 32768,
+  "aliyunIqsApiKey": "",
   "serperApiKey": "xxxxxxxx",
   "tavilyApiKey": ""
 }
 ```
 
 字段说明：`provider` 见上表（`custom` = 任意 OpenAI 兼容接口，必须配 `baseUrl`；其余 provider 有官方默认端点，`baseUrl` 留空即可）；`maxOutputTokens` 为单轮输出上限（缺省 32768，推理模型建议保持默认以上）。**⚠️ 密钥不要写进仓库里的模板文件**——本机调试可用 `.local.json`（不入库），员工机器用环境变量。
+
+#### Domestic web search and offline fallback
+
+Enable [Alibaba Cloud IQS](https://help.aliyun.com/zh/document_detail/2870227.html)
+and create an IQS API key. Set `ALIYUN_IQS_API_KEY` in the environment of the
+Office main process, then restart Office. IT-managed installations can also
+set `aliyunIqsApiKey` in their local deployment override; environment values win.
+Keep shared service credentials out of source control and distributed installers.
+For public customer distribution, keep the shared credential on an authenticated
+server; this direct-client integration is for locally provisioned credentials.
+The existing account login does not provision an IQS key or a search proxy.
+
+Web search calls `https://cloud-iqs.aliyuncs.com/search/unified` with the
+`LiteAdvanced` engine, a 5-second deadline covering headers and body, and
+1–50 results (default 6). It requests snippets with summary/body extraction
+disabled. A failed, denied, throttled, malformed or empty IQS response tries
+configured Serper/Tavily backends and then DuckDuckGo. Each provider may charge
+for its own calls; verify the current IQS plan in the console before rollout.
+
+If no usable web results remain, Docs, Sheets, Slides and Markdown continue the
+model turn with instructions to answer from existing knowledge and user material,
+disclose that the answer was not verified online, and avoid repeated searches.
+They must not invent current figures, sources or citations. Essential live facts
+remain unverified. Empty/failed searches do not unlock Slides' search-provenance
+gate. Image search retains its existing Serper/DuckDuckGo behavior; model knowledge
+cannot supply real image URLs.
+
+Validation before rollout: use a locally provisioned key to confirm one Chinese
+query returns IQS titles/links/snippets; simulate a rejected key or loss of network
+and confirm each editor continues with the disclosure. The fixture tests cover
+provider priority, authentication/quota errors, invalid/empty results, timeouts
+(including a stalled body), configuration precedence and model-turn continuation.
+No IQS credential or production rollout is implied by those fixture tests.
 
 ### 4. `fangtang-mcp.json`（内置 MCP 服务器）
 
