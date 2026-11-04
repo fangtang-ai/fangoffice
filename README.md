@@ -211,20 +211,28 @@ disabled. A failed, denied, throttled, malformed or empty IQS response tries
 configured Serper/Tavily backends and then DuckDuckGo. Each provider may charge
 for its own calls; verify the current IQS plan in the console before rollout.
 
-If no usable web results remain, Docs, Sheets, Slides and Markdown continue the
-model turn with instructions to answer from existing knowledge and user material,
-disclose that the answer was not verified online, and avoid repeated searches.
-They must not invent current figures, sources or citations. Essential live facts
-remain unverified. Empty/failed searches do not unlock Slides' search-provenance
-gate. Image search retains its existing Serper/DuckDuckGo behavior; model knowledge
-cannot supply real image URLs.
+If no usable web results remain, Docs, Sheets, Slides and Markdown switch to
+Fangtang's policy knowledge base through the enabled MCP `search_policies` and
+`read_policy` tools. Search includes original-text evidence by default; read the
+policy when the excerpt is insufficient. Answers must cite the actual policy
+and `sourceUrl`, and use only supported original-text facts. Model memory and
+personal/cloud document libraries are not fallback sources. A disabled service,
+no relevant evidence, denied access, insufficient balance or declined payment
+must be explained without inventing an answer. MCP account authorization, price
+disclosure and per-run paid-call limits remain in force. No service is enabled
+implicitly. Web search is not retried within the same fallback run; a failed
+policy call stops further MCP calls in that run. The next user run resets this
+state. Empty/failed web searches do not unlock Slides' web-search provenance
+gate. Image search retains its existing Serper/DuckDuckGo behavior.
 
 Validation before rollout: use a locally provisioned key to confirm one Chinese
 query returns IQS titles/links/snippets; simulate a rejected key or loss of network
-and confirm each editor continues with the disclosure. The fixture tests cover
-provider priority, authentication/quota errors, invalid/empty results, timeouts
-(including a stalled body), configuration precedence and model-turn continuation.
-No IQS credential or production rollout is implied by those fixture tests.
+and confirm policy MCP retrieval, original-text reading and citations. Also check
+no-hit, disabled-service, permission, balance and payment-decline paths. Fixture
+tests cover those control paths and provider priority, invalid/empty results,
+timeouts (including a stalled body), configuration precedence and model-turn
+continuation. Real IQS success requires a separately provisioned IQS key; fixture
+tests do not constitute acceptance of that service or authorize production rollout.
 
 ### 4. `fangtang-mcp.json`（内置 MCP 服务器）
 

@@ -1,3 +1,4 @@
+import { withPolicySearchFallback } from '@genoffice/agent-core'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react'
@@ -252,31 +253,33 @@ export function AiPanel({
         () => settingsRef.current!,
         () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
       ),
-      skill: composeSkills('markdown+search', '', [
-        knowledgeSkill,
-        createMarkdownSkill(() => depsRef.current.getEditor(), {
-          read: () => depsRef.current.getFrontmatter(),
-          write: (inner) => depsRef.current.setFrontmatter(inner),
-        }),
-        createSearchSkill(),
-        createPresetSkill(
-          activeSkillRef.current,
-          createMcpPresetHooks({
-            status: () => window.markdownApi.mcpStatus(),
-            listTools: (server) => window.markdownApi.mcpListTools(server),
-            callTool: (server, tool, args, context) =>
-              window.markdownApi.mcpCallTool(server, tool, args, context),
-            onPaidCallDisclosure: () =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
-              ),
-            onPaidCallLimit: ({ used, max }) =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used, max, kind: 'limit', resolve }),
-              ),
+      skill: withPolicySearchFallback(
+        composeSkills('markdown+search', '', [
+          knowledgeSkill,
+          createMarkdownSkill(() => depsRef.current.getEditor(), {
+            read: () => depsRef.current.getFrontmatter(),
+            write: (inner) => depsRef.current.setFrontmatter(inner),
           }),
-        ),
-      ]),
+          createSearchSkill(),
+          createPresetSkill(
+            activeSkillRef.current,
+            createMcpPresetHooks({
+              status: () => window.markdownApi.mcpStatus(),
+              listTools: (server) => window.markdownApi.mcpListTools(server),
+              callTool: (server, tool, args, context) =>
+                window.markdownApi.mcpCallTool(server, tool, args, context),
+              onPaidCallDisclosure: () =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
+                ),
+              onPaidCallLimit: ({ used, max }) =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used, max, kind: 'limit', resolve }),
+                ),
+            }),
+          ),
+        ]),
+      ),
       captureSnapshot: () => depsRef.current.getSnapshot(),
       systemSuffix: () => aiLangDirective(langRef.current),
       events: {

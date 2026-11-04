@@ -1,3 +1,4 @@
+import { withPolicySearchFallback } from '@genoffice/agent-core'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/core'
@@ -629,34 +630,36 @@ export function AiPanel({
         () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
       ),
       systemSuffix: aiLangDirective,
-      skill: composeSkills('docs+files', '', [
-        knowledgeSkill,
-        createDocsSkill(
-          () => editorRef.current,
-          numIds,
-          () => (trackChangesRef.current ? { author: AI_REVISION_AUTHOR } : undefined),
-          () => commentsAccessRef.current,
-          () => hfAccessRef.current,
-        ),
-        createFilesSkill(availableAttachments),
-        createPresetSkill(
-          activeSkillRef.current,
-          createMcpPresetHooks({
-            status: () => window.desktop.mcpStatus(),
-            listTools: (server) => window.desktop.mcpListTools(server),
-            callTool: (server, tool, args, context) =>
-              window.desktop.mcpCallTool(server, tool, args, context),
-            onPaidCallDisclosure: () =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
-              ),
-            onPaidCallLimit: ({ used, max }) =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used, max, kind: 'limit', resolve }),
-              ),
-          }),
-        ),
-      ]),
+      skill: withPolicySearchFallback(
+        composeSkills('docs+files', '', [
+          knowledgeSkill,
+          createDocsSkill(
+            () => editorRef.current,
+            numIds,
+            () => (trackChangesRef.current ? { author: AI_REVISION_AUTHOR } : undefined),
+            () => commentsAccessRef.current,
+            () => hfAccessRef.current,
+          ),
+          createFilesSkill(availableAttachments),
+          createPresetSkill(
+            activeSkillRef.current,
+            createMcpPresetHooks({
+              status: () => window.desktop.mcpStatus(),
+              listTools: (server) => window.desktop.mcpListTools(server),
+              callTool: (server, tool, args, context) =>
+                window.desktop.mcpCallTool(server, tool, args, context),
+              onPaidCallDisclosure: () =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
+                ),
+              onPaidCallLimit: ({ used, max }) =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used, max, kind: 'limit', resolve }),
+                ),
+            }),
+          ),
+        ]),
+      ),
       captureSnapshot: () => editorRef.current.getJSON() as PmNode,
       events: {
         onText: (text) => patchLastAssistant({ text }),

@@ -425,7 +425,7 @@ describe('blank-document detection', () => {
 })
 
 describe('web_search backend failures', () => {
-  it('continues from existing knowledge without treating a failure as verified results', async () => {
+  it('requests policy evidence without treating a failure as verified results', async () => {
     const editor = createEditor(fixture())
     const w = window as unknown as { desktop?: unknown }
     const saved = w.desktop
@@ -440,8 +440,8 @@ describe('web_search backend failures', () => {
       )
       expect(exec.isError).not.toBe(true)
       expect(exec.mutated).toBe(false)
-      expect(exec.output).toContain('existing knowledge')
-      expect(exec.output).toContain('not verified online')
+      expect(exec.output).toContain('search_policies')
+      expect(exec.output).toContain('Do not answer from model memory')
       expect(exec.output).toContain('Do not retry web_search')
       expect(exec.output).not.toContain('(no results)')
     } finally {

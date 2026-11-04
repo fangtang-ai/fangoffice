@@ -2,7 +2,7 @@ import type { Editor } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import type { ChartDisplay, CommentInfo, NewChart } from '@genoffice/docx-engine'
 import type { AgentToolCall, AgentToolDef, CreateDocumentType } from '../../shared/ipc'
-import { webSearchKnowledgeFallback } from '@genoffice/agent-core'
+import { webSearchPolicyFallback } from '@genoffice/agent-core'
 import { t } from '../i18n/locale'
 import { executeCommands, type Command, type CommandEnvelope } from './commands'
 import {
@@ -450,7 +450,7 @@ async function executeAsyncTool(
       if (!query) return fail(t('aiSumWebSearch'), 'query must not be empty')
       const r = await window.desktop.webSearch(query, Number(call.input.maxResults) || 6)
       if (r.method === 'error' || r.results.length === 0) {
-        return webSearchKnowledgeFallback(t('aiSumWebSearch'))
+        return webSearchPolicyFallback(t('aiSumWebSearch'))
       }
       const lines: string[] = []
       if (r.answer) lines.push(`Direct answer: ${r.answer}\n`)

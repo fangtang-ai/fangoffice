@@ -1,4 +1,4 @@
-import { webSearchKnowledgeFallback, type AgentSkill } from '@genoffice/agent-core'
+import { webSearchPolicyFallback, type AgentSkill } from '@genoffice/agent-core'
 import { t } from '../i18n/locale'
 
 /**
@@ -40,7 +40,7 @@ export function createSearchSkill(): AgentSkill {
       }
       const r = await window.desktopApi.webSearch(query, Number(call.input.maxResults) || 6)
       if (r.method === 'error' || r.results.length === 0) {
-        return webSearchKnowledgeFallback(t('aiToolWebSearch'))
+        return webSearchPolicyFallback(t('aiToolWebSearch'))
       }
       const lines: string[] = []
       if (r.answer) lines.push(`Direct answer: ${r.answer}\n`)

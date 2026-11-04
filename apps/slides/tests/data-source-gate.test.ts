@@ -106,7 +106,7 @@ beforeEach(() => {
 
 describe('apply_ops addChart provenance gate', () => {
   it.each(['error', 'duckduckgo'])(
-    'knowledge fallback cannot unlock search provenance: %s',
+    'policy fallback cannot unlock search provenance: %s',
     async (method) => {
       window.slidesApi.webSearch = vi.fn().mockResolvedValue({ method, results: [] })
       const skill = createSlidesSkill(mkAccess())
@@ -116,7 +116,7 @@ describe('apply_ops addChart provenance gate', () => {
         input: { query: 'q' },
       })
       expect(fallback.isError).not.toBe(true)
-      expect(fallback.output).toContain('existing knowledge')
+      expect(fallback.output).toContain('search_policies')
       const chart = await skill.executeTool!(chartCall({ dataSource: 'search' }))
       expect(chart.isError).toBe(true)
       expect((window as any).slidesApi.applyTxn).not.toHaveBeenCalled()

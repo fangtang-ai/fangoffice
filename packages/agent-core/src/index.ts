@@ -25,7 +25,7 @@ export type { KnowledgeChatApi, KnowledgeChatSession, KnowledgeChatReply } from 
 export { KNOWLEDGE_CHAT_CHANNELS } from './knowledge-api'
 export { createKnowledgeChatApi } from './knowledge-preload'
 export { createPresetSkill } from './preset'
-export { webSearchKnowledgeFallback } from './web-search'
+export { webSearchPolicyFallback, withPolicySearchFallback } from './web-search'
 export type { ActivePreset, PresetSkillDef, PresetSkillHooks } from './preset'
 export { createMcpPresetHooks, mcpToolName, parseMcpToolName, MCP_TOOL_PREFIX } from './mcp-skill'
 export type { McpCallResult, McpRendererApi, McpServerInfo, McpToolInfo } from './mcp-skill'

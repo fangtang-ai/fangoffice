@@ -1,3 +1,4 @@
+import { withPolicySearchFallback } from '@genoffice/agent-core'
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -1304,28 +1305,32 @@ export function AiPanel({
         () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
       ),
       systemSuffix: aiLangDirective,
-      skill: composeSkills('slides+files', '', [
-        knowledgeSkill,
-        createSlidesSkill(access),
-        createFilesSkill(availableAttachments, (path) => readAttachmentPathsRef.current.add(path)),
-        createPresetSkill(
-          activeSkillRef.current,
-          createMcpPresetHooks({
-            status: () => window.slidesApi.mcpStatus(),
-            listTools: (server) => window.slidesApi.mcpListTools(server),
-            callTool: (server, tool, args, context) =>
-              window.slidesApi.mcpCallTool(server, tool, args, context),
-            onPaidCallDisclosure: () =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
-              ),
-            onPaidCallLimit: ({ used, max }) =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used, max, kind: 'limit', resolve }),
-              ),
-          }),
-        ),
-      ]),
+      skill: withPolicySearchFallback(
+        composeSkills('slides+files', '', [
+          knowledgeSkill,
+          createSlidesSkill(access),
+          createFilesSkill(availableAttachments, (path) =>
+            readAttachmentPathsRef.current.add(path),
+          ),
+          createPresetSkill(
+            activeSkillRef.current,
+            createMcpPresetHooks({
+              status: () => window.slidesApi.mcpStatus(),
+              listTools: (server) => window.slidesApi.mcpListTools(server),
+              callTool: (server, tool, args, context) =>
+                window.slidesApi.mcpCallTool(server, tool, args, context),
+              onPaidCallDisclosure: () =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
+                ),
+              onPaidCallLimit: ({ used, max }) =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used, max, kind: 'limit', resolve }),
+                ),
+            }),
+          ),
+        ]),
+      ),
       events: {
         onText: (text) => {
           streamedTextRef.current = text
