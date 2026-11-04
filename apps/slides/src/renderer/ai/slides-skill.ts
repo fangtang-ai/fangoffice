@@ -1,4 +1,8 @@
-import type { AgentSkill, ToolDisplay } from '@genoffice/agent-core'
+import {
+  webSearchKnowledgeFallback,
+  type AgentSkill,
+  type ToolDisplay,
+} from '@genoffice/agent-core'
 import type {
   GroupRenderNode,
   PictureRenderNode,
@@ -381,7 +385,7 @@ const TOOLS: AgentToolDef[] = [
   {
     name: 'replace_image',
     description:
-      'Swap a picture\'s source image for a URL (from image_search or one the user provided) in place — position, size, z-order, border and effects all survive. A new image with a different aspect ratio is never stretched: it fills the frame and is center-cropped (object-fit: cover).',
+      "Swap a picture's source image for a URL (from image_search or one the user provided) in place — position, size, z-order, border and effects all survive. A new image with a different aspect ratio is never stretched: it fills the frame and is center-cropped (object-fit: cover).",
     inputSchema: {
       type: 'object',
       properties: {
@@ -1418,12 +1422,8 @@ async function executeTool(
       const query = String(call.input.query ?? '').trim()
       if (!query) return fail(t('aiFailWebSearch'), 'query must not be empty')
       const r = await window.slidesApi.webSearch(query, Number(call.input.maxResults) || 6)
-      // a backend failure must not read as "no results" — the model would fabricate conclusions
-      if (r.method === 'error') {
-        return fail(
-          t('aiFailWebSearch'),
-          `web search failed (service error, not an empty result — you may retry): ${r.error ?? 'unknown error'}`,
-        )
+      if (r.method === 'error' || r.results.length === 0) {
+        return webSearchKnowledgeFallback(t('aiFailWebSearch'))
       }
       if (state) state.webSearched = true
       // output for the LLM: title+URL+summary (each summary truncated to 120 chars to stay lean)
@@ -1476,8 +1476,6 @@ async function executeTool(
         display,
       }
     }
-
-
 
     case 'insert_web_image': {
       const idx = Number(call.input.slideIndex)
@@ -2170,9 +2168,7 @@ async function executeTool(
       //   generation-failed pages get one more generation attempt here (LLM calls are the
       //   user's own quota, and a JSON spec retry is cheap).
       if (!cancelled()) {
-        const retryIdxs = [...new Set([...genFailed, ...landFailed])].sort(
-          (a, b) => a - b,
-        )
+        const retryIdxs = [...new Set([...genFailed, ...landFailed])].sort((a, b) => a - b)
         for (const idx of retryIdxs) {
           if (cancelled()) break
           let marker = markerByIndex[idx]

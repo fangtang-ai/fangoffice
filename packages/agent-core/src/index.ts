@@ -21,6 +21,7 @@ export type {
 export { composeSkills } from './skill'
 export type { AgentSkill, ExecutedToolCall } from './skill'
 export { createPresetSkill } from './preset'
+export { webSearchKnowledgeFallback } from './web-search'
 export type { ActivePreset, PresetSkillDef, PresetSkillHooks } from './preset'
 export { createMcpPresetHooks, mcpToolName, parseMcpToolName, MCP_TOOL_PREFIX } from './mcp-skill'
 export type { McpCallResult, McpRendererApi, McpServerInfo, McpToolInfo } from './mcp-skill'
