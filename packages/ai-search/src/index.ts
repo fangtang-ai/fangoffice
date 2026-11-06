@@ -1,5 +1,5 @@
 /**
- * Search utilities (main process) — Alibaba Cloud IQS first for web search,
+ * Search utilities (main process) — Alibaba Cloud CleverSee first for web search,
  * then Serper/Tavily and keyless DuckDuckGo. Keys stay in the main process.
  */
 
@@ -29,8 +29,8 @@ export async function webSearch(
   error?: string
 }> {
   query = query.trim()
-  if (!query || query.length > 1024) {
-    return { results: [], method: 'error', error: 'query must contain 1–1024 characters' }
+  if (!query || query.length > 500) {
+    return { results: [], method: 'error', error: 'query must contain 1–500 characters' }
   }
   maxResults = Number.isFinite(maxResults) ? Math.max(1, Math.min(50, Math.trunc(maxResults))) : 6
   const iqsKey = IQS_KEY()
@@ -42,7 +42,7 @@ export async function webSearch(
         headers: { Authorization: `Bearer ${iqsKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
-          engineType: 'LiteAdvanced',
+          engineType: 'CNLiteBasic',
           contents: { mainText: false, markdownText: false, summary: false },
           advancedParams: { numResults: maxResults },
         }),

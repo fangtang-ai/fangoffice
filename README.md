@@ -186,8 +186,8 @@ macOS/Linux（launchd / systemd / shell profile）同名变量，按各环境标
 
 #### Domestic web search and offline fallback
 
-Enable [Alibaba Cloud IQS](https://help.aliyun.com/zh/document_detail/2870227.html)
-and create an IQS API key. Set `ALIYUN_IQS_API_KEY` in the environment of the
+Enable [Alibaba Cloud CleverSee](https://help.aliyun.com/zh/document_detail/3029866.html)
+and create a search API key. Set `ALIYUN_IQS_API_KEY` in the environment of the
 Office main process, then restart Office. IT-managed installations can also
 set `aliyunIqsApiKey` in their local deployment override; environment values win.
 Keep shared service credentials out of source control and distributed installers.
@@ -195,10 +195,21 @@ For public customer distribution, keep the shared credential on an authenticated
 server; this direct-client integration is for locally provisioned credentials.
 The existing account login does not provision an IQS key or a search proxy.
 
+For local test runs, put `ALIYUN_IQS_API_KEY` in the gitignored root
+`.env.local` (permissions `0600`). It is not read automatically by Office.
+After rebuilding the shell, launch with the existing Node environment loader:
+
+```sh
+FANGTANG_BUILD_ENV=test node --env-file=.env.local node_modules/electron/cli.js apps/shell
+```
+
+This passes the key only to the local process; never move it into a packaged
+resource or commit it. The existing variable name is retained for deployments.
+
 Web search calls `https://cloud-iqs.aliyuncs.com/search/unified` with the
-`LiteAdvanced` engine, a 5-second deadline covering headers and body, and
-1–50 results (default 6). It requests snippets with summary/body extraction
-disabled. A failed, denied, throttled, malformed or empty IQS response tries
+`CNLiteBasic` domestic Lite engine, a 5-second deadline covering headers and body,
+queries of 1–500 characters and 1–50 results (default 6). It requests snippets
+with summary/body extraction disabled. A failed, denied, throttled, malformed or empty IQS response tries
 configured Serper/Tavily backends and then DuckDuckGo. Each provider may charge
 for its own calls; verify the current IQS plan in the console before rollout.
 
