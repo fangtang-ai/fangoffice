@@ -1,8 +1,6 @@
 /**
- * Search utilities (main process) — Serper Google API first, then Tavily,
- * with DuckDuckGo as the keyless last resort. Runs in the main process
- * (Node fetch) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY,
- * the Tavily key reuses TAVILY_API_KEY.
+ * Search utilities (main process) — Alibaba Cloud CleverSee first for web search,
+ * then Serper/Tavily and keyless DuckDuckGo. Keys stay in the main process.
  */
 
 import {
@@ -17,18 +15,59 @@ export type { ImageSearchResult, WebSearchResult } from './shared'
 
 const SERPER_KEY = () => process.env.SERPER_API_KEY ?? ''
 const TAVILY_KEY = () => process.env.TAVILY_API_KEY ?? ''
+const IQS_KEY = () => process.env.ALIYUN_IQS_API_KEY?.trim() ?? ''
 
 // ── Web search ──────────────────────────────────────────────────────
 
 export async function webSearch(
   query: string,
   maxResults = 6,
+  managedAccess?: { url: string; token: string },
 ): Promise<{
   results: WebSearchResult[]
   answer?: string
   method: string
   error?: string
 }> {
+  query = query.trim()
+  if (!query || query.length > 500) {
+    return { results: [], method: 'error', error: 'query must contain 1–500 characters' }
+  }
+  maxResults = Number.isFinite(maxResults) ? Math.max(1, Math.min(50, Math.trunc(maxResults))) : 6
+  if (managedAccess) return managedWebSearch(query, maxResults, managedAccess)
+  const iqsKey = IQS_KEY()
+  if (iqsKey) {
+    try {
+      // IQS API keys are separate from DashScope keys and RAM access keys.
+      const resp = await fetchWithTimeout('https://cloud-iqs.aliyuncs.com/search/unified', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${iqsKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          engineType: 'CNLiteBasic',
+          contents: { mainText: false, markdownText: false, summary: false },
+          advancedParams: { numResults: maxResults },
+        }),
+        timeoutMs: FALLBACK_TIMEOUT_MS,
+      })
+      if (resp.ok) {
+        const data = asRecord(await resp.json())
+        const items: unknown[] = Array.isArray(data.pageItems) ? data.pageItems : []
+        const results: WebSearchResult[] = []
+        for (const item of items) {
+          const page = asRecord(item)
+          const title = stripTags(String(page.title ?? ''))
+          const url = String(page.link ?? '').trim()
+          if (!title || !/^https?:\/\//i.test(url) || !safeHost(url)) continue
+          results.push({ title, url, snippet: stripTags(String(page.snippet ?? '')) })
+          if (results.length >= maxResults) break
+        }
+        if (results.length) return { results, method: 'aliyun-iqs' }
+      }
+    } catch {
+      // Network, quota and malformed-response failures try the next backend.
+    }
+  }
   const key = SERPER_KEY()
   if (key) {
     try {
@@ -103,6 +142,57 @@ export async function webSearch(
   } catch (err) {
     // an unreachable backend must not read as an empty result set
     return { results: [], method: 'error', error: `duckduckgo: ${String(err)}` }
+  }
+}
+
+/** Managed searches fail closed so editor policy-MCP fallback handles outages. */
+async function managedWebSearch(
+  query: string,
+  maxResults: number,
+  access: { url: string; token: string },
+): Promise<{ results: WebSearchResult[]; method: string; error?: string }> {
+  try {
+    if (!access.token) throw new Error('Account login required')
+    const response = await fetchWithTimeout(access.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, maxResults }),
+      timeoutMs: 8000,
+      redirect: 'error',
+    })
+    if (!response.ok) throw new Error('Managed search unavailable')
+    const envelope = asRecord(await response.json())
+    const data = asRecord(envelope.data)
+    if (envelope.success !== true || data.method !== 'aliyun-iqs' || !Array.isArray(data.results)) {
+      throw new Error('Invalid managed search response')
+    }
+    const results = data.results
+      .flatMap((value: unknown) => {
+        const item = asRecord(value)
+        if (
+          typeof item.title !== 'string' ||
+          !item.title.trim() ||
+          typeof item.url !== 'string' ||
+          !/^https?:\/\//i.test(item.url) ||
+          !safeHost(item.url)
+        )
+          return []
+        return [
+          {
+            title: item.title,
+            url: item.url,
+            snippet: typeof item.snippet === 'string' ? item.snippet : '',
+          },
+        ]
+      })
+      .slice(0, maxResults)
+    return { results, method: 'aliyun-iqs' }
+  } catch {
+    return {
+      results: [],
+      method: 'error',
+      error: 'Account search unavailable; retrieve evidence from the policy knowledge base.',
+    }
   }
 }
 
@@ -234,13 +324,9 @@ async function fetchWithTimeout(
   url: string,
   init: RequestInit & { timeoutMs?: number } = {},
 ): Promise<Response> {
-  const controller = new AbortController()
-  const t = setTimeout(() => controller.abort(), init.timeoutMs ?? 15000)
-  try {
-    return await fetch(url, { ...init, signal: controller.signal })
-  } finally {
-    clearTimeout(t)
-  }
+  const { timeoutMs = 15000, ...request } = init
+  // Keep the deadline active while the caller reads the response body, too.
+  return fetch(url, { ...request, signal: AbortSignal.timeout(timeoutMs) })
 }
 
 function stripTags(s: string): string {

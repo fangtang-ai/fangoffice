@@ -496,7 +496,10 @@ export function registerAccountIpc(): void {
   setAccountManagedDefaultsLoader(applyAccountAiEndpoint)
   // the fangtang billing proxy authenticates with the user's live Logto access
   // token; the ai:stream handlers (docs bundle, same process) read it per request
-  setAccountManagedTokenProvider(() => currentSession()?.accessToken ?? null)
+  setAccountManagedTokenProvider(
+    () => currentSession()?.accessToken ?? null,
+    async () => (currentSession() ? validAccessToken() : null),
+  )
 
   ipcMain.handle(HOME_CHANNELS.getAccountSession, (): AccountView =>
     sessionViewWithRechargeCheck(currentSession()),

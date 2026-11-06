@@ -36,7 +36,8 @@ import {
   bundledPresetsDir,
   fetchRemoteImage,
   getAccountManagedDefaults,
-  getAccountManagedToken,
+  getAccountManagedSearchAccess,
+  getFreshAccountManagedToken,
   loadFangTangAccountConfig,
   loadPresetFiles,
   loadFangTangDefaults,
@@ -159,7 +160,7 @@ export function registerAiIpc(): void {
     // account-managed fangtang billing carries no static key — each request
     // rides the shell's latest Logto access token (account-defaults hook)
     const stored = settings.providers?.[provider]
-    const liveToken = provider === 'fangtang' ? getAccountManagedToken() : null
+    const liveToken = provider === 'fangtang' ? await getFreshAccountManagedToken() : null
     const config = stored && { ...stored, ...(liveToken ? { apiKey: liveToken } : {}) }
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
@@ -244,7 +245,11 @@ export function registerAiIpc(): void {
   // Search tools (content + images), Serper with DuckDuckGo fallback
   ipcMain.handle('ai:web-search', async (_event, query: string, maxResults?: number) => {
     try {
-      return await webSearch(String(query), typeof maxResults === 'number' ? maxResults : 6)
+      return await webSearch(
+        String(query),
+        typeof maxResults === 'number' ? maxResults : 6,
+        await getAccountManagedSearchAccess(),
+      )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }
     }

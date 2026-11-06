@@ -1,3 +1,4 @@
+import { withPolicySearchFallback } from '@genoffice/agent-core'
 import {
   absRangeRef,
   activateFormulaClosure,
@@ -1104,36 +1105,38 @@ export function App(): React.JSX.Element {
         () => setRechargeUrl(aiSettingsRef.current?.rechargeUrl ?? null),
       ),
       systemSuffix: aiLangDirective,
-      skill: composeSkills('sheets+files', '', [
-        createWorkbookSkill(sheetsSkillDeps()),
-        createFilesSkill(availableAttachments),
-        createMergeSkill({
-          getAttachments: availableAttachments,
-          mergePaths: (paths) => {
-            const runtime = univerRef.current
-            if (!runtime) throw new Error(t('appMergeWorkbooksFailed'))
-            return mergeAttachedWorkbooks({ runtime, lazyWorkbookRef, setMessage }, paths)
-          },
-        }),
-        createSearchSkill(),
-        createPresetSkill(
-          activeSkillRef.current,
-          createMcpPresetHooks({
-            status: () => window.desktopApi.mcpStatus(),
-            listTools: (server) => window.desktopApi.mcpListTools(server),
-            callTool: (server, tool, args, context) =>
-              window.desktopApi.mcpCallTool(server, tool, args, context),
-            onPaidCallDisclosure: () =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
-              ),
-            onPaidCallLimit: ({ used, max }) =>
-              new Promise<boolean>((resolve) =>
-                setPaidCallGate({ used, max, kind: 'limit', resolve }),
-              ),
+      skill: withPolicySearchFallback(
+        composeSkills('sheets+files', '', [
+          createWorkbookSkill(sheetsSkillDeps()),
+          createFilesSkill(availableAttachments),
+          createMergeSkill({
+            getAttachments: availableAttachments,
+            mergePaths: (paths) => {
+              const runtime = univerRef.current
+              if (!runtime) throw new Error(t('appMergeWorkbooksFailed'))
+              return mergeAttachedWorkbooks({ runtime, lazyWorkbookRef, setMessage }, paths)
+            },
           }),
-        ),
-      ]),
+          createSearchSkill(),
+          createPresetSkill(
+            activeSkillRef.current,
+            createMcpPresetHooks({
+              status: () => window.desktopApi.mcpStatus(),
+              listTools: (server) => window.desktopApi.mcpListTools(server),
+              callTool: (server, tool, args, context) =>
+                window.desktopApi.mcpCallTool(server, tool, args, context),
+              onPaidCallDisclosure: () =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used: 0, max: 0, kind: 'disclosure', resolve }),
+                ),
+              onPaidCallLimit: ({ used, max }) =>
+                new Promise<boolean>((resolve) =>
+                  setPaidCallGate({ used, max, kind: 'limit', resolve }),
+                ),
+            }),
+          ),
+        ]),
+      ),
       events: {
         onText: (text) => {
           if (text) runLastTextRef.current = text

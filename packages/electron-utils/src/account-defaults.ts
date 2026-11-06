@@ -15,6 +15,8 @@
  * layer folds over the factory layer), declared structurally here to avoid
  * an electron-utils → ai-provider dependency.
  */
+import { loadFangTangAccountConfig } from './factory-defaults'
+
 export interface AccountManagedDefaults {
   provider?: string
   apiKey?: string
@@ -62,11 +64,35 @@ export function waitForAccountManagedDefaults(): Promise<void> {
  * registration and the fangtang branch stays unauthenticated.
  */
 let tokenProvider: (() => string | null) | null = null
+let tokenRefresher: (() => Promise<string | null>) | null = null
 
-export function setAccountManagedTokenProvider(read: (() => string | null) | null): void {
+export function setAccountManagedTokenProvider(
+  read: (() => string | null) | null,
+  refresh: (() => Promise<string | null>) | null = null,
+): void {
   tokenProvider = read
+  tokenRefresher = refresh
 }
 
 export function getAccountManagedToken(): string | null {
   return tokenProvider?.() ?? null
+}
+
+/** Refresh expired account credentials before sending a new managed request. */
+export async function getFreshAccountManagedToken(): Promise<string | null> {
+  return tokenRefresher ? tokenRefresher() : getAccountManagedToken()
+}
+
+/** Shell searches use the account origin even when AI provisioning is unavailable. */
+export async function getAccountManagedSearchAccess(): Promise<
+  { url: string; token: string } | undefined
+> {
+  if (!tokenProvider) return undefined
+  const base = loadFangTangAccountConfig().accountApiBase
+  if (!base) throw new Error('Account search endpoint is not configured')
+  const url = new URL('/api/office/search', base)
+  if (url.protocol !== 'https:' || url.username || url.password) {
+    throw new Error('Account search requires a secure endpoint')
+  }
+  return { url: url.href, token: (await getFreshAccountManagedToken()) ?? '' }
 }

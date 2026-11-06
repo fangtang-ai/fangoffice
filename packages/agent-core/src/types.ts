@@ -82,6 +82,8 @@ export interface ToolExecution {
    * Ignored when tool results are assembled into an AgentMessage.
    */
   display?: ToolDisplay
+  /** Web search failed; the composed skill must use policy MCP evidence instead. */
+  policyFallbackRequired?: boolean
   /** Trusted main-process billing side channel; never added to tool output. */
   billing?: McpBillingInfo
 }

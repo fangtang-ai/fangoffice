@@ -425,7 +425,7 @@ describe('blank-document detection', () => {
 })
 
 describe('web_search backend failures', () => {
-  it("method 'error' surfaces as a tool error instead of '(no results)'", async () => {
+  it('requests policy evidence without treating a failure as verified results', async () => {
     const editor = createEditor(fixture())
     const w = window as unknown as { desktop?: unknown }
     const saved = w.desktop
@@ -438,8 +438,11 @@ describe('web_search backend failures', () => {
         { id: 't', name: 'web_search', input: { query: 'genspark' } },
         NUM_IDS,
       )
-      expect(exec.isError).toBe(true)
-      expect(exec.output).toContain('Serper 502')
+      expect(exec.isError).not.toBe(true)
+      expect(exec.mutated).toBe(false)
+      expect(exec.output).toContain('search_policies')
+      expect(exec.output).toContain('Do not answer from model memory')
+      expect(exec.output).toContain('Do not retry web_search')
       expect(exec.output).not.toContain('(no results)')
     } finally {
       w.desktop = saved

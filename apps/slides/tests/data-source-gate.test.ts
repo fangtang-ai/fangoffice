@@ -97,11 +97,32 @@ beforeEach(() => {
       slides: [richDeck],
     })),
     editChart: vi.fn(async () => ({ slide: richDeck })),
-    webSearch: vi.fn(async () => ({ answer: '', results: [] })),
+    webSearch: vi.fn(async () => ({
+      method: 'aliyun-iqs',
+      results: [{ title: 'Source', url: 'https://example.com', snippet: 'Verified figures' }],
+    })),
   }
 })
 
 describe('apply_ops addChart provenance gate', () => {
+  it.each(['error', 'duckduckgo'])(
+    'policy fallback cannot unlock search provenance: %s',
+    async (method) => {
+      window.slidesApi.webSearch = vi.fn().mockResolvedValue({ method, results: [] })
+      const skill = createSlidesSkill(mkAccess())
+      const fallback = await skill.executeTool!({
+        id: 's',
+        name: 'web_search',
+        input: { query: 'q' },
+      })
+      expect(fallback.isError).not.toBe(true)
+      expect(fallback.output).toContain('search_policies')
+      const chart = await skill.executeTool!(chartCall({ dataSource: 'search' }))
+      expect(chart.isError).toBe(true)
+      expect((window as any).slidesApi.applyTxn).not.toHaveBeenCalled()
+    },
+  )
+
   it('refuses without dataSource and names the accepted values', async () => {
     const r = await createSlidesSkill(mkAccess()).executeTool!(chartCall())
     expect(r.isError).toBe(true)
