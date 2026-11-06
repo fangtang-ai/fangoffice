@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: mac, os: macos-14 }
+          - { platform: mac, os: macos-15 }
           - { platform: win, os: windows-latest }
           - { platform: linux, os: ubuntu-22.04 }
     env:
