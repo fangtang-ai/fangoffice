@@ -54,6 +54,7 @@ export {
   waitForAccountManagedDefaults,
   setAccountManagedDefaults,
   getAccountManagedToken,
+  getAccountManagedSearchAccess,
   setAccountManagedTokenProvider,
   type AccountManagedDefaults,
 } from './account-defaults'

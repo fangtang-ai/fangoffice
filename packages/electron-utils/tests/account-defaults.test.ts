@@ -4,6 +4,8 @@ import {
   setAccountManagedDefaultsLoader,
   setAccountManagedDefaultsPending,
   waitForAccountManagedDefaults,
+  getAccountManagedSearchAccess,
+  setAccountManagedTokenProvider,
 } from '../src/account-defaults'
 
 describe('account managed defaults loading', () => {
@@ -11,6 +13,8 @@ describe('account managed defaults loading', () => {
     setAccountManagedDefaults(null)
     setAccountManagedDefaultsLoader(null)
     setAccountManagedDefaultsPending(null)
+    setAccountManagedTokenProvider(null)
+    vi.unstubAllEnvs()
   })
 
   it('waits for the existing account endpoint load without starting another one', async () => {
@@ -50,5 +54,26 @@ describe('account managed defaults loading', () => {
 
   it('resolves with no loader in standalone editors', async () => {
     await expect(waitForAccountManagedDefaults()).resolves.toBeUndefined()
+    expect(getAccountManagedSearchAccess()).toBeUndefined()
+  })
+
+  it('uses the account API origin independently of AI wallet provisioning', () => {
+    vi.stubEnv('FANGTANG_ACCOUNT_API_BASE', 'https://test.fang-tang.cn')
+    let token: string | null = 'test-account-token'
+    setAccountManagedTokenProvider(() => token)
+    expect(getAccountManagedSearchAccess()).toEqual({
+      url: 'https://test.fang-tang.cn/api/office/search',
+      token,
+    })
+    token = 'refreshed-token'
+    expect(getAccountManagedSearchAccess()?.token).toBe(token)
+    token = null
+    expect(getAccountManagedSearchAccess()?.token).toBe('')
+  })
+
+  it('rejects insecure account endpoints before disclosing an account token', () => {
+    vi.stubEnv('FANGTANG_ACCOUNT_API_BASE', 'http://example.com')
+    setAccountManagedTokenProvider(() => 'test-token')
+    expect(() => getAccountManagedSearchAccess()).toThrow('secure endpoint')
   })
 })

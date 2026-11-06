@@ -36,6 +36,7 @@ import {
   bundledPresetsDir,
   fetchRemoteImage,
   getAccountManagedDefaults,
+  getAccountManagedSearchAccess,
   getAccountManagedToken,
   loadFangTangAccountConfig,
   loadPresetFiles,
@@ -244,7 +245,11 @@ export function registerAiIpc(): void {
   // Search tools (content + images), Serper with DuckDuckGo fallback
   ipcMain.handle('ai:web-search', async (_event, query: string, maxResults?: number) => {
     try {
-      return await webSearch(String(query), typeof maxResults === 'number' ? maxResults : 6)
+      return await webSearch(
+        String(query),
+        typeof maxResults === 'number' ? maxResults : 6,
+        getAccountManagedSearchAccess(),
+      )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }
     }

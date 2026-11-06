@@ -29,6 +29,7 @@ import {
   contextMenuLabels,
   fetchRemoteImage,
   getAccountManagedDefaults,
+  getAccountManagedSearchAccess,
   getAccountManagedToken,
   waitForAccountManagedDefaults,
   installContextMenu,
@@ -2762,7 +2763,11 @@ export function registerAiIpc(): void {
   // shared search tools (content + images): Serper with DuckDuckGo fallback (same source as slides/sheets)
   ipcMain.handle('ai:web-search', async (_event, query: string, maxResults?: number) => {
     try {
-      return await webSearch(String(query), typeof maxResults === 'number' ? maxResults : 6)
+      return await webSearch(
+        String(query),
+        typeof maxResults === 'number' ? maxResults : 6,
+        getAccountManagedSearchAccess(),
+      )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }
     }

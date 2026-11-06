@@ -48,6 +48,7 @@ import {
   contextMenuLabels,
   fetchRemoteImage,
   getAccountManagedDefaults,
+  getAccountManagedSearchAccess,
   installContextMenu,
   installNavigationGuard,
   printHtmlToPdf,
@@ -3121,6 +3122,7 @@ export function registerSheetsAiIpc(): void {
       return await webSearch(
         z.string().parse(query),
         typeof maxResults === 'number' ? maxResults : 6,
+        getAccountManagedSearchAccess(),
       )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }

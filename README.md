@@ -186,14 +186,21 @@ macOS/Linux（launchd / systemd / shell profile）同名变量，按各环境标
 
 #### Domestic web search and offline fallback
 
-Enable [Alibaba Cloud CleverSee](https://help.aliyun.com/zh/document_detail/3029866.html)
-and create a search API key. Set `ALIYUN_IQS_API_KEY` in the environment of the
-Office main process, then restart Office. IT-managed installations can also
-set `aliyunIqsApiKey` in their local deployment override; environment values win.
+Office shell users use the authenticated `/api/office/search` endpoint on the
+configured Fangtang account server. Deploy the shared CleverSee credential as
+`OFFICE_SEARCH_API_KEY` on that server (the private deployment workflow reads
+it from the matching GitHub Actions secret). Users log in; no search API key
+is installed on their computers or included in the installer. The server uses
+the domestic `CNLiteBasic` engine and Redis limits (30/user/minute,
+200/user/day, 10,000/company/day by default, configurable on the server).
+A managed search failure or empty response goes straight to policy-MCP fallback;
+it never silently sends the query to an unconfigured direct provider.
+
+Standalone editors can use locally provisioned credentials: enable
+[Alibaba Cloud CleverSee](https://help.aliyun.com/zh/document_detail/3029866.html),
+then set `ALIYUN_IQS_API_KEY` in the Office main-process environment or
+`aliyunIqsApiKey` in a local deployment override. Environment values win.
 Keep shared service credentials out of source control and distributed installers.
-For public customer distribution, keep the shared credential on an authenticated
-server; this direct-client integration is for locally provisioned credentials.
-The existing account login does not provision an IQS key or a search proxy.
 
 For local test runs, put `ALIYUN_IQS_API_KEY` in the gitignored root
 `.env.local` (permissions `0600`). It is not read automatically by Office.
@@ -209,7 +216,7 @@ resource or commit it. The existing variable name is retained for deployments.
 Web search calls `https://cloud-iqs.aliyuncs.com/search/unified` with the
 `CNLiteBasic` domestic Lite engine, a 5-second deadline covering headers and body,
 queries of 1–500 characters and 1–50 results (default 6). It requests snippets
-with summary/body extraction disabled. A failed, denied, throttled, malformed or empty IQS response tries
+with summary/body extraction disabled. For standalone direct searches, a failed, denied, throttled, malformed or empty IQS response tries
 configured Serper/Tavily backends and then DuckDuckGo. Each provider may charge
 for its own calls; verify the current IQS plan in the console before rollout.
 
@@ -227,7 +234,7 @@ policy call stops further MCP calls in that run. The next user run resets this
 state. Empty/failed web searches do not unlock Slides' web-search provenance
 gate. Image search retains its existing Serper/DuckDuckGo behavior.
 
-Validation before rollout: use a locally provisioned key to confirm one Chinese
+Validation before rollout: remove client keys and use a logged-in account to confirm one Chinese
 query returns IQS titles/links/snippets; simulate a rejected key or loss of network
 and confirm policy MCP retrieval, original-text reading and citations. Also check
 no-hit, disabled-service, permission, balance and payment-decline paths. Fixture

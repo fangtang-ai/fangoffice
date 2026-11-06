@@ -15,6 +15,8 @@
  * layer folds over the factory layer), declared structurally here to avoid
  * an electron-utils → ai-provider dependency.
  */
+import { loadFangTangAccountConfig } from './factory-defaults'
+
 export interface AccountManagedDefaults {
   provider?: string
   apiKey?: string
@@ -69,4 +71,16 @@ export function setAccountManagedTokenProvider(read: (() => string | null) | nul
 
 export function getAccountManagedToken(): string | null {
   return tokenProvider?.() ?? null
+}
+
+/** Shell searches use the account origin even when AI provisioning is unavailable. */
+export function getAccountManagedSearchAccess(): { url: string; token: string } | undefined {
+  if (!tokenProvider) return undefined
+  const base = loadFangTangAccountConfig().accountApiBase
+  if (!base) throw new Error('Account search endpoint is not configured')
+  const url = new URL('/api/office/search', base)
+  if (url.protocol !== 'https:' || url.username || url.password) {
+    throw new Error('Account search requires a secure endpoint')
+  }
+  return { url: url.href, token: getAccountManagedToken() ?? '' }
 }

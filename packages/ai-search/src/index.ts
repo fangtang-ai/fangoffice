@@ -22,6 +22,7 @@ const IQS_KEY = () => process.env.ALIYUN_IQS_API_KEY?.trim() ?? ''
 export async function webSearch(
   query: string,
   maxResults = 6,
+  managedAccess?: { url: string; token: string },
 ): Promise<{
   results: WebSearchResult[]
   answer?: string
@@ -33,6 +34,7 @@ export async function webSearch(
     return { results: [], method: 'error', error: 'query must contain 1–500 characters' }
   }
   maxResults = Number.isFinite(maxResults) ? Math.max(1, Math.min(50, Math.trunc(maxResults))) : 6
+  if (managedAccess) return managedWebSearch(query, maxResults, managedAccess)
   const iqsKey = IQS_KEY()
   if (iqsKey) {
     try {
@@ -140,6 +142,57 @@ export async function webSearch(
   } catch (err) {
     // an unreachable backend must not read as an empty result set
     return { results: [], method: 'error', error: `duckduckgo: ${String(err)}` }
+  }
+}
+
+/** Managed searches fail closed so editor policy-MCP fallback handles outages. */
+async function managedWebSearch(
+  query: string,
+  maxResults: number,
+  access: { url: string; token: string },
+): Promise<{ results: WebSearchResult[]; method: string; error?: string }> {
+  try {
+    if (!access.token) throw new Error('Account login required')
+    const response = await fetchWithTimeout(access.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, maxResults }),
+      timeoutMs: 8000,
+      redirect: 'error',
+    })
+    if (!response.ok) throw new Error('Managed search unavailable')
+    const envelope = asRecord(await response.json())
+    const data = asRecord(envelope.data)
+    if (envelope.success !== true || data.method !== 'aliyun-iqs' || !Array.isArray(data.results)) {
+      throw new Error('Invalid managed search response')
+    }
+    const results = data.results
+      .flatMap((value: unknown) => {
+        const item = asRecord(value)
+        if (
+          typeof item.title !== 'string' ||
+          !item.title.trim() ||
+          typeof item.url !== 'string' ||
+          !/^https?:\/\//i.test(item.url) ||
+          !safeHost(item.url)
+        )
+          return []
+        return [
+          {
+            title: item.title,
+            url: item.url,
+            snippet: typeof item.snippet === 'string' ? item.snippet : '',
+          },
+        ]
+      })
+      .slice(0, maxResults)
+    return { results, method: 'aliyun-iqs' }
+  } catch {
+    return {
+      results: [],
+      method: 'error',
+      error: 'Account search unavailable; retrieve evidence from the policy knowledge base.',
+    }
   }
 }
 
