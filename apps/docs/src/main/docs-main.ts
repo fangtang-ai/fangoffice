@@ -31,6 +31,7 @@ import {
   getAccountManagedDefaults,
   getAccountManagedSearchAccess,
   getAccountManagedToken,
+  getFreshAccountManagedToken,
   waitForAccountManagedDefaults,
   installContextMenu,
   installNavigationGuard,
@@ -2620,7 +2621,10 @@ async function resolveAiRequestSettings(stored: Partial<AiSettings> & LegacyAiSe
 
   const accountDefaults = getAccountManagedDefaults()
   const settings = mainAiSettings(stored, undefined, accountDefaults)
-  const accountToken = getAccountManagedToken()
+  const accountToken =
+    settings.provider === 'fangtang'
+      ? await getFreshAccountManagedToken()
+      : getAccountManagedToken()
   const config = settings.providers[settings.provider]
   const accountUnavailable = Boolean(
     accountToken &&
@@ -2766,7 +2770,7 @@ export function registerAiIpc(): void {
       return await webSearch(
         String(query),
         typeof maxResults === 'number' ? maxResults : 6,
-        getAccountManagedSearchAccess(),
+        await getAccountManagedSearchAccess(),
       )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }

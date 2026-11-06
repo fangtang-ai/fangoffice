@@ -219,3 +219,24 @@ it('keeps login usable during repeated endpoint failures and only retries on dem
   expect(defaults.getAccountManagedDefaults()).toBeNull()
   expect(fixture.handlers.get('account:session')!()).toMatchObject({ loggedIn: true })
 })
+
+it('refreshes an expired token for concurrent managed requests after the endpoint is cached', async () => {
+  const defaults = await startAccount()
+  const later = Date.now() + 3_600_001
+  const now = vi.spyOn(Date, 'now').mockReturnValue(later)
+  try {
+    fixture.refresh.mockResolvedValueOnce({
+      accessToken: 'synthetic-renewed-token',
+      expiresAt: later + 3_600_000,
+    })
+    const tokens = await Promise.all([
+      defaults.getFreshAccountManagedToken(),
+      defaults.getFreshAccountManagedToken(),
+    ])
+    expect(tokens).toEqual(['synthetic-renewed-token', 'synthetic-renewed-token'])
+    expect(defaults.getAccountManagedToken()).toBe('synthetic-renewed-token')
+    expect(fixture.refresh).toHaveBeenCalledTimes(2)
+  } finally {
+    now.mockRestore()
+  }
+})

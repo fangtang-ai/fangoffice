@@ -3122,7 +3122,7 @@ export function registerSheetsAiIpc(): void {
       return await webSearch(
         z.string().parse(query),
         typeof maxResults === 'number' ? maxResults : 6,
-        getAccountManagedSearchAccess(),
+        await getAccountManagedSearchAccess(),
       )
     } catch (err) {
       return { results: [], method: 'error', error: String(err) }
