@@ -120,7 +120,16 @@ jobs:
             echo "::error::secret FANGTANG_DEFAULTS_PROD_JSON is not set — production builds refuse to package the test-site config" >&2
             exit 1
           fi
-          printf '%s' "$FANGTANG_DEFAULTS_PROD_JSON" > apps/shell/resources/fangtang-defaults.prod.json
+          node <<'NODE'
+          const fs = require('node:fs')
+          const config = JSON.parse(process.env.FANGTANG_DEFAULTS_PROD_JSON)
+          for (const key of ['aliyunIqsApiKey', 'serperApiKey', 'tavilyApiKey']) {
+            if (config[key]) throw new Error('Shared search keys must stay on the account server')
+          }
+          const { accountApiBase, logtoEndpoint, logtoApiResource } = config.account || {}
+          console.log(JSON.stringify({ productionAccountConfig: { accountApiBase, logtoEndpoint, logtoApiResource }, searchKeysBundled: false }))
+          fs.writeFileSync('apps/shell/resources/fangtang-defaults.prod.json', JSON.stringify(config), { mode: 0o600 })
+          NODE
 
       - name: Build macOS (arm64 dmg + zip, universal sidecar/OCR)
         if: matrix.platform == 'mac'
