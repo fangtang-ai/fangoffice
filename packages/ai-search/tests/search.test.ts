@@ -72,8 +72,8 @@ describe('webSearch (Serper)', () => {
   })
 })
 
-describe('webSearch (Alibaba Cloud IQS)', () => {
-  it.each(['', 'x'.repeat(1025)])(
+describe('webSearch (Alibaba Cloud CleverSee)', () => {
+  it.each(['', 'x'.repeat(501)])(
     'rejects invalid query length without a network request',
     async (query) => {
       mockFetch(() => {
@@ -93,7 +93,7 @@ describe('webSearch (Alibaba Cloud IQS)', () => {
       expect(init?.headers).toMatchObject({ Authorization: 'Bearer iqs-key' })
       expect(JSON.parse(String(init?.body))).toEqual({
         query: '国内搜索',
-        engineType: 'LiteAdvanced',
+        engineType: 'CNLiteBasic',
         contents: { mainText: false, markdownText: false, summary: false },
         advancedParams: { numResults: 2 },
       })
@@ -146,6 +146,15 @@ describe('webSearch (Alibaba Cloud IQS)', () => {
       expect(globalThis.fetch).toHaveBeenCalledTimes(2)
     },
   )
+
+  it('accepts the CleverSee 500-character query boundary', async () => {
+    process.env.ALIYUN_IQS_API_KEY = 'iqs-key'
+    mockFetch((_url, init) => {
+      expect(JSON.parse(String(init?.body)).query).toHaveLength(500)
+      return { ok: true, json: { pageItems: [{ title: 'A', link: 'https://a.com' }] } }
+    })
+    expect((await webSearch('x'.repeat(500))).method).toBe('aliyun-iqs')
+  })
 
   it('bounds the IQS result count', async () => {
     process.env.ALIYUN_IQS_API_KEY = 'iqs-key'
