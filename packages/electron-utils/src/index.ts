@@ -61,6 +61,12 @@ export {
 } from './account-defaults'
 export { readAiFeatures, writeAiFeatures, type AiFeaturesFile } from './ai-features'
 export {
+  loadOfficePresetCatalog,
+  syncOfficeSkillCatalog,
+  parseCloudOfficeCatalog,
+  mergeOfficeSkillCatalog,
+} from './office-skill-catalog'
+export {
   bundledPresetsDir,
   loadPresetFiles,
   parsePresetMarkdown,

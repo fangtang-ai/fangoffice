@@ -177,7 +177,7 @@ export function AiPanel({
     () => window.markdownApi.getPresetCatalog?.(),
   )
   const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
-  activeSkillRef.current.current = activeSkill
+  if (!busy) activeSkillRef.current.current = activeSkill
   const langRef = useRef(lang)
   langRef.current = lang
   const depsRef = useRef(deps)
