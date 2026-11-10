@@ -829,6 +829,7 @@ export function App(): React.JSX.Element {
   aiSettingsRef.current = aiSettings
 
   // built-in generation skill (技能) selected in the composer; live-read per turn
+  const [aiBusy, setAiBusy] = useState(false)
   const {
     presets: skillOptions,
     active: activeSkill,
@@ -839,9 +840,8 @@ export function App(): React.JSX.Element {
     () => window.desktopApi?.getPresetCatalog?.(),
   )
   const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
-  activeSkillRef.current.current = activeSkill
+  if (!aiBusy) activeSkillRef.current.current = activeSkill
 
-  const [aiBusy, setAiBusy] = useState(false)
   /** credits-exhausted recharge prompt: holds the top-up URL while the modal is open (null = hidden) */
   const [rechargeUrl, setRechargeUrl] = useState<string | null>(null)
   const [paidCallGate, setPaidCallGate] = useState<{

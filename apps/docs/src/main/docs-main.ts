@@ -46,11 +46,11 @@ import {
   bundledPresetsDir,
   applySearchProviderEnv,
   loadFangTangAccountConfig,
-  loadPresetFiles,
+  loadOfficePresetCatalog,
   writeAiFeatures,
   type AiFeaturesFile,
 } from '@genoffice/electron-utils'
-import { BUILTIN_PRESETS, composePresetCatalog } from '@genoffice/agent-core'
+import { BUILTIN_PRESETS } from '@genoffice/agent-core'
 import { configureMetricsCache, familyVerticalMetrics } from '@genoffice/font-metrics'
 import { createI18n, getUiLang, normalizeLang, setUiLang } from '@genoffice/i18n'
 import { ProjectStore } from '@genoffice/project-store'
@@ -2665,10 +2665,7 @@ export function registerAiIpc(): void {
   // built-in generation skills (技能): effective catalog = file presets (presets/<app>/*.md)
   // replacing compiled-in entries per app
   ipcMain.handle('ai:preset-catalog', () =>
-    composePresetCatalog(
-      BUILTIN_PRESETS,
-      loadPresetFiles(bundledPresetsDir(), join(app.getPath('userData'), 'presets')),
-    ),
+    loadOfficePresetCatalog(BUILTIN_PRESETS, bundledPresetsDir(), app.getPath('userData')),
   )
   ipcMain.handle('ai:set-features', (_event, features: AiFeaturesFile) => {
     writeAiFeatures(userDataPath('ai-features.json'), features)

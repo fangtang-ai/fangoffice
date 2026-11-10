@@ -344,7 +344,7 @@ export function AiPanel({
     () => window.desktop.getPresetCatalog?.(),
   )
   const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
-  activeSkillRef.current.current = activeSkill
+  if (!busy) activeSkillRef.current.current = activeSkill
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [attachNotice, setAttachNotice] = useState<string | null>(null)
   /** data-URL previews for image attachments, keyed by path (Genspark composer thumbnails) */

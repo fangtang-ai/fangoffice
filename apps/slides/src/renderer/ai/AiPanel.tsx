@@ -539,7 +539,7 @@ export function AiPanel({
     () => window.slidesApi.getPresetCatalog?.(),
   )
   const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
-  activeSkillRef.current.current = activeSkill
+  if (!busy) activeSkillRef.current.current = activeSkill
 
   const imagesRef = useRef(images)
   imagesRef.current = images

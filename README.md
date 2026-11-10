@@ -308,6 +308,29 @@ mcpServers: erp, wiki # 可选：该技能可调用的内置 MCP 服务器
 
 无 frontmatter 时，文件名（去 `.md`）即 id 与显示名。某应用目录存在任意 `.md` 文件时整体替换该应用内置技能；`userData/presets/<app>/*.md` 按 id 覆盖/新增，无需重打包。各应用的启用/停用开关在 设置 → 技能。
 
+## Cloud-managed official skills
+
+The website administrator manages the catalog at `/admin/office/skills`: save a draft,
+try its text output, then publish a version. Draft saves do not affect Office users.
+Preview requests use the administrator's normal Office AI wallet; editor and MCP
+operations must be verified in the desktop app. Publishing and rolling back require
+an update note. A rollback creates a new release and preserves the working draft.
+
+Office 0.9.13 and later reads `/api/office/skills` using the current account token.
+The shared picker refreshes on focus and every minute; network requests are coalesced
+and throttled for 30 seconds. Only data-based playbooks are accepted. Cache files are
+scoped to the account API origin, written atomically into `userData`, and contain no
+tokens. Failed synchronization retains the last valid catalog; without a cache,
+Office keeps its shipped skills. Existing tasks keep their selected playbook until
+they finish. New tasks use the refreshed catalog.
+
+The effective order is compiled defaults, bundled per-app Markdown replacements,
+cloud overrides (including disabled official IDs), then user Markdown overrides.
+Cloud synchronization never writes to `userData/presets` or changes local visibility
+preferences. To stop an official skill, disable it and publish; user-created versions
+remain under the user's control. Existing installations need one client update to
+support this channel; later playbook changes need no installer update.
+
 ## Release Environments
 
 `FANGTANG_BUILD_ENV` defaults to `test`. Test builds use
