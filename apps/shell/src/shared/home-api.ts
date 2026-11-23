@@ -8,6 +8,9 @@ import type {
   OfficeBillingProduct,
 } from '@genoffice/agent-core'
 import type { UpdateChannel } from './update-api'
+import type { KnowledgeApi } from './knowledge-api'
+
+export type OfficeRechargeProduct = OfficeBillingProduct | 'knowledge_base'
 
 /** UI language; kept self-contained here (mirrors Lang in @genoffice/i18n) */
 export type UiLanguage =
@@ -96,6 +99,7 @@ export interface RecentPage {
 }
 
 export interface HomeApi {
+  knowledge: KnowledgeApi
   /** unified recents across document types, newest first (paged) */
   recents(query?: RecentQuery): Promise<RecentPage>
   /** starred files (independent of the recent list), newest first (paged) */
@@ -169,7 +173,7 @@ export interface HomeApi {
   /** aggregated AI usage/balance; null when signed out or the site is unreachable */
   getAccountUsage(): Promise<AccountUsage | null>
   /** open the selected wallet's top-up page with the current desktop account */
-  openRecharge(product: OfficeBillingProduct): Promise<void>
+  openRecharge(product: OfficeRechargeProduct): Promise<void>
   /** account session changed anywhere (login/logout/expiry, broadcast from main) */
   onAccountSessionChanged(handler: (session: AccountView) => void): () => void
   /** built-in skill visibility (Settings → 技能); shared across editors */

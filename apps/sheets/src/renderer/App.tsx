@@ -55,7 +55,7 @@ import {
   type UniverRuntime,
   type UniverWorksheet,
 } from './univer-state'
-import { AiSkillPicker, useAiSkills } from '@genoffice/ui'
+import { AiSkillPicker, useAiSkills, useKnowledgeChat } from '@genoffice/ui'
 import { pushBulkFillUndo } from './bulk-fill-undo'
 import {
   applyAiPivotAdd,
@@ -970,7 +970,18 @@ export function App(): React.JSX.Element {
   }, [])
 
   // ── project-store: resolve chatId and load history when a workbook opens ──
+  const {
+    skill: knowledgeSkill,
+    version: knowledgeVersion,
+    capture: captureKnowledgeAccount,
+  } = useKnowledgeChat(window.desktopApi?.knowledge, () => {
+    handleNewChat()
+    runStartingRef.current = false
+    chatRefIdsRef.current = null
+    runToolsRef.current = []
+  })
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const api = (window as Window & { projectApi?: typeof window.projectApi }).projectApi
     if (!api) return
     // Reset (new workbook or new session)
@@ -983,13 +994,14 @@ export function App(): React.JSX.Element {
     void api
       .resolveChat(resolveArgs)
       .then(async (ids) => {
+        if (!isCurrent()) throw new Error('knowledge:account-changed')
         chatRefIdsRef.current = ids
         const msgs = await api.loadChat({
           projectId: ids.projectId,
           chatId: ids.chatId,
           limit: 200,
         })
-        if (msgs.length === 0) return
+        if (!isCurrent() || msgs.length === 0) return
         setHistoricChat(
           msgs.map((m) => ({
             role: m.role,
@@ -1023,7 +1035,7 @@ export function App(): React.JSX.Element {
       .catch(() => {
         /* silent */
       })
-  }, [workbookFile?.sessionId])
+  }, [workbookFile?.sessionId, knowledgeVersion, captureKnowledgeAccount])
 
   const persistChatMessage = (
     role: 'user' | 'assistant',
@@ -1107,6 +1119,7 @@ export function App(): React.JSX.Element {
       systemSuffix: aiLangDirective,
       skill: withPolicySearchFallback(
         composeSkills('sheets+files', '', [
+          knowledgeSkill,
           createWorkbookSkill(sheetsSkillDeps()),
           createFilesSkill(availableAttachments),
           createMergeSkill({
@@ -1315,6 +1328,7 @@ export function App(): React.JSX.Element {
   }
 
   function runAgent(instruction: string, sentAttachments: readonly AttachmentMeta[]): void {
+    const isCurrent = captureKnowledgeAccount()
     const loop = agentLoopRef.current
     if (!instruction.trim() || !loop || loop.busy || runStartingRef.current) return
     runStartingRef.current = true
@@ -1330,10 +1344,12 @@ export function App(): React.JSX.Element {
     appendChat({ role: 'assistant', text: '', tools: [], streaming: true })
     void collectImageAttachments(sentAttachments)
       .then((images) => {
+        if (!isCurrent()) return
         runStartingRef.current = false
         loop.run(instruction, images)
       })
       .catch(() => {
+        if (!isCurrent()) return
         runStartingRef.current = false
         loop.run(instruction)
       })

@@ -468,8 +468,11 @@ export class ProjectStore {
     tempProjectId: string,
     tempChatId: string,
     filePath: string,
+    chatIdPrefix = '',
   ): { projectId: string; chatId: string } {
-    const { projectId, chatId } = this.resolveChatForFile(filePath)
+    const target = this.resolveChatForFile(filePath)
+    const projectId = target.projectId
+    const chatId = `${chatIdPrefix}${target.chatId}`
     this.renameOrMergeChat(tempProjectId, tempChatId, projectId, chatId)
     return { projectId, chatId }
   }
@@ -663,24 +666,20 @@ export class ProjectStore {
 
     // 4. Move the corresponding chat's JSONL (materialize buffered opening messages first)
     const chatId = this.chatIdForPath(filePath)
-    this.flushPending(fromProjectId, chatId)
-    const srcChatPath = this.chatPath(fromProjectId, chatId)
-    const dstChatPath = this.chatPath(targetProjectId, chatId)
-    try {
-      if (existsSync(srcChatPath)) {
-        ensureDir(this.chatsDir(targetProjectId))
-        renameSync(srcChatPath, dstChatPath)
-      }
-    } catch (err) {
-      console.warn('[project-store] moveFileToProject chat rename failed:', err)
+    const projectKey = `${fromProjectId}:`
+    const candidates = new Set([
+      chatId,
+      ...this.listChats(fromProjectId).map((chat) => chat.chatId),
+      ...[...this.pendingFirstWrite.keys()]
+        .filter((key) => key.startsWith(projectKey))
+        .map((key) => key.slice(projectKey.length)),
+    ])
+    // Account namespaces follow a file's project move, but their transcripts must never merge with each other.
+    for (const candidate of candidates) {
+      if (candidate !== chatId && candidate.replace(/^account-[0-9a-f]{24}-/, '') !== chatId)
+        continue
+      this.renameOrMergeChat(fromProjectId, candidate, targetProjectId, candidate)
     }
-
-    // 5. Migrate the seq counter cache
-    const oldKey = this.seqKey(fromProjectId, chatId)
-    const newKey = this.seqKey(targetProjectId, chatId)
-    const cur = this.seqCounters.get(oldKey)
-    this.seqCounters.delete(oldKey)
-    if (cur !== undefined) this.seqCounters.set(newKey, cur)
   }
 
   /**
@@ -688,19 +687,19 @@ export class ProjectStore {
    * returning the most recent `limit` entries. Each entry includes the file path
    * (reverse-looked-up from fileMap by chatId), role, and preview text.
    */
-  getProjectTimeline(projectId: string, limit = 20): TimelineEntry[] {
+  getProjectTimeline(projectId: string, limit = 20, chatIdPrefix = ''): TimelineEntry[] {
     const index = this.readIndex()
     // Build the reverse chatId → filePath map (files in this project only); mapping wins, old data falls back to the path hash
     const chatToFile = new Map<string, string>()
     for (const [filePath, pid] of Object.entries(index.fileMap)) {
       if (pid === projectId) {
         const chatId = index.chatIdByPath?.[filePath] ?? ProjectStore.chatIdForFile(filePath)
-        chatToFile.set(chatId, filePath)
+        chatToFile.set(`${chatIdPrefix}${chatId}`, filePath)
       }
     }
 
     const entries: TimelineEntry[] = []
-    const chats = this.listChats(projectId)
+    const chats = this.listChats(projectId).filter(({ chatId }) => chatId.startsWith(chatIdPrefix))
     for (const { chatId } of chats) {
       const filePath = chatToFile.get(chatId) ?? ''
       const msgs = this.loadChat(projectId, chatId, 200)

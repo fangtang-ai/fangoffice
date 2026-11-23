@@ -12,7 +12,8 @@ import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { join } from 'node:path'
-import type { OfficeBillingProduct } from '@genoffice/agent-core'
+import type { OfficeRechargeProduct } from '../shared/home-api'
+import type { KnowledgeAccountAccess } from '@genoffice/knowledge-client'
 import {
   getAccountManagedDefaults,
   loadFangTangAccountConfig,
@@ -183,6 +184,30 @@ function invalidateAccountSession() {
   accountSessionId++
   tokenRefresh = null
   for (const listener of accountInvalidationListeners) listener()
+}
+
+export function onAccountSessionInvalidated(listener: () => void) {
+  accountInvalidationListeners.add(listener)
+  return () => {
+    accountInvalidationListeners.delete(listener)
+  }
+}
+
+export function getAccountUserId() {
+  return currentSession()?.userId ?? null
+}
+
+export function getAccountKnowledgeAccess() {
+  // Pin deployment configuration once; request boundary checks must not repeat synchronous file IO.
+  const config = loadFangTangAccountConfig()
+  return {
+    apiBase: () => config.accountApiBase ?? null,
+    knowledgeBase: () => config.knowledgeApiBase ?? null,
+    bind: bindAccountSession,
+    isCurrent: isCurrentAccount,
+    token: validAccessToken,
+    allowLoopback: !app.isPackaged && process.env.FANGTANG_ALLOW_LOOPBACK_ACCOUNT_API === '1',
+  } satisfies KnowledgeAccountAccess
 }
 
 export function getAccountMcpAccess() {
@@ -572,7 +597,7 @@ export function registerAccountIpc(): void {
     }
   })
 
-  ipcMain.handle(HOME_CHANNELS.openRecharge, (_event, product: OfficeBillingProduct) => {
+  ipcMain.handle(HOME_CHANNELS.openRecharge, (_event, product: OfficeRechargeProduct) => {
     // remember whose wallet the user went to top up; a different user on the
     // next published session view gets flagged once (rechargeMismatchView)
     const userId = currentSession()?.userId

@@ -25,6 +25,8 @@ import {
 } from './use-account'
 import { SettingsModal } from './SettingsModal'
 import { AccountMcpBalanceBanner } from './AccountMcpSettings'
+import { KnowledgePanel } from './KnowledgePanel'
+import { knowledgeText } from './knowledge-text'
 
 declare global {
   interface Window {
@@ -748,6 +750,7 @@ export function Home({ active = true }: { active?: boolean }) {
   const [navCounts, setNavCounts] = useState({ recent: 0, starred: 0 })
   const [loadingMore, setLoadingMore] = useState(false)
   const [view, setView] = useState<'recent' | 'starred'>('recent')
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const [filter, setFilter] = useState('all')
   // modified-column sort (WPS-style header popover), shared by the global and project tables
   const [fileSort, setFileSort] = useState<'recent' | 'oldest'>('recent')
@@ -1041,6 +1044,7 @@ export function Home({ active = true }: { active?: boolean }) {
     projectFileEntries.length > 0 && projSelectedPaths.length === projectFileEntries.length
 
   const changeView = (next: 'recent' | 'starred') => {
+    setKnowledgeOpen(false)
     setView(next)
     setSelected(new Set())
     setRowMenu(null)
@@ -1711,7 +1715,7 @@ export function Home({ active = true }: { active?: boolean }) {
 
         <nav className="sidebar-nav">
           <button
-            className={`nav-item${view === 'recent' && !selectedProjectId ? ' active' : ''}`}
+            className={`nav-item${view === 'recent' && !selectedProjectId && !knowledgeOpen ? ' active' : ''}`}
             onClick={() => {
               changeView('recent')
               setSelectedProjectId(null)
@@ -1730,7 +1734,7 @@ export function Home({ active = true }: { active?: boolean }) {
             <span className="nav-count">{navCounts.recent}</span>
           </button>
           <button
-            className={`nav-item${view === 'starred' && !selectedProjectId ? ' active' : ''}`}
+            className={`nav-item${view === 'starred' && !selectedProjectId && !knowledgeOpen ? ' active' : ''}`}
             onClick={() => {
               changeView('starred')
               setSelectedProjectId(null)
@@ -1747,6 +1751,18 @@ export function Home({ active = true }: { active?: boolean }) {
             <span className="nav-label">{t('navStarred')}</span>
             <span className="nav-count">{navCounts.starred}</span>
           </button>
+          <button
+            className={`nav-item${knowledgeOpen ? ' active' : ''}`}
+            data-action="knowledge"
+            onClick={() => {
+              setKnowledgeOpen(true)
+              setSelectedProjectId(null)
+              setSelected(new Set())
+              setRowMenu(null)
+            }}
+          >
+            <span className="nav-label">{knowledgeText(lang).title}</span>
+          </button>
         </nav>
 
         {/* project sidebar */}
@@ -1757,6 +1773,7 @@ export function Home({ active = true }: { active?: boolean }) {
               projects={projects}
               selectedId={selectedProjectId}
               onSelect={(id) => {
+                setKnowledgeOpen(false)
                 setSelectedProjectId(id)
                 // reset list-selection state on any project switch (paths are
                 // shared between the plain view and project views)
@@ -1779,7 +1796,19 @@ export function Home({ active = true }: { active?: boolean }) {
             onRecharge={() => account.recharge('office_ai')}
           />
         )}
-        {selectedProjectId ? renderProjectContent() : renderGlobalContent()}
+        {knowledgeOpen ? (
+          <KnowledgePanel
+            key={account.session?.userId ?? 'signed-out'}
+            session={account.session}
+            onLogin={() => void account.login()}
+            usage={account.usage}
+            onRefreshAccount={account.refreshUsage}
+          />
+        ) : selectedProjectId ? (
+          renderProjectContent()
+        ) : (
+          renderGlobalContent()
+        )}
       </div>
 
       {confirmDelete && (

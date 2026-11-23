@@ -569,7 +569,9 @@ const config = {
   afterPack: async (context) => {
     if (context.electronPlatformName !== 'win32') return
     const packedLocal = join(context.appOutDir, 'resources/fangtang-defaults.local.json')
-    if (context.targets?.has?.('nsis')) {
+    const directoryOnly =
+      Array.isArray(context.targets) && context.targets.every((target) => target.name === 'dir')
+    if (!directoryOnly) {
       if (existsSync(packedLocal)) {
         throw new Error(
           'installer must not ship deployment secrets: fangtang-defaults.local.json packed into NSIS output',
@@ -644,9 +646,8 @@ if (updateUrl) {
 // its updater cache from name. Both identities must differ for the test app.
 const extraMetadata = {
   productName,
-  ...(buildEnv === 'test'
-    ? { name: '@genoffice/shell-test', desktopName: 'fangtang-office-test.desktop' }
-    : {}),
+  name: linuxPackageName,
+  ...(buildEnv === 'test' ? { desktopName: 'fangtang-office-test.desktop' } : {}),
 }
 if (fontCdnUrl) extraMetadata.genofficeFontCdn = { baseUrl: fontCdnUrl }
 config.extraMetadata = extraMetadata

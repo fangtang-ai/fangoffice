@@ -1,4 +1,5 @@
 import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
+import { createKnowledgeChatApi } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import type { RenderSlide } from '@genoffice/pptx-render'
@@ -88,6 +89,7 @@ import type {
 } from '../shared/ipc'
 
 const api: SlidesApi = {
+  knowledge: createKnowledgeChatApi(ipcRenderer),
   getLanguage: () => ipcRenderer.invoke('app:get-language'),
   onLanguageChanged: (handler) => {
     const listener = (

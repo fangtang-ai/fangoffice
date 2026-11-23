@@ -6,7 +6,7 @@ import { createMcpPresetHooks } from '@genoffice/agent-core'
 import type { AiSettings } from '@genoffice/ai-provider'
 import { AiComposer, AiSkillPicker, AiTypingIndicator, useAiSkills } from '@genoffice/ui'
 import { aiLangDirective, t as tGlobal, useI18n } from '../i18n/locale'
-import { Markdown } from '@genoffice/ui'
+import { Markdown, useKnowledgeChat } from '@genoffice/ui'
 import sendEnterOn from '../assets/send-enter-on.png'
 import sendEnterOff from '../assets/send-enter-off.png'
 import sendStop from '../assets/send-stop.png'
@@ -186,18 +186,34 @@ export function AiPanel({
       persistMessage('assistant', texts.join('\n\n'), tools)
     }
   }
+  const {
+    skill: knowledgeSkill,
+    version: knowledgeVersion,
+    capture: captureKnowledgeAccount,
+  } = useKnowledgeChat(window.pdfApi?.knowledge, () => {
+    stop()
+    loopRef.current?.reset()
+    setBusy(false)
+    setChat([])
+    chatIdsRef.current = null
+    runTextsRef.current = []
+    runToolsRef.current = []
+    segTextRef.current = ''
+  })
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const store = chatStore()
     if (!store) return
     const tempChatId = `unsaved-${Date.now()}`
     void store
       .resolveChat({ filePath: filePath || null, tempChatId })
       .then((ids) => {
+        if (!isCurrent()) throw new Error('knowledge:account-changed')
         chatIdsRef.current = ids
         return store.loadChat({ projectId: ids.projectId, chatId: ids.chatId, limit: 200 })
       })
       .then((msgs) => {
-        if (msgs.length === 0) return
+        if (!isCurrent() || msgs.length === 0) return
         setChat((prev) => [
           ...msgs.map((m) => ({
             role: m.role,
@@ -218,21 +234,22 @@ export function AiPanel({
         /* history load failures are silent */
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only, like Docs
-  }, [])
+  }, [knowledgeVersion, captureKnowledgeAccount])
   /** blank/generated PDFs get a path on first save: bind the unsaved-* history to it */
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const ids = chatIdsRef.current
     const store = chatStore()
-    if (!store || !ids || !filePath || !ids.chatId.startsWith('unsaved-')) return
+    if (!store || !ids || !filePath || !/(^|-)unsaved-/.test(ids.chatId)) return
     void store
       .rebindChat({ projectId: ids.projectId, tempChatId: ids.chatId, newFilePath: filePath })
       .then((rebound) => {
-        if (rebound?.chatId) chatIdsRef.current = rebound
+        if (isCurrent() && rebound?.chatId) chatIdsRef.current = rebound
       })
       .catch(() => {
         /* silent */
       })
-  }, [filePath])
+  }, [filePath, captureKnowledgeAccount])
   // preferred = the user's chosen width (the only value persisted); panelWidth =
   // what fits the current window. Deriving the display width from the preference
   // means a transiently small window never permanently shrinks the panel.
@@ -378,6 +395,7 @@ export function AiPanel({
         () => setRechargeUrl(settingsRef.current?.rechargeUrl ?? null),
       ),
       skill: composeSkills('pdf+preset', '', [
+        knowledgeSkill,
         createPdfSkill(deps),
         createPresetSkill(
           activeSkillRef.current,
@@ -496,6 +514,7 @@ export function AiPanel({
   }
 
   const send = (text: string): void => {
+    const isCurrent = captureKnowledgeAccount()
     const instruction = text.trim()
     const loop = loopRef.current
     if (!instruction || !loop || loop.busy) return
@@ -516,8 +535,10 @@ export function AiPanel({
     void (async () => {
       try {
         settingsRef.current = await window.pdfApi.getAiSettings()
+        if (!isCurrent()) return
         await loop.run(instruction)
       } catch (err) {
+        if (!isCurrent()) return
         patchLast({
           streaming: false,
           text: err instanceof Error ? err.message : String(err),

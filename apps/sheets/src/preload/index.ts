@@ -1,4 +1,5 @@
 import type { McpCallContext, PresetSkillDef } from '@genoffice/agent-core'
+import { createKnowledgeChatApi } from '@genoffice/agent-core'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 import type { AiChatResponse, AiSettings, AiStreamChunk } from '@genoffice/ai-provider'
@@ -48,6 +49,7 @@ import {
 import { installDropOpenBridge } from '@genoffice/electron-utils/drop-open'
 
 const desktopApi: DesktopApi = {
+  knowledge: createKnowledgeChatApi(ipcRenderer),
   getLanguage: () => ipcRenderer.invoke('app:get-language'),
   onLanguageChanged(handler) {
     const listener = (

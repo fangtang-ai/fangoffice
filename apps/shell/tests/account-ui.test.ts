@@ -11,6 +11,7 @@ import { SettingsModal } from '../src/renderer/src/SettingsModal'
 import { Home } from '../src/renderer/src/Home'
 import { AccountMcpBalanceBanner } from '../src/renderer/src/AccountMcpSettings'
 import { accountBalanceText, useAccount } from '../src/renderer/src/use-account'
+import { KnowledgeWallet } from '../src/renderer/src/KnowledgeWallet'
 
 let host: HTMLDivElement
 let root: Root
@@ -107,11 +108,90 @@ function RefreshingAccount() {
   return createElement('div', null, accountBalanceText(account.usage) ?? 'pending')
 }
 
+function KnowledgeAccountView() {
+  const account = useAccount()
+  return createElement(KnowledgeWallet, { usage: account.usage, language: 'zh' })
+}
+
+function knowledgeUsage(balanceCny: string): AccountUsage {
+  return {
+    knowledge: {
+      product: 'knowledge_base',
+      available: true,
+      unavailableReason: null,
+      walletStatus: 'opened',
+      balanceCny,
+      availableCny: balanceCny,
+      reservedCny: '0.00',
+      queryReserveCny: '0.01',
+    },
+  }
+}
+
+it('clears knowledge money on an account switch and ignores an old account refresh that arrives last', async () => {
+  getAccountUsage.mockResolvedValueOnce(knowledgeUsage('12.00'))
+  await act(async () => root.render(createElement(KnowledgeAccountView)))
+  expect(host.textContent).toContain('¥12.00')
+  let finishOld!: (usage: AccountUsage) => void
+  let finishNew!: (usage: AccountUsage) => void
+  getAccountUsage.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishOld = resolve
+    }),
+  )
+  await act(async () => window.dispatchEvent(new Event('focus')))
+  getAccountUsage.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishNew = resolve
+    }),
+  )
+  await act(async () => sessionListener?.({ loggedIn: true, userId: 'account-B' }))
+  expect(host.textContent).not.toContain('¥12.00')
+  expect(host.textContent).toContain('暂未获取知识资金状态')
+  await act(async () => finishNew(knowledgeUsage('2.00')))
+  await act(async () => finishOld(knowledgeUsage('99.00')))
+  expect(host.textContent).toContain('¥2.00')
+  expect(host.textContent).not.toContain('¥99.00')
+})
+
+it('clears knowledge money after sign-out and does not restore it from a late response', async () => {
+  getAccountUsage.mockResolvedValueOnce(knowledgeUsage('12.00'))
+  await act(async () => root.render(createElement(KnowledgeAccountView)))
+  let finish!: (usage: AccountUsage) => void
+  getAccountUsage.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve
+    }),
+  )
+  await act(async () => window.dispatchEvent(new Event('focus')))
+  await act(async () => sessionListener?.({ loggedIn: false }))
+  await act(async () => finish(knowledgeUsage('99.00')))
+  expect(host.textContent).not.toContain('¥12.00')
+  expect(host.textContent).not.toContain('¥99.00')
+  expect(host.textContent).toContain('暂未获取知识资金状态')
+})
+
 function McpHomeNotice() {
   return createElement(AccountMcpBalanceBanner, { account: useAccount() })
 }
 
 describe('account wallet UI', () => {
+  it('opens cloud knowledge from Home without bypassing sign-in', async () => {
+    getAccountSession.mockResolvedValue({ loggedIn: false })
+    await act(async () =>
+      root.render(
+        createElement(LocaleProvider, {
+          initial: 'en',
+          children: createElement(Home),
+        }),
+      ),
+    )
+    const entry = host.querySelector<HTMLButtonElement>('[data-action="knowledge"]')
+    expect(entry).not.toBeNull()
+    await act(async () => entry!.click())
+    expect(host.textContent).toContain('Sign in to view cloud knowledge')
+  })
+
   it('lets signed-out users reach the MCP opt-out from Home without signing in', async () => {
     getAccountSession.mockResolvedValue({ loggedIn: false })
     await act(async () =>

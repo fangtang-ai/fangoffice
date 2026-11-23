@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { OfficeBillingProduct } from '@genoffice/agent-core'
+import type { OfficeRechargeProduct } from '../../shared/home-api'
 import type { AccountErrorCode, AccountUsage, AccountView } from '../../shared/home-api'
 import { useI18n } from './locale'
 import type { StringKey } from './locale'
@@ -224,7 +224,7 @@ export function useAccount() {
     /** re-pull the balance (Home calls this when its tab becomes visible) */
     refreshUsage,
     logout: () => void window.aiOffice.logoutAccount(),
-    recharge: (product: OfficeBillingProduct) => void window.aiOffice.openRecharge(product),
+    recharge: (product: OfficeRechargeProduct) => void window.aiOffice.openRecharge(product),
   }
 }
 
