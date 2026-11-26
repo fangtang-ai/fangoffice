@@ -59,7 +59,10 @@ beforeEach(() => {
     value: { items: [documentDto], nextCursor: null },
   })
   api.getQuota.mockResolvedValue({ ok: true, value: quota })
-  Object.defineProperty(window, 'aiOffice', { configurable: true, value: { knowledge: api } })
+  Object.defineProperty(window, 'aiOffice', {
+    configurable: true,
+    value: { knowledge: api, getKnowledgeExpansionPacks: async () => [] },
+  })
 })
 afterEach(() => {
   act(() => root.unmount())
@@ -104,7 +107,8 @@ it('shows confirmed logical deletion and refreshes documents and actual quota wi
   expect(host.querySelector('[data-action="delete-document"]')).toBeNull()
   expect(api.listDocuments).toHaveBeenCalledTimes(2)
   expect(api.getQuota).toHaveBeenCalledTimes(2)
-  expect(host.textContent).toContain('资料: 0 / 10')
+  expect(host.textContent).toContain('当前资料 0 份')
+  expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('0')
 })
 
 it('leaves the document and quota unchanged when native confirmation is cancelled', async () => {

@@ -58,7 +58,7 @@ beforeEach(() => {
   openRecharge.mockResolvedValue()
   Object.defineProperty(window, 'aiOffice', {
     configurable: true,
-    value: { knowledge: api, openRecharge },
+    value: { knowledge: api, openRecharge, getKnowledgeExpansionPacks: async () => [] },
   })
 })
 afterEach(() => {

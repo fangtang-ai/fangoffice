@@ -202,6 +202,9 @@ const homeApi: HomeApi = {
   async openRecharge(product) {
     await ipcRenderer.invoke(HOME_CHANNELS.openRecharge, product)
   },
+  async getKnowledgeExpansionPacks() {
+    return ipcRenderer.invoke(HOME_CHANNELS.getKnowledgeExpansionPacks)
+  },
   onAccountSessionChanged(handler) {
     const listener = (_event: IpcRendererEvent, session: unknown) => {
       if (session && typeof session === 'object') handler(session as AccountView)

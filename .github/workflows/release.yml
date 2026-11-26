@@ -33,6 +33,10 @@ on:
         type: choice
         default: stable
         options: [stable, beta, test]
+      publish:
+        description: '上传安装包与更新feed；关闭则仅构建并保留CI候选工件'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -160,6 +164,7 @@ jobs:
 
   publish:
     name: publish (GitHub Release + OSS)
+    if: github.event_name == 'push' || inputs.publish == true
     needs: build
     runs-on: ubuntu-latest
     # ~1.1GB of installers from a US runner to OSS cn-hangzhou: v0.9.4's publish

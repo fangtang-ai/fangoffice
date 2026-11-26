@@ -138,6 +138,15 @@ it('cancels document deletion in the native dialog without sending a mutation', 
       detail: expect.stringContaining('合成TXT'),
     }),
   )
+  const detail = fixture.confirmation.mock.calls[0][1].detail
+  for (const text of [
+    '释放该文件占用的空间',
+    '已购总容量不减少',
+    '不会保留此前从该文件建立的知识',
+    '后续检索和AI引用',
+    '不会删除本机原文件',
+  ])
+    expect(detail).toContain(text)
   expect(fetch).toHaveBeenCalledOnce()
   expect(vi.mocked(fetch).mock.calls[0][1]?.method).toBe('GET')
 })
@@ -536,7 +545,7 @@ it.each([
 
 it('rejects a file over the desktop bound before reading or allocating its full size', async () => {
   const path = await pickedText()
-  await truncate(path, 8 * 1024 * 1024 + 1)
+  await truncate(path, 20 * 1024 * 1024 + 1)
   const network = uploadNetwork(spaceId)
   vi.stubGlobal('fetch', network)
   expect(await fixture.handlers.get('knowledge:upload-text')!(event, spaceId)).toEqual({

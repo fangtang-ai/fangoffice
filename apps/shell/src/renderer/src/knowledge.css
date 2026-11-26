@@ -103,3 +103,92 @@
   margin: 8px 0 0;
   font-variant-numeric: tabular-nums;
 }
+.knowledge-expansion-packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+  padding: 0;
+  list-style: none;
+}
+.knowledge-expansion-packs li {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.knowledge-expansion-packs h3 {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+.knowledge-expansion-packs strong {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.knowledge-expansion-packs span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.knowledge-space-usage {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.knowledge-space-usage header {
+  flex-wrap: wrap;
+}
+.knowledge-space-usage h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.knowledge-space-track {
+  display: flex;
+  height: 14px;
+  overflow: hidden;
+  margin: 18px 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+}
+.knowledge-space-used,
+.knowledge-space-dot.used {
+  background: var(--accent);
+}
+.knowledge-space-reserved,
+.knowledge-space-dot.reserved {
+  background: repeating-linear-gradient(135deg, var(--accent-soft) 0 4px, var(--accent) 4px 5px);
+}
+.knowledge-space-usage dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin: 0 0 18px;
+}
+.knowledge-space-usage dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+.knowledge-space-usage dd {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.knowledge-space-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.knowledge-space-dot.remaining {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+}
+.knowledge-space-usage .knowledge-space-note {
+  font-size: 12px;
+}
+.knowledge-space-usage .knowledge-space-warning {
+  color: var(--danger);
+}

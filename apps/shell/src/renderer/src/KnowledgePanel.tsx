@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { AccountUsage, AccountView } from '../../shared/home-api'
 import type { KnowledgeSearchHit } from '../../shared/knowledge-api'
 import { KnowledgeWallet } from './KnowledgeWallet'
+import { KnowledgeExpansionPacks } from './KnowledgeExpansionPacks'
+import { KnowledgeSpaceUsage } from './KnowledgeSpaceUsage'
 import { useI18n } from './locale'
 import { knowledgeOperationText, knowledgeText } from './knowledge-text'
 import { useKnowledge } from './use-knowledge'
@@ -108,6 +110,7 @@ export function KnowledgePanel({
         </button>
       </header>
       <KnowledgeWallet usage={usage} language={lang} />
+      <KnowledgeExpansionPacks language={lang} />
       {knowledge.error && (
         <p role="alert">
           {['NOT_CONFIGURED', 'knowledge:not-configured'].includes(knowledge.error)
@@ -228,13 +231,7 @@ export function KnowledgePanel({
           {knowledge.source.text}
         </pre>
       )}
-      {knowledge.quota?.limits && (
-        <p>
-          {text.quota} — {text.files}: {knowledge.quota.active.files} /{' '}
-          {knowledge.quota.limits.files}; {text.bytes}: {knowledge.quota.active.bytes} /{' '}
-          {knowledge.quota.limits.bytes}; {text.reserved}: {knowledge.quota.reserved.bytes} B
-        </p>
-      )}
+      {knowledge.quota && <KnowledgeSpaceUsage quota={knowledge.quota} language={lang} />}
       {knowledge.operation && (
         <div data-operation role="status">
           <strong>{text.progress}: </strong>

@@ -5,7 +5,7 @@ const zh = {
   login: '登录后查看云端知识库',
   signIn: '登录',
   description:
-    '支持 TXT / Markdown（UTF-8）、DOCX 和文字 PDF，单文件最多 8 MiB；扫描 PDF 暂不支持 OCR。入库完成后可检索来源。',
+    '支持 TXT / Markdown（UTF-8）、DOCX 和文字 PDF，单文件最多 20 MiB；扫描 PDF 暂不支持 OCR。入库完成后可检索来源。',
   notConfigured: '知识库权益或服务尚未配置，请联系管理员完成开通。',
   failed: '知识库请求未完成，请重试。',
   refresh: '刷新',
@@ -34,7 +34,8 @@ const zh = {
   deleted: '已删除（逻辑删除已确认）。',
   deletionUnknown: '删除结果未确认，可能已受理；请刷新或确认原删除意图，不要当作尚未删除。',
   deletionPending: '删除待确认',
-  deletionNote: '不代表物理文件已清除或费用已退款。',
+  deletionNote:
+    '删除确认后会释放已用空间，已购总容量不减少；此前从该文件建立的知识也会移除，不能再用于后续检索和引用。不代表物理文件已清除或费用已退款。',
   readOnly: '当前账号不能创建空间或上传资料；仍可查看或删除已有资料。',
   moreDocuments: '加载更多资料',
   moreSpaces: '加载更多空间',
@@ -58,7 +59,7 @@ const en = {
   login: 'Sign in to view cloud knowledge',
   signIn: 'Sign in',
   description:
-    'Upload UTF-8 TXT / Markdown, DOCX or text-based PDF (up to 8 MiB per file). Scanned PDFs require OCR, which is not supported yet. Search becomes available after indexing.',
+    'Upload UTF-8 TXT / Markdown, DOCX or text-based PDF (up to 20 MiB per file). Scanned PDFs require OCR, which is not supported yet. Search becomes available after indexing.',
   notConfigured: 'Knowledge access or service is not configured. Contact your administrator.',
   failed: 'The knowledge request did not complete. Please retry.',
   refresh: 'Refresh',
@@ -88,7 +89,8 @@ const en = {
   deletionUnknown:
     'Deletion is unconfirmed and may have been accepted. Refresh or confirm the original intent; do not assume it never started.',
   deletionPending: 'Deletion unconfirmed',
-  deletionNote: 'This does not confirm physical file cleanup or a refund.',
+  deletionNote:
+    'Confirmed deletion releases used space without reducing purchased capacity. Knowledge built from this file is also removed and can no longer be used for search or citations. This does not confirm physical file cleanup or a refund.',
   readOnly:
     'Creating spaces and uploading files are disabled. Existing documents can still be viewed or deleted.',
   moreDocuments: 'Load more documents',

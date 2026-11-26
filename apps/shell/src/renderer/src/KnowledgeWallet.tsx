@@ -1,3 +1,4 @@
+import { KnowledgeServiceWallet } from './KnowledgeServiceWallet'
 import type { AccountUsage } from '../../shared/home-api'
 import { knowledgeText } from './knowledge-text'
 import { useState } from 'react'
@@ -87,6 +88,8 @@ export function KnowledgeWallet({
       setRechargeFailed(true)
     }
   }
+  const servicePlans = usage?.knowledge && typeof usage.knowledge === 'object' && 'servicePlans' in usage.knowledge ? usage.knowledge.servicePlans : undefined
+  if (servicePlans) return <KnowledgeServiceWallet input={servicePlans} language={language} onRecharge={() => void recharge()} failed={rechargeFailed} />
   const insufficient =
     wallet?.enabled &&
     wallet.queryReserve !== null &&

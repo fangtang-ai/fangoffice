@@ -5,7 +5,7 @@ import type { KnowledgeClient } from '@genoffice/knowledge-client'
 import { dialog, type BrowserWindow } from 'electron'
 import { KnowledgeDesktopError } from './knowledge-error'
 
-const maximumDocumentBytes = 8 * 1024 * 1024
+const maximumDocumentBytes = 20 * 1024 * 1024
 
 async function readSelectedDocument(path: string) {
   const format = extname(path).toLowerCase().slice(1)
@@ -56,7 +56,7 @@ export async function uploadKnowledgeText(
   if (typeof spaceId !== 'string') throw new KnowledgeDesktopError('INVALID_REQUEST')
   await client.listDocuments({ spaceId }, { limit: 1 })
   const picked = await dialog.showOpenDialog(window, {
-    title: '上传 TXT / Markdown / DOCX / PDF（最多 8 MiB）',
+    title: '上传 TXT / Markdown / DOCX / PDF（最多 20 MiB）',
     properties: ['openFile'],
     filters: [
       { name: 'TXT / Markdown / DOCX / 文字 PDF', extensions: ['txt', 'md', 'docx', 'pdf'] },

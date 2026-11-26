@@ -26,6 +26,7 @@ import {
 import type { AccountErrorCode, AccountUsage, AccountView } from '../shared/home-api'
 import { HOME_CHANNELS } from '../shared/home-api'
 import { accountRechargeUrl, rechargeMismatchView } from './account-recharge'
+import { fetchKnowledgeExpansionPacks } from './knowledge-packages'
 import {
   AccountMcpError,
   type AccountMcpAccess,
@@ -596,6 +597,10 @@ export function registerAccountIpc(): void {
       return null
     }
   })
+
+  ipcMain.handle(HOME_CHANNELS.getKnowledgeExpansionPacks, () =>
+    fetchKnowledgeExpansionPacks(loadFangTangAccountConfig().accountApiBase),
+  )
 
   ipcMain.handle(HOME_CHANNELS.openRecharge, (_event, product: OfficeRechargeProduct) => {
     // remember whose wallet the user went to top up; a different user on the

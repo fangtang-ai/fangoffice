@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { KnowledgeClient } from '@genoffice/knowledge-client'
 import { parseKnowledgeDocumentTarget } from '@genoffice/knowledge-contract'
 import { dialog, type BrowserWindow } from 'electron'
+import { knowledgeDeletionPrompt } from '../shared/knowledge-deletion'
 
 type DeletionContext = {
   client: KnowledgeClient
@@ -25,9 +26,8 @@ export function createKnowledgeDocumentDeletion() {
     const confirmation = await dialog.showMessageBox(host, {
       type: 'warning',
       title: '删除云端资料',
-      message: previous ? '继续确认这次删除的结果？' : '确认删除该云端资料？',
-      detail: `${title}\n删除会使该资料及其检索和来源不可用，无法撤销；不代表物理文件已清除或费用已退款。`,
-      buttons: ['取消', previous ? '确认删除结果' : '删除资料'],
+      ...knowledgeDeletionPrompt(title, Boolean(previous)),
+      buttons: ['取消', previous ? '确认删除结果' : '删除文件及知识'],
       defaultId: 0,
       cancelId: 0,
       noLink: true,
