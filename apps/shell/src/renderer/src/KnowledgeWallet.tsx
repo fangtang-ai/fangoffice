@@ -88,8 +88,19 @@ export function KnowledgeWallet({
       setRechargeFailed(true)
     }
   }
-  const servicePlans = usage?.knowledge && typeof usage.knowledge === 'object' && 'servicePlans' in usage.knowledge ? usage.knowledge.servicePlans : undefined
-  if (servicePlans) return <KnowledgeServiceWallet input={servicePlans} language={language} onRecharge={() => void recharge()} failed={rechargeFailed} />
+  const servicePlans =
+    usage?.knowledge && typeof usage.knowledge === 'object' && 'servicePlans' in usage.knowledge
+      ? usage.knowledge.servicePlans
+      : undefined
+  if (servicePlans)
+    return (
+      <KnowledgeServiceWallet
+        input={servicePlans}
+        language={language}
+        onRecharge={() => void recharge()}
+        failed={rechargeFailed}
+      />
+    )
   const insufficient =
     wallet?.enabled &&
     wallet.queryReserve !== null &&
