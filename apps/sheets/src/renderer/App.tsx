@@ -824,9 +824,8 @@ export function App(): React.JSX.Element {
 
   // ---- AI: real LLM agent (falls back to the deterministic planner above
   // when no provider is configured — see isAgentConfigured/handleSend) ----
-  const [aiSettings, setAiSettingsState] = useState<AiSettings | null>(null)
   const aiSettingsRef = useRef<AiSettings | null>(null)
-  aiSettingsRef.current = aiSettings
+  const aiSettingsLoadRef = useRef<AbortController | null>(null)
 
   // built-in generation skill (技能) selected in the composer; live-read per turn
   const [aiBusy, setAiBusy] = useState(false)
@@ -1296,10 +1295,11 @@ export function App(): React.JSX.Element {
     if (!settings) return false
     const config = settings.providers[settings.provider]
     if (!config?.model) return false
-    // anonymous OpenAI-compatible endpoints (Ollama etc.) need only a base URL;
-    // anything else requires its key. Unconfigured requests error in the main
-    // process with a localized hint — not intercepted here.
-    return !!config.apiKey || (settings.provider === 'custom' && !!config.baseUrl)
+    // Managed requests receive the live account token in the main process.
+    return (
+      !!config.apiKey ||
+      ((settings.provider === 'custom' || settings.provider === 'fangtang') && !!config.baseUrl)
+    )
   }
 
   /** Image attachments read as base64 and sent multimodal with this user message
@@ -1392,9 +1392,20 @@ export function App(): React.JSX.Element {
     if (!paidCallGate) return
     return () => paidCallGate.resolve(false)
   }, [paidCallGate])
-  useEffect(() => () => agentLoopRef.current?.cancel(), [])
+  useEffect(
+    () => () => {
+      aiSettingsLoadRef.current?.abort()
+      agentLoopRef.current?.cancel()
+    },
+    [],
+  )
 
   function handleStopAgent(): void {
+    if (aiSettingsLoadRef.current) {
+      aiSettingsLoadRef.current.abort()
+      aiSettingsLoadRef.current = null
+      setAiBusy(false)
+    }
     if (paidCallGate) {
       paidCallGate.resolve(false)
       setPaidCallGate(null)
@@ -1412,6 +1423,8 @@ export function App(): React.JSX.Element {
   }
 
   function handleNewChat(): void {
+    aiSettingsLoadRef.current?.abort()
+    aiSettingsLoadRef.current = null
     if (paidCallGate) {
       paidCallGate.resolve(false)
       setPaidCallGate(null)
@@ -1479,10 +1492,6 @@ export function App(): React.JSX.Element {
       createDocument: (request) => createAiDocument({ univerRef, lazyWorkbookRef }, request),
     }
   }
-
-  useEffect(() => {
-    void window.desktopApi.getAiSettings().then(setAiSettingsState)
-  }, [])
 
   useEffect(() => {
     // Univer paints the grid on canvas, so it can't follow the CSS tokens —
@@ -2841,19 +2850,23 @@ export function App(): React.JSX.Element {
     crossHighlightRef.current?.setVisible(crossHighlightVisible)
   }, [crossHighlightVisible])
 
-  function handleSend(
+  async function handleSend(
     overrideInstruction?: string,
     overrideAttachments?: readonly AttachmentMeta[],
     retryIndex?: number,
-  ): void {
+  ): Promise<void> {
     const instruction = (overrideInstruction ?? prompt).trim()
-    if (!instruction || aiBusy) return
+    if (!instruction || aiBusy || aiSettingsLoadRef.current || runStartingRef.current) return
+    const loading = new AbortController()
+    aiSettingsLoadRef.current = loading
+    const isCurrent = captureKnowledgeAccount()
+    setAiBusy(true)
+    setMessage(t('appAiThinking'))
     runToolsRef.current = []
     // The message consumes the composer attachments: they ride along (echoed on the
     // bubble, images multimodal, files via the files skill) and the composer clears.
     // Retry passes the failed message's original set instead.
     const sentAtts = overrideAttachments ?? attachmentsRef.current
-    const agentConfigured = isAgentConfigured()
     // Retry re-sends in place: drop the failed bubble and its error reply instead
     // of stacking a "Not sent" duplicate above the resent copy.
     const alreadyPersisted = retryIndex !== undefined && chat[retryIndex]?.persisted === true
@@ -2882,17 +2895,39 @@ export function App(): React.JSX.Element {
       ]
       setAttachments([])
     }
-    // real LLM configured → let the agent read context and propose operations;
-    // otherwise fall back to the local, deterministic regex planner
-    // (kept for offline use and for the fixed micro-DSL it still supports).
-    if (agentConfigured) {
-      runAgent(instruction, sentAtts)
-      return
+    let agentStarted = false
+    try {
+      // Login and settings can change while this workbook stays open.
+      const settings = await window.desktopApi.getAiSettings()
+      if (loading.signal.aborted || !isCurrent()) return
+      aiSettingsRef.current = settings
+      if (isAgentConfigured()) {
+        runAgent(instruction, sentAtts)
+        agentStarted = true
+        return
+      }
+      const outcome = runDeterministicPlan(instruction)
+      setMessage(outcome.text)
+      appendChat({ role: 'assistant', text: outcome.text, tools: [], isError: outcome.isError })
+      persistChatMessage('assistant', outcome.text)
+    } catch (error) {
+      if (loading.signal.aborted || !isCurrent()) return
+      const text = error instanceof Error ? error.message : t('aiUnknownError')
+      setMessage(text)
+      setChat((previous) => {
+        const last = previous.at(-1)
+        return last?.role === 'user'
+          ? [...previous.slice(0, -1), { ...last, undelivered: true }]
+          : previous
+      })
+      appendChat({ role: 'assistant', text, tools: [], isError: true })
+      persistChatMessage('assistant', text)
+    } finally {
+      if (aiSettingsLoadRef.current === loading) {
+        aiSettingsLoadRef.current = null
+        if (!agentStarted) setAiBusy(false)
+      }
     }
-    const outcome = runDeterministicPlan(instruction)
-    setMessage(outcome.text)
-    appendChat({ role: 'assistant', text: outcome.text, tools: [], isError: outcome.isError })
-    persistChatMessage('assistant', outcome.text)
   }
 
   /// AI edits on imported workbooks preview against the live sheet, then
