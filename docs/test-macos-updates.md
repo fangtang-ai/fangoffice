@@ -1,86 +1,114 @@
-# Mac 测试版签名与升级验收
+# Mac test release signing and upgrade acceptance
 
-仅操作 `com.fangtang.app.test`、测试站账号配置和 OSS `test/` 下的 Mac 工件。
-正式版、`stable/`、其他测试平台的 feed 保持原样。正式版构建和更新行为不变。
+This workflow targets only `com.fangtang.app.test`, the test account configuration,
+and Mac artifacts under the OSS `test/` prefix. Production builds, `stable/`, and
+other test-platform feeds remain unchanged.
 
-## 暂时没有 Apple 开发者证书
+## Without an Apple Developer certificate
 
-未签名的 Mac 测试包使用“自动检测新版、手动覆盖安装”：发现新版本后直接打开对应 DMG 下载入口，
-不会提供无法生效的“重启安装”。这不等于已恢复自动安装；不关闭签名校验或修改系统信任。
-签名专用 workflow 继续严格拒绝缺少凭据的构建，不会自动降级。
+Unsigned Mac test builds detect new versions automatically and offer the matching
+DMG for manual installation. They never offer a restart action that cannot apply
+the update. This is not automatic installation and does not disable signature
+verification or change system trust.
 
-普通测试候选仍可通过已有 Release workflow 的 `channel=test`、`signed_test_macos=false`、`publish=false`
-构建。在明确验收手动更新路径后，只发布对应的测试 Mac 工件。不得把这个包当作签名验收成功。
-`fangtangMacAutoUpdate` 元数据仅在签名测试构建中为 `true`；Windows/Linux 不受该 Mac 专用标记影响。
+The signed workflow continues to reject missing credentials instead of silently
+publishing unsigned output. Ordinary test candidates can still use the existing
+Release workflow with `channel=test`, `signed_test_macos=false`, and `publish=false`.
+After acceptance of the manual path, publish only the corresponding test Mac files.
+Do not describe that result as successful signing or automatic installation.
+`fangtangMacAutoUpdate` is true only for the signed test build path; Windows and
+Linux ignore this Mac-specific setting.
 
-## 凭据配置
+## Credentials
 
-在 GitHub `fangtang-ai/fangoffice` 的 **office-test-macos** environment 配置以下 secrets。
-也可使用同名 repository secrets。证书和密码不要提交到 Git，也不要粘贴到聊天。
+Configure these secrets in the **office-test-macos** GitHub environment of
+`fangtang-ai/fangoffice`, or as repository secrets with the same names. Never commit
+certificates or passwords, or paste private keys into chat.
 
-| Secret                                 | 内容                                                         |
-| -------------------------------------- | ------------------------------------------------------------ |
-| `TEST_MAC_CSC_LINK`                    | 含私钥的 Developer ID Application `.p12` 文件，单行 base64   |
-| `TEST_MAC_CSC_KEY_PASSWORD`            | `.p12` 导出密码                                              |
-| `TEST_MAC_CSC_NAME`                    | 完整身份，例如 `Developer ID Application: 公司名称 (TEAMID)` |
-| `TEST_MAC_APPLE_ID`                    | 有权为该团队提交公证的 Apple ID                              |
-| `TEST_MAC_APPLE_APP_SPECIFIC_PASSWORD` | 该 Apple ID 的 app-specific password                         |
-| `TEST_MAC_APPLE_TEAM_ID`               | 对应的 10 位 Team ID                                         |
+| Secret                                 | Value                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| `TEST_MAC_CSC_LINK`                    | Single-line base64 of a Developer ID Application `.p12` containing its private key |
+| `TEST_MAC_CSC_KEY_PASSWORD`            | Password used to export the `.p12`                                                 |
+| `TEST_MAC_CSC_NAME`                    | Full identity, such as `Developer ID Application: Company (TEAMID)`                |
+| `TEST_MAC_APPLE_ID`                    | Apple ID authorized to notarize for that team                                      |
+| `TEST_MAC_APPLE_APP_SPECIFIC_PASSWORD` | Its app-specific password                                                          |
+| `TEST_MAC_APPLE_TEAM_ID`               | Matching 10-character Team ID                                                      |
 
-发布时沿用已有 `OSS_RELEASE_AK_ID` / `OSS_RELEASE_AK_SECRET`。
-不需要修改正式版 secrets。上述 Apple 签名和公证凭据缺失时，preflight 必须失败，不得退化成 unsigned 发布。
-不能用 ad-hoc 签名、自签证书、关闭 Gatekeeper 或禁用签名校验代替公司 Developer ID。
+Publication reuses the existing `OSS_RELEASE_AK_ID` and `OSS_RELEASE_AK_SECRET`.
+Do not change production secrets. Missing Apple credentials must fail preflight.
+Ad-hoc signing, self-signed certificates, disabling Gatekeeper, or disabling
+signature verification cannot replace a company Developer ID.
 
-## 候选构建与发布
+## Signed candidates and publication
 
-第一次可从已经注册的 **Release** workflow 在候选分支上触发：
+Start from the already registered **Release** workflow on the candidate branch:
 
 ```sh
 gh workflow run release.yml --repo fangtang-ai/fangoffice \
   --ref <candidate-branch> \
   -f channel=test -f signed_test_macos=true \
-  -f expected_version=0.9.16 -f publish=false
+  -f expected_version=<candidate-version> -f publish=false
 ```
 
-候选分支 `apps/shell/package.json` 与 lockfile 版本必须匹配，且严格高于已发布的测试 Mac 版本。
-`publish=false` 只生成 `signed-test-macos` CI artifact；`publish=true` 才发布测试 Mac 工件。
-签名入口不会进入旧的 unsigned 矩阵构建，也不会创建 GitHub 正式 Release。
-`release-test-macos.yml` 同时支持独立人工触发和被已有 Release workflow 调用。
+The shell manifest and lockfile versions must match, and the candidate must be
+newer than the published test Mac version. `publish=false` produces only the
+`signed-test-macos` CI artifact. `publish=true` publishes test Mac files.
+The signed path skips the unsigned build matrix and never creates a production
+GitHub Release. `release-test-macos.yml` supports both direct dispatch and calls
+from the existing Release workflow.
 
-必须通过：
+Required gates:
 
-1. 完整 CI 测试、类型检查、原生引擎和 Electron e2e。
-2. 真实 Developer ID 签名、Apple 公证及 stapling。
-3. 解压实际分发 ZIP，检查版本、测试 bundle ID、同一 Team ID、测试账号地址、测试更新地址、无 local override。
-4. 实际运行 `codesign --verify --deep --strict`、`xcrun stapler validate` 和 `spctl --assess`；DMG 也验证签名和公证票据。
-5. 更新 feed 与安装工件 SHA512 一致。先上传 Mac ZIP/DMG，再更新 `test/latest-mac.yml`。
-6. 匿名读取新 feed 与工件；三个 stable feed 和测试 Windows/Linux feed 发布前后相同。
+1. Full CI tests, type checking, native engines, and Electron e2e.
+2. Actual Developer ID signatures, Apple notarization, and stapling.
+3. Extract the distributed ZIP and verify its version, test bundle ID, Team ID,
+   test account URL, test updater URL, and absence of local overrides.
+4. Run `codesign --verify --deep --strict`, `xcrun stapler validate`, and
+   `spctl --assess`. Verify the DMG signature and notarization ticket too.
+5. Check update-feed SHA512 values against the actual installers. Upload the
+   Mac installers first; switch `test/latest-mac.yml` only after anonymous access
+   and size checks succeed.
+6. Read the public new feed, and compare all three stable feeds plus the test
+   Windows/Linux feeds byte for byte before and after publication.
 
-验收脚本可以独立执行：
+The artifact gate can also run directly on macOS:
 
 ```sh
 APPLE_TEAM_ID=<expected-team> node scripts/verify-test-macos-release.cjs \
-  --artifacts <staged-ci-artifacts> --version 0.9.16
+  --artifacts <staged-ci-artifacts> --version <candidate-version>
 ```
 
-## 旧版迁移与升级实测
+## Upgrade acceptance
 
-### 原有 0.9.14 / 0.9.15 unsigned 安装
+### Existing unsigned 0.9.14 / 0.9.15 installations
 
-先实际尝试旧版更新并记录错误，不能仅凭 feed、下载缓存或弹窗认定升级成功。
-现有旧包签名校验失败，不能保证直接自动迁移为 Developer ID 签名包。
-若 Squirrel 拒绝旧包，使用已公证的 0.9.16 DMG **首次手动覆盖**测试 app；这是签名迁移步骤，不算自动升级成功。
-保留 `~/Library/Application Support/方塘Office-Test`，不得清空登录态、项目、聊天或用户文件。
+Try the actual old updater and record its result. A feed, downloaded ZIP, or
+restart button does not prove successful installation. These old packages fail
+signature verification and may be unable to transition through Squirrel.
 
-### 有效签名旧版 → 同团队签名新版
+If Squirrel rejects the old app, manually replace the test app using the first
+notarized DMG. Record this as initial signature migration, not an automatic
+upgrade. Preserve the existing test application's `userData` directory, login,
+projects, chat, knowledge libraries, and user files.
 
-1. 安装通过校验的 0.9.16 测试版并登录；留一份虚构文档和既有知识库，记录版本、账号及内容。
-2. 以同一 Developer ID / Team ID、同一测试 bundle ID 构建 0.9.17。不得覆盖旧版本安装工件，不改 stable。
-3. 运行 0.9.16 后等待启动检查（15 秒）；已运行客户端周期为 4 小时，可正常退出重开触发启动检查。当前产品按用户确认下载与重启，不是静默安装。
-4. 确认实际发现 0.9.17，点击更新，观察下载完成，再点击重启安装。
-5. 重启后“关于”必须显示 0.9.17；再次验证实际安装 app 的签名、公证、bundle ID、Team ID 和测试更新地址。
-6. 登录账号、虚构文档、项目和个人知识库必须保留；重复启动不得再次安装同一版本，不得降级。
+### Signed baseline to a newer build signed by the same team
 
-记录两个阶段各自的结果。没有有效凭据或没有实际成功重启到新版时，标记“未完成”，不能以模拟 updater 事件或人工复制 app 替代自动升级验收。
+1. Install a verified signed baseline and sign in. Keep a synthetic document
+   and an existing knowledge space, and record the account and version.
+2. Build a newer version with the same Developer ID, Team ID, and test bundle
+   ID. Do not overwrite prior installers or modify stable feeds.
+3. Start the baseline and allow its initial 15-second check. Running clients
+   recheck every four hours; a normal quit/relaunch triggers the startup check.
+   Downloads and restart require user action, not silent replacement.
+4. Observe the actual new version, download it, and select restart/install.
+5. After restart, verify the new version in About and inspect the installed
+   bundle's signature, ticket, bundle ID, Team ID, and test updater URL.
+6. Confirm that the account, document, projects, and knowledge library remain.
+   Repeated launches must neither reinstall the same version nor downgrade.
 
-参考：[Electron macOS 自动更新的签名要求](https://www.electronjs.org/docs/latest/api/auto-updater#macos)、[electron-builder 签名配置](https://www.electron.build/v26/docs/features/code-signing/)。
+Record both stages independently. Without credentials or an actual restart into
+the new version, mark automatic installation incomplete. Mock updater events or
+copying an app manually cannot substitute for that acceptance.
+
+References: [Electron signing requirements](https://www.electronjs.org/docs/latest/api/auto-updater#macos),
+[electron-builder signing](https://www.electron.build/v26/docs/features/code-signing/).
