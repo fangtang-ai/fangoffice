@@ -19,6 +19,7 @@ vi.mock('electron', () => ({
     },
     getVersion: () => '0.1.0',
     getName: () => appState.name,
+    getAppPath: () => '/packaged-app',
   },
   shell: {
     openExternal: (url: string) => openExternal(url),
@@ -127,6 +128,7 @@ function lastShownActions(): UpdateActions {
 }
 
 beforeEach(() => {
+  Object.defineProperty(process, 'resourcesPath', { value: '/resources', configurable: true })
   vi.resetModules()
   vi.useFakeTimers()
   appState.isPackaged = true
@@ -161,6 +163,64 @@ afterEach(() => {
 })
 
 describe('initAutoUpdater', () => {
+  it('guides unsigned Mac test installs to the correct DMG without offering a broken restart', async () => {
+    appState.name = '方塘Office-Test'
+    readFileSyncMock.mockImplementation((file) =>
+      String(file).endsWith('package.json')
+        ? JSON.stringify({ fangtangMacAutoUpdate: false })
+        : 'url: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test\n',
+    )
+    const { initAutoUpdater } = await loadUpdater()
+    initAutoUpdater(() => null)
+    updaterState.listeners.get('update-available')!({
+      version: '0.9.16',
+      files: [{ url: 'FangTangOffice-Test-0.9.16-arm64-mac.zip' }],
+    })
+    expect(lastShownState().phase).toBe('manual')
+    expect(lastShownState().strings.manualDesc).toContain('手动安装更新')
+    expect(updaterState.autoInstallOnAppQuit).toBe(false)
+    lastShownActions().onDownload()
+    lastShownActions().onInstall()
+    await flushAsync()
+    expect(downloadUpdate).not.toHaveBeenCalled()
+    expect(quitAndInstall).not.toHaveBeenCalled()
+    expect(openExternal).toHaveBeenCalledWith(
+      'https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test/FangTangOffice-Test-0.9.16-arm64.dmg',
+    )
+  })
+
+  it('keeps the automatic install path for signed Mac test packages', async () => {
+    appState.name = '方塘Office-Test'
+    readFileSyncMock.mockImplementation((file) =>
+      String(file).endsWith('package.json')
+        ? JSON.stringify({ fangtangMacAutoUpdate: true })
+        : 'url: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test\n',
+    )
+    const { initAutoUpdater } = await loadUpdater()
+    initAutoUpdater(() => null)
+    updaterState.listeners.get('update-available')!({ version: '0.9.17' })
+    expect(lastShownState().phase).toBe('available')
+    expect(updaterState.autoInstallOnAppQuit).toBe(true)
+    lastShownActions().onDownload()
+    expect(downloadUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('surfaces native signature rejection even after the ZIP was reported downloaded', async () => {
+    appState.name = '方塘Office-Test'
+    readFileSyncMock.mockImplementation((file) =>
+      String(file).endsWith('package.json')
+        ? JSON.stringify({ fangtangMacAutoUpdate: true })
+        : 'url: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test\n',
+    )
+    const { initAutoUpdater } = await loadUpdater()
+    initAutoUpdater(() => null)
+    updaterState.listeners.get('update-available')!({ version: '0.9.17' })
+    lastShownActions().onDownload()
+    updaterState.listeners.get('update-downloaded')!({ version: '0.9.17' })
+    updaterState.listeners.get('error')!(new Error('Could not get code signature'))
+    expect(pushUpdateState).toHaveBeenLastCalledWith({ phase: 'manual' })
+  })
+
   it('does nothing in unpacked (dev) runs without the fake-update env', async () => {
     appState.isPackaged = false
     const { initAutoUpdater } = await loadUpdater()
@@ -344,6 +404,12 @@ describe('manual download fallback', () => {
   }
 
   async function failTwiceIntoManual(files: { url: string }[]): Promise<UpdateActions> {
+    const read = readFileSyncMock.getMockImplementation()!
+    readFileSyncMock.mockImplementation((...args) =>
+      String(args[0]).endsWith('package.json')
+        ? JSON.stringify({ fangtangMacAutoUpdate: true })
+        : read(...args),
+    )
     downloadUpdate.mockImplementation(() => Promise.reject(new Error('team id changed')))
     const { initAutoUpdater } = await loadUpdater()
     initAutoUpdater(() => null)

@@ -1,7 +1,17 @@
 # Mac 测试版签名与升级验收
 
 仅操作 `com.fangtang.app.test`、测试站账号配置和 OSS `test/` 下的 Mac 工件。
-正式版、`stable/`、其他测试平台的 feed 保持原样。现有 unsigned 本地构建与正式版构建行为不变。
+正式版、`stable/`、其他测试平台的 feed 保持原样。正式版构建和更新行为不变。
+
+## 暂时没有 Apple 开发者证书
+
+未签名的 Mac 测试包使用“自动检测新版、手动覆盖安装”：发现新版本后直接打开对应 DMG 下载入口，
+不会提供无法生效的“重启安装”。这不等于已恢复自动安装；不关闭签名校验或修改系统信任。
+签名专用 workflow 继续严格拒绝缺少凭据的构建，不会自动降级。
+
+普通测试候选仍可通过已有 Release workflow 的 `channel=test`、`signed_test_macos=false`、`publish=false`
+构建。在明确验收手动更新路径后，只发布对应的测试 Mac 工件。不得把这个包当作签名验收成功。
+`fangtangMacAutoUpdate` 元数据仅在签名测试构建中为 `true`；Windows/Linux 不受该 Mac 专用标记影响。
 
 ## 凭据配置
 

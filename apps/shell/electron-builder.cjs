@@ -654,7 +654,9 @@ if (updateUrl) {
 const extraMetadata = {
   productName,
   name: linuxPackageName,
-  ...(buildEnv === 'test' ? { desktopName: 'fangtang-office-test.desktop' } : {}),
+  ...(buildEnv === 'test'
+    ? { desktopName: 'fangtang-office-test.desktop', fangtangMacAutoUpdate: signedTestMac }
+    : {}),
 }
 if (fontCdnUrl) extraMetadata.genofficeFontCdn = { baseUrl: fontCdnUrl }
 config.extraMetadata = extraMetadata

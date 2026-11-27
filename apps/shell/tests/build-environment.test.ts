@@ -133,6 +133,7 @@ describe('release build provenance', () => {
     expect(config.forceCodeSigning).toBe(true)
     expect(config.mac?.identity).toBe('Test Fixture (AAAAAAAAAA)')
     expect(config.mac?.notarize).toBe(true)
+    expect(config.extraMetadata).toMatchObject({ fangtangMacAutoUpdate: true })
     expect((await loadBuilder()).config.forceCodeSigning).toBeUndefined()
   })
 
@@ -219,6 +220,7 @@ describe('deployment-specific application identity', () => {
       productName: '方塘Office-Test',
       name: 'fangtang-office-test',
       desktopName: 'fangtang-office-test.desktop',
+      fangtangMacAutoUpdate: false,
     })
     expect(config.linux?.executableName).toBe('fangtang-office-test')
     expect(config.deb).toMatchObject({

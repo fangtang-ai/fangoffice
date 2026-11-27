@@ -351,6 +351,16 @@ function updateFeedBaseUrl(): string | null {
   }
 }
 
+function requiresManualTestMacUpdate(): boolean {
+  if (process.platform !== 'darwin' || app.getName() !== '方塘Office-Test') return false
+  try {
+    const metadata = JSON.parse(readFileSync(path.join(app.getAppPath(), 'package.json'), 'utf8'))
+    return metadata.fangtangMacAutoUpdate !== true
+  } catch {
+    return true
+  }
+}
+
 /// Picks the manual-install artifact for this platform/arch from the update
 /// feed's file list: macOS wants the dmg matching process.arch (the zip is
 /// Squirrel-only), Windows the NSIS exe matching process.arch (the arm64 one
@@ -478,8 +488,9 @@ export function initAutoUpdater(
   // back off since a beta user switching to stable must not downgrade
   autoUpdater.allowDowngrade = false
   autoUpdater.autoDownload = false
+  const manualTestMac = requiresManualTestMacUpdate()
   // if the user picked "later" after download, install on normal quit
-  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.autoInstallOnAppQuit = !manualTestMac
   // full-package policy: never attempt blockmap differential downloads
   // (CI does not publish .blockmap files)
   autoUpdater.disableDifferentialDownload = true
@@ -494,16 +505,27 @@ export function initAutoUpdater(
   // paths funnel into failDownload() and the in-flight flag dedupes them
   let failedAttempts = 0
   let downloadInFlight = false
+  let installReady = false
+  const openDownload = (): void => {
+    void shell.openExternal(manualDownloadUrl ?? downloadPageUrl())
+  }
 
   const failDownload = (): void => {
-    if (!downloadInFlight) return
+    const nativeTestInstallFailed =
+      process.platform === 'darwin' && app.getName() === '方塘Office-Test' && installReady
+    if (!downloadInFlight && !nativeTestInstallFailed) return
     downloadInFlight = false
+    installReady = false
     failedAttempts += 1
-    pushUpdateState({ phase: failedAttempts >= MANUAL_FALLBACK_AFTER ? 'manual' : 'error' })
+    pushUpdateState({
+      phase:
+        nativeTestInstallFailed || failedAttempts >= MANUAL_FALLBACK_AFTER ? 'manual' : 'error',
+    })
   }
 
   const actions = {
     onDownload: () => {
+      if (manualTestMac) return openDownload()
       downloadInFlight = true
       pushUpdateState({ phase: 'downloading', percent: 0 })
       autoUpdater.downloadUpdate().catch((err) => {
@@ -512,6 +534,7 @@ export function initAutoUpdater(
       })
     },
     onInstall: () => {
+      if (manualTestMac) return openDownload()
       closeUpdateWindow()
       // let the window fully close before tearing the app down
       setImmediate(() => autoUpdater.quitAndInstall(true, true))
@@ -520,9 +543,7 @@ export function initAutoUpdater(
       dismissedVersion = latestSeenVersion
       closeUpdateWindow()
     },
-    onOpenDownload: () => {
-      void shell.openExternal(manualDownloadUrl ?? downloadPageUrl())
-    },
+    onOpenDownload: openDownload,
   }
 
   autoUpdater.on('error', (err) => {
@@ -544,7 +565,18 @@ export function initAutoUpdater(
     // in-progress download or a terminal 'manual' fallback back to the
     // "Update Now" offer
     if (sameVersionRecheck && isUpdateWindowOpen()) return
-    showUpdateWindow(getWindow(), initialState(info.version), actions)
+    const state = initialState(info.version)
+    if (manualTestMac) {
+      state.phase = 'manual'
+      if (getUiLang() === 'zh') {
+        state.strings.manualDesc =
+          '此 Mac 测试版需手动安装更新。请下载安装包，退出当前应用后覆盖安装；账号和文件会保留。'
+      } else if (getUiLang() === 'en') {
+        state.strings.manualDesc =
+          'This Mac test build requires a manual update. Download the installer, quit the app and replace it. Your account and files are kept.'
+      }
+    }
+    showUpdateWindow(getWindow(), state, actions)
   })
 
   autoUpdater.on('download-progress', (progress) => {
@@ -552,8 +584,10 @@ export function initAutoUpdater(
   })
 
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    if (manualTestMac) return
     log('downloaded:', info.version)
     downloadInFlight = false
+    installReady = true
     failedAttempts = 0
     pushUpdateState({ phase: 'downloaded', percent: 100 })
   })
