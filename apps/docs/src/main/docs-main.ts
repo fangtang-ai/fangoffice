@@ -46,14 +46,14 @@ import {
   bundledPresetsDir,
   applySearchProviderEnv,
   loadFangTangAccountConfig,
-  loadPresetFiles,
+  loadOfficePresetCatalog,
   writeAiFeatures,
   type AiFeaturesFile,
 } from '@genoffice/electron-utils'
-import { BUILTIN_PRESETS, composePresetCatalog } from '@genoffice/agent-core'
+import { BUILTIN_PRESETS } from '@genoffice/agent-core'
 import { configureMetricsCache, familyVerticalMetrics } from '@genoffice/font-metrics'
 import { createI18n, getUiLang, normalizeLang, setUiLang } from '@genoffice/i18n'
-import { ProjectStore } from '@genoffice/project-store'
+import { ProjectStore, createScopedChatStore } from '@genoffice/project-store'
 import type {
   IpcMainInvokeEvent,
   MenuItemConstructorOptions,
@@ -2665,10 +2665,7 @@ export function registerAiIpc(): void {
   // built-in generation skills (技能): effective catalog = file presets (presets/<app>/*.md)
   // replacing compiled-in entries per app
   ipcMain.handle('ai:preset-catalog', () =>
-    composePresetCatalog(
-      BUILTIN_PRESETS,
-      loadPresetFiles(bundledPresetsDir(), join(app.getPath('userData'), 'presets')),
-    ),
+    loadOfficePresetCatalog(BUILTIN_PRESETS, bundledPresetsDir(), app.getPath('userData')),
   )
   ipcMain.handle('ai:set-features', (_event, features: AiFeaturesFile) => {
     writeAiFeatures(userDataPath('ai-features.json'), features)
@@ -2904,9 +2901,11 @@ export function projectFileRenamed(oldPath: string, newPath: string): void {
  * Register the project:* IPC handlers (all three apps share the same channel names).
  * Idempotency guard: registered only once in shell mode.
  */
-export function registerProjectIpc(): void {
+export function registerProjectIpc(options: { accountId?: () => string | null } = {}): void {
   if (projectIpcRegistered) return
   projectIpcRegistered = true
+  const scopedChats = () =>
+    options.accountId ? createScopedChatStore(getProjectStore(), options.accountId()) : undefined
 
   /** Resolve projectId + chatId from a file path (sheets without a path resolves via sessionId) */
   ipcMain.handle(
@@ -2918,6 +2917,8 @@ export function registerProjectIpc(): void {
       if (!resolvedPath && args.sessionId && sessionPathResolver) {
         resolvedPath = sessionPathResolver(event.sender.id, args.sessionId)
       }
+      const scoped = scopedChats()
+      if (scoped) return scoped.resolve(resolvedPath, args.tempChatId)
       if (!resolvedPath) {
         return {
           projectId: 'default',
@@ -2955,7 +2956,9 @@ export function registerProjectIpc(): void {
       }
       if (args.tools) msg.tools = args.tools
       if (args.attachments) msg.attachments = args.attachments
-      store.appendChatMessage(args.projectId, args.chatId, msg)
+      const scoped = scopedChats()
+      if (scoped) scoped.append(args)
+      else store.appendChatMessage(args.projectId, args.chatId, msg)
     },
   )
 
@@ -2971,7 +2974,9 @@ export function registerProjectIpc(): void {
       },
     ) => {
       const store = getProjectStore()
-      return store.loadChat(args.projectId, args.chatId, args.limit ?? 200)
+      return (
+        scopedChats()?.load(args) ?? store.loadChat(args.projectId, args.chatId, args.limit ?? 200)
+      )
     },
   )
 
@@ -2993,6 +2998,8 @@ export function registerProjectIpc(): void {
       if (!path && args.sessionId && sessionPathResolver) {
         path = sessionPathResolver(event.sender.id, args.sessionId)
       }
+      const scoped = scopedChats()
+      if (scoped) return scoped.rebind(args, path)
       if (path) {
         return store.rebindChatToFile(args.projectId, args.tempChatId, path)
       }
@@ -3038,7 +3045,10 @@ export function registerProjectIpc(): void {
 
   /** Get the project timeline */
   ipcMain.handle('project:timeline', (_event, args: { projectId: string; limit?: number }) => {
-    return getProjectStore().getProjectTimeline(args.projectId, args.limit ?? 20)
+    return (
+      scopedChats()?.timeline(args.projectId, args.limit ?? 20) ??
+      getProjectStore().getProjectTimeline(args.projectId, args.limit ?? 20)
+    )
   })
 }
 

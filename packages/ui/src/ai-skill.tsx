@@ -5,7 +5,7 @@
  * selection stays visible while typing. Styling: ai-skill.css (gs-dd base
  * classes + composer-button sizing).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { presetsForApp, type PresetSkillDef } from '@genoffice/agent-core'
 import { Dropdown } from './dropdown'
 
@@ -71,46 +71,45 @@ export function useAiSkills(
   // (file presets under presets/<app>/) replaces it once loaded over IPC
   const all = useMemo(() => presetsForApp(app), [app])
   const [catalog, setCatalog] = useState<PresetSkillDef[] | null>(null)
+  const loaderRef = useRef(loadPresets)
+  loaderRef.current = loadPresets
+  const featuresRef = useRef(loadFeatures)
+  featuresRef.current = loadFeatures
+  const [disabled, setDisabled] = useState<ReadonlySet<string>>(new Set())
   useEffect(() => {
-    const loader = loadPresets
-    if (!loader) return
     let alive = true
-    void Promise.resolve()
-      .then(() => loader())
-      .then((catalog) => {
-        if (alive && catalog && catalog.length > 0) {
-          setCatalog(catalog.filter((p) => p.app === app))
-        }
-      })
-      .catch(() => {})
+    const refresh = () => {
+      void Promise.resolve()
+        .then(() => loaderRef.current?.())
+        .then((next) => {
+          if (alive && Array.isArray(next)) setCatalog(next.filter((p) => p.app === app))
+        })
+        .catch(() => {})
+      void Promise.resolve()
+        .then(() => featuresRef.current?.())
+        .then((features) => {
+          if (alive && features?.disabledPresets) setDisabled(new Set(features.disabledPresets))
+        })
+        .catch(() => {})
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 60_000)
+    window.addEventListener('focus', refresh)
     return () => {
       alive = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refresh)
     }
-  }, [app, loadPresets])
-  const effective = useMemo(() => (catalog && catalog.length > 0 ? catalog : all), [catalog, all])
+  }, [app])
+  const effective = catalog ?? all
   const [activeId, setActiveId] = useState<string | null>(() => {
     try {
       const id = localStorage.getItem(aiSkillStorageKey(app))
-      return id && presetsForApp(app).some((p) => p.id === id) ? id : null
+      return id || null
     } catch {
       return null
     }
   })
-  const [disabled, setDisabled] = useState<ReadonlySet<string>>(new Set())
-  useEffect(() => {
-    const loader = loadFeatures
-    if (!loader) return
-    let alive = true
-    void Promise.resolve()
-      .then(() => loader())
-      .then((features) => {
-        if (alive && features?.disabledPresets) setDisabled(new Set(features.disabledPresets))
-      })
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
-  }, [loadFeatures])
   const pick = useCallback(
     (id: string | null) => {
       setActiveId(id)
@@ -128,8 +127,8 @@ export function useAiSkills(
     [effective, disabled],
   )
   const active = useMemo(
-    () => effective.find((p) => p.id === activeId) ?? null,
-    [effective, activeId],
+    () => effective.find((p) => p.id === activeId && !disabled.has(p.id)) ?? null,
+    [effective, activeId, disabled],
   )
   return { all: effective, presets, active, pick }
 }

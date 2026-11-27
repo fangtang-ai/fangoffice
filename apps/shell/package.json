@@ -1,7 +1,7 @@
 {
   "name": "@genoffice/shell",
   "productName": "方塘Office",
-  "version": "0.9.12",
+  "version": "0.9.16",
   "license": "Apache-2.0",
   "homepage": "https://fang-tang.cn",
   "private": true,
@@ -26,6 +26,7 @@
     "@genoffice/docx-engine": "*",
     "@genoffice/electron-utils": "*",
     "@genoffice/i18n": "*",
+    "@genoffice/knowledge-client": "*",
     "@genoffice/mcp-bridge": "*",
     "@genoffice/pptx-engine": "*",
     "@genoffice/pptx-render": "*",

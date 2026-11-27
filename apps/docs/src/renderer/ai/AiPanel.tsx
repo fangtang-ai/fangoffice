@@ -27,7 +27,7 @@ import { currentDocGeneration } from '../file-actions'
 import { createFilesSkill } from './files-skill'
 import { createElectronTransport } from './transport'
 import { useI18n, t as tModule, aiLangDirective, type StringKey } from '../i18n/locale'
-import { Markdown } from '@genoffice/ui'
+import { Markdown, useKnowledgeChat } from '@genoffice/ui'
 import { AiComposer, AiSkillPicker, AiTypingIndicator, useAiSkills } from '@genoffice/ui'
 import { AiMark } from '../components/icons'
 import sendEnterOn from '../assets/send-enter-on.png'
@@ -344,7 +344,7 @@ export function AiPanel({
     () => window.desktop.getPresetCatalog?.(),
   )
   const activeSkillRef = useRef<{ current: typeof activeSkill }>({ current: activeSkill })
-  activeSkillRef.current.current = activeSkill
+  if (!busy) activeSkillRef.current.current = activeSkill
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [attachNotice, setAttachNotice] = useState<string | null>(null)
   /** data-URL previews for image attachments, keyed by path (Genspark composer thumbnails) */
@@ -499,18 +499,29 @@ export function AiPanel({
   >([])
 
   // ── Chat-history persistence ────────────────────────────────────────────
+  const {
+    skill: knowledgeSkill,
+    version: knowledgeVersion,
+    capture: captureKnowledgeAccount,
+  } = useKnowledgeChat(window.desktop?.knowledge, () => {
+    newChat()
+    chatRefIds.current = null
+    runToolsRef.current = []
+  })
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const api = (window as Window & { projectApi?: typeof window.projectApi }).projectApi
     if (!api) return
     const tempChatId = `unsaved-${Date.now()}`
     void api
       .resolveChat({ filePath: filePath ?? null, tempChatId })
       .then((ids) => {
+        if (!isCurrent()) throw new Error('knowledge:account-changed')
         chatRefIds.current = ids
         return api.loadChat({ projectId: ids.projectId, chatId: ids.chatId, limit: 200 })
       })
       .then((msgs) => {
-        if (msgs.length === 0) return
+        if (!isCurrent() || msgs.length === 0) return
         setHistoricChat(
           msgs.map((m) => ({
             role: m.role,
@@ -539,22 +550,23 @@ export function AiPanel({
         /* history load failures are silent */
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [knowledgeVersion, captureKnowledgeAccount])
 
   /** After an unsaved document's first save yields a real path, bind the unsaved-* history to that file (recoverable by path on reopen) */
   useEffect(() => {
+    const isCurrent = captureKnowledgeAccount()
     const ids = chatRefIds.current
     const api = (window as Window & { projectApi?: typeof window.projectApi }).projectApi
-    if (!api || !ids || !filePath || !ids.chatId.startsWith('unsaved-')) return
+    if (!api || !ids || !filePath || !/(^|-)unsaved-/.test(ids.chatId)) return
     void api
       .rebindChat({ projectId: ids.projectId, tempChatId: ids.chatId, newFilePath: filePath })
       .then((r) => {
-        if (r?.chatId) chatRefIds.current = r
+        if (isCurrent() && r?.chatId) chatRefIds.current = r
       })
       .catch(() => {
         /* silent */
       })
-  }, [filePath])
+  }, [filePath, captureKnowledgeAccount])
 
   const persistMessage = (
     role: 'user' | 'assistant',
@@ -620,6 +632,7 @@ export function AiPanel({
       systemSuffix: aiLangDirective,
       skill: withPolicySearchFallback(
         composeSkills('docs+files', '', [
+          knowledgeSkill,
           createDocsSkill(
             () => editorRef.current,
             numIds,

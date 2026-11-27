@@ -148,6 +148,12 @@ export class TabManager {
     }))
   }
 
+  editorContents(): WebContents[] {
+    return this.tabs.flatMap((tab) =>
+      tab.view && !tab.view.webContents.isDestroyed() ? [tab.view.webContents] : [],
+    )
+  }
+
   openHomeTab(): void {
     this.activateTab(HOME_ID)
   }

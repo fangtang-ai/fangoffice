@@ -1,12 +1,11 @@
-import type { AccountView } from '../shared/home-api'
-import type { OfficeBillingProduct } from '@genoffice/agent-core'
+import type { AccountView, OfficeRechargeProduct } from '../shared/home-api'
 
 export function accountRechargeUrl(
   configuredUrl: string | undefined,
-  product: OfficeBillingProduct,
+  product: OfficeRechargeProduct,
   userId?: string,
 ) {
-  if (product !== 'office_ai' && product !== 'policy_mcp') {
+  if (product !== 'office_ai' && product !== 'policy_mcp' && product !== 'knowledge_base') {
     throw new Error('Invalid billing product')
   }
   const url = new URL(configuredUrl || 'https://fang-tang.cn/account/office-recharge')

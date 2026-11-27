@@ -19,6 +19,7 @@ import type {
 import { HOME_CHANNELS, PROJECT_CHANNELS } from '../shared/home-api'
 import type { TabsApi, TabSummary } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
+import { knowledgeApi } from './knowledge'
 
 const UI_LANGUAGES: readonly UiLanguage[] = [
   'zh',
@@ -56,6 +57,7 @@ function asRecentPage(result: unknown): RecentPage {
 }
 
 const homeApi: HomeApi = {
+  knowledge: knowledgeApi,
   async recents(query) {
     return asRecentPage(await ipcRenderer.invoke(HOME_CHANNELS.recents, query))
   },
@@ -199,6 +201,9 @@ const homeApi: HomeApi = {
   },
   async openRecharge(product) {
     await ipcRenderer.invoke(HOME_CHANNELS.openRecharge, product)
+  },
+  async getKnowledgeExpansionPacks() {
+    return ipcRenderer.invoke(HOME_CHANNELS.getKnowledgeExpansionPacks)
   },
   onAccountSessionChanged(handler) {
     const listener = (_event: IpcRendererEvent, session: unknown) => {

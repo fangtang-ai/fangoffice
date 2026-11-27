@@ -43,7 +43,7 @@ import {
   bundledPresetsDir,
   loadFangTangAccountConfig,
   loadFangTangDefaults,
-  loadPresetFiles,
+  loadOfficePresetCatalog,
   readAiFeatures,
   contextMenuLabels,
   fetchRemoteImage,
@@ -82,7 +82,7 @@ import {
 import { csvToXlsxBuffer, decodeCsvBuffer, sheetCsvToXlsxBuffer } from '../gateway/csv-import'
 import { webSearch, imageSearch } from '@genoffice/ai-search'
 import { loadMcpConfig, McpHub, registerMcpIpc } from '@genoffice/mcp-bridge'
-import { BUILTIN_PRESETS, composePresetCatalog } from '@genoffice/agent-core'
+import { BUILTIN_PRESETS } from '@genoffice/agent-core'
 import { parseFileToText } from '@genoffice/file-parse'
 import type { CellEdit, SheetStructuralOps } from '../gateway/xlsx-gateway'
 import { readArchiveEntryText, saveWorkbookViaSidecar } from '../gateway/xlsx-package-io'
@@ -2990,10 +2990,7 @@ export function registerSheetsAiIpc(): void {
   // built-in generation skills (技能): effective catalog = file presets (presets/<app>/*.md)
   // replacing compiled-in entries per app
   ipcMain.handle('ai:preset-catalog', () =>
-    composePresetCatalog(
-      BUILTIN_PRESETS,
-      loadPresetFiles(bundledPresetsDir(), userDataPath('presets')),
-    ),
+    loadOfficePresetCatalog(BUILTIN_PRESETS, bundledPresetsDir(), app.getPath('userData')),
   )
 
   // built-in MCP servers (fangtang-mcp.json): tools for the preset skills

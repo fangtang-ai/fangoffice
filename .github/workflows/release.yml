@@ -33,6 +33,18 @@ on:
         type: choice
         default: stable
         options: [stable, beta, test]
+      publish:
+        description: '上传安装包与更新feed；关闭则仅构建并保留CI候选工件'
+        type: boolean
+        default: true
+      signed_test_macos:
+        description: '仅用于test：走签名/公证和严格验收的Mac测试发布流程'
+        type: boolean
+        default: false
+      expected_version:
+        description: '签名Mac测试发布时填写候选版本；其余发布留空'
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -49,6 +61,7 @@ jobs:
       contents: read
     env:
       CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+      SIGNED_TEST_MACOS: ${{ inputs.signed_test_macos || false }}
     steps:
       - name: Checkout release history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -59,15 +72,31 @@ jobs:
         with:
           node-version: 22
       - name: Check release source and version
-        run: node scripts/check-release-ref.cjs
+        run: |
+          if [ "$SIGNED_TEST_MACOS" = 'true' ] && [ "$CHANNEL" != 'test' ]; then
+            echo 'Signed test macOS flow requires channel=test' >&2
+            exit 1
+          fi
+          node scripts/check-release-ref.cjs
+
+  signed-test-macos:
+    if: inputs.signed_test_macos == true
+    needs: check
+    uses: ./.github/workflows/release-test-macos.yml
+    with:
+      expected_version: ${{ inputs.expected_version }}
+      publish: ${{ inputs.publish }}
+    secrets: inherit
 
   verify:
+    if: inputs.signed_test_macos != true
     needs: check
     permissions:
       contents: read
     uses: ./.github/workflows/ci.yml
 
   build:
+    if: inputs.signed_test_macos != true
     needs: verify
     name: build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
@@ -127,6 +156,8 @@ jobs:
             if (config[key]) throw new Error('Shared search keys must stay on the account server')
           }
           const { accountApiBase, logtoEndpoint, logtoApiResource } = config.account || {}
+          if (accountApiBase !== 'https://fang-tang.cn') throw new Error('Unexpected production account origin')
+          config.account.knowledgeApiBase = new URL('/api/knowledge', accountApiBase).href
           console.log(JSON.stringify({ productionAccountConfig: { accountApiBase, logtoEndpoint, logtoApiResource }, searchKeysBundled: false }))
           fs.writeFileSync('apps/shell/resources/fangtang-defaults.prod.json', JSON.stringify(config), { mode: 0o600 })
           NODE
@@ -160,6 +191,7 @@ jobs:
 
   publish:
     name: publish (GitHub Release + OSS)
+    if: inputs.signed_test_macos != true && (github.event_name == 'push' || inputs.publish == true)
     needs: build
     runs-on: ubuntu-latest
     # ~1.1GB of installers from a US runner to OSS cn-hangzhou: v0.9.4's publish

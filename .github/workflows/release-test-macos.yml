@@ -1,0 +1,141 @@
+name: Signed macOS test release
+
+on:
+  workflow_call:
+    inputs:
+      expected_version:
+        type: string
+        required: true
+      publish:
+        type: boolean
+        default: false
+    secrets:
+      TEST_MAC_CSC_LINK:
+        required: false
+      TEST_MAC_CSC_KEY_PASSWORD:
+        required: false
+      TEST_MAC_CSC_NAME:
+        required: false
+      TEST_MAC_APPLE_ID:
+        required: false
+      TEST_MAC_APPLE_APP_SPECIFIC_PASSWORD:
+        required: false
+      TEST_MAC_APPLE_TEAM_ID:
+        required: false
+      OSS_RELEASE_AK_ID:
+        required: false
+      OSS_RELEASE_AK_SECRET:
+        required: false
+  workflow_dispatch:
+    inputs:
+      expected_version:
+        description: Version in apps/shell/package.json; must be newer than the test macOS feed
+        type: string
+        required: true
+      publish:
+        description: Publish only the signed macOS test installers and latest-mac.yml
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-test
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: office-test-macos
+    timeout-minutes: 5
+    env:
+      CHANNEL: test
+      FANGTANG_BUILD_ENV: test
+      FANGTANG_UPDATE_URL: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test
+      CSC_LINK: ${{ secrets.TEST_MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.TEST_MAC_CSC_KEY_PASSWORD }}
+      CSC_NAME: ${{ secrets.TEST_MAC_CSC_NAME }}
+      APPLE_ID: ${{ secrets.TEST_MAC_APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.TEST_MAC_APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.TEST_MAC_APPLE_TEAM_ID }}
+      EXPECTED_VERSION: ${{ inputs.expected_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Require test source, exact version and real signing credentials
+        run: |
+          node scripts/check-release-ref.cjs
+          node scripts/verify-test-macos-release.cjs preflight
+          node -e "require('node:assert/strict').equal(require('./apps/shell/package.json').version, process.env.EXPECTED_VERSION)"
+          node -e "const {semverNewer,ymlVersion}=require('./scripts/update-feed-utils.cjs'); fetch(process.env.FANGTANG_UPDATE_URL+'/latest-mac.yml').then(async r=>{require('node:assert/strict').equal(r.status,200);require('node:assert/strict').ok(semverNewer(process.env.EXPECTED_VERSION,ymlVersion(await r.text())),'Version must be newer than published test macOS')}).catch(e=>{console.error(e.message);process.exitCode=1})"
+
+  verify:
+    needs: preflight
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: verify
+    runs-on: macos-15
+    environment: office-test-macos
+    timeout-minutes: 90
+    env:
+      BUILD_DIR: ${{ github.workspace }}/dist-mac
+      FANGTANG_BUILD_ENV: test
+      FANGTANG_TEST_MAC_SIGNED: '1'
+      FANGTANG_UPDATE_URL: https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test
+      CSC_LINK: ${{ secrets.TEST_MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.TEST_MAC_CSC_KEY_PASSWORD }}
+      CSC_NAME: ${{ secrets.TEST_MAC_CSC_NAME }}
+      APPLE_ID: ${{ secrets.TEST_MAC_APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.TEST_MAC_APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.TEST_MAC_APPLE_TEAM_ID }}
+      EXPECTED_VERSION: ${{ inputs.expected_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+        with:
+          toolchain: stable
+      - run: npm ci
+      - name: Build signed and notarized macOS test app, ZIP and DMG
+        run: |
+          node scripts/verify-test-macos-release.cjs preflight
+          rustup target add x86_64-apple-darwin
+          npm run dist:mac
+      - name: Stage and verify actual distributed app and DMG
+        run: |
+          mkdir dist-signed-test-mac
+          cp dist-mac/*.zip dist-mac/*.dmg dist-mac/*.blockmap dist-mac/latest-mac.yml dist-mac/fangtang-build-env.txt dist-signed-test-mac/
+          node scripts/stage-release.cjs --artifacts dist-signed-test-mac --channel test
+          node scripts/verify-test-macos-release.cjs --artifacts dist-signed-test-mac --version "$EXPECTED_VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-test-macos
+          path: dist-signed-test-mac/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Install aliyun CLI for test-only publication
+        if: inputs.publish
+        run: |
+          case "$(uname -m)" in
+            arm64) CLI_ARCH=arm64 ;;
+            x86_64) CLI_ARCH=amd64 ;;
+            *) echo 'Unsupported macOS runner architecture' >&2; exit 1 ;;
+          esac
+          curl -fsSL "https://aliyuncli.alicdn.com/aliyun-cli-macosx-latest-${CLI_ARCH}.tgz" -o /tmp/aliyun-test-macos.tgz
+          tar -xzf /tmp/aliyun-test-macos.tgz -C "$RUNNER_TEMP" aliyun
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Publish verified macOS test files; preserve every other feed
+        if: inputs.publish
+        env:
+          ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.OSS_RELEASE_AK_ID }}
+          ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.OSS_RELEASE_AK_SECRET }}
+        run: node scripts/publish-signed-test-macos.cjs dist-signed-test-mac "$EXPECTED_VERSION"

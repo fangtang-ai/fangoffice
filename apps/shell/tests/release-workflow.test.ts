@@ -16,11 +16,18 @@ describe('release workflow contract', () => {
 
   it('checks the source and passes reusable CI before any packaging job', async () => {
     const release = await readFile(join(workflows, 'release.yml'), 'utf8')
-    expect(release).toContain('run: node scripts/check-release-ref.cjs')
+    const sourceCheck = release
+      .split('- name: Check release source and version')[1]
+      ?.split('\n  signed-test-macos:')[0]
+    expect(sourceCheck).toMatch(/run: \|[\s\S]*\n\s+node scripts\/check-release-ref\.cjs\s*$/)
     expect(release).toContain('fetch-depth: 0')
-    expect(release).toMatch(/verify:\s*\n\s+needs: check/)
+    expect(release).toMatch(
+      /verify:\s*\n\s+if: inputs\.signed_test_macos != true\s*\n\s+needs: check/,
+    )
     expect(release).toContain('uses: ./.github/workflows/ci.yml')
-    expect(release).toMatch(/build:\s*\n\s+needs: verify/)
+    expect(release).toMatch(
+      /build:\s*\n\s+if: inputs\.signed_test_macos != true\s*\n\s+needs: verify/,
+    )
   })
 
   it('checks new English prose against the merge parent or push baseline without disabling audits', async () => {

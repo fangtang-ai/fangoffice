@@ -39,13 +39,13 @@ import {
   getAccountManagedSearchAccess,
   getFreshAccountManagedToken,
   loadFangTangAccountConfig,
-  loadPresetFiles,
+  loadOfficePresetCatalog,
   loadFangTangDefaults,
   readAiFeatures,
   writeAiFeatures,
   type AiFeaturesFile,
 } from '@genoffice/electron-utils'
-import { BUILTIN_PRESETS, composePresetCatalog } from '@genoffice/agent-core'
+import { BUILTIN_PRESETS } from '@genoffice/agent-core'
 import { webSearch, imageSearch } from '@genoffice/ai-search'
 import { loadMcpConfig, McpHub, registerMcpIpc } from '@genoffice/mcp-bridge'
 import { addPicture, editPictureSrcRect, replacePictureBytes } from '@genoffice/pptx-engine'
@@ -133,10 +133,7 @@ export function registerAiIpc(): void {
   // built-in generation skills (技能): effective catalog = file presets (presets/<app>/*.md)
   // replacing compiled-in entries per app
   ipcMain.handle('ai:preset-catalog', () =>
-    composePresetCatalog(
-      BUILTIN_PRESETS,
-      loadPresetFiles(bundledPresetsDir(), join(app.getPath('userData'), 'presets')),
-    ),
+    loadOfficePresetCatalog(BUILTIN_PRESETS, bundledPresetsDir(), app.getPath('userData')),
   )
 
   // built-in MCP servers (fangtang-mcp.json): tools for the preset skills
