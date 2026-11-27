@@ -55,6 +55,10 @@ const buildEnv = process.env.FANGTANG_BUILD_ENV || 'test'
 if (buildEnv !== 'test' && buildEnv !== 'production') {
   throw new Error(`FANGTANG_BUILD_ENV must be "test" or "production", got "${buildEnv}"`)
 }
+const signedTestMac = process.env.FANGTANG_TEST_MAC_SIGNED === '1'
+const testMacIdentity = signedTestMac
+  ? require('./build/test-macos-signing.cjs').requireTestMacSigning(process.env)
+  : null
 const productName = buildEnv === 'test' ? '方塘Office-Test' : '方塘Office'
 const linuxPackageName = buildEnv === 'test' ? 'fangtang-office-test' : 'fangtang-office'
 const factoryDefaultsFile =
@@ -424,6 +428,7 @@ const config = {
         ],
   npmRebuild: false,
   mac: {
+    ...(signedTestMac ? { identity: testMacIdentity } : {}),
     // Two separate arch packages (NOT universal): arm64 keeps the exact
     // artifact names and update-feed entries it always had, x64 (opt-in via
     // FANGTANG_MAC_X64=1, see includeMacX64 above) adds Intel support with
@@ -596,6 +601,8 @@ const config = {
     return additional
   },
 }
+
+if (signedTestMac) config.forceCodeSigning = true
 
 // Windows in-package code signing. Security features that judge every PE
 // individually (Smart App Control, WDAC/AppLocker, AV heuristics) block

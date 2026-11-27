@@ -108,6 +108,34 @@ it('never adds developer overrides to a production directory build', async () =>
 })
 
 describe('release build provenance', () => {
+  it('refuses a signed test build without signing credentials', async () => {
+    await expect(
+      loadBuilder({
+        FANGTANG_TEST_MAC_SIGNED: '1',
+        FANGTANG_BUILD_ENV: 'test',
+        FANGTANG_UPDATE_URL: 'https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test',
+      }),
+    ).rejects.toThrow('Missing test macOS signing credentials')
+  })
+
+  it('requires the expected signing identity only on the signed test path', async () => {
+    const { config } = await loadBuilder({
+      FANGTANG_TEST_MAC_SIGNED: '1',
+      FANGTANG_BUILD_ENV: 'test',
+      FANGTANG_UPDATE_URL: 'https://fangtang-office-updates.oss-cn-hangzhou.aliyuncs.com/test',
+      CSC_LINK: 'test-certificate-base64',
+      CSC_KEY_PASSWORD: 'test-password',
+      CSC_NAME: 'Developer ID Application: Test Fixture (AAAAAAAAAA)',
+      APPLE_ID: 'fixture@example.invalid',
+      APPLE_APP_SPECIFIC_PASSWORD: 'test-password',
+      APPLE_TEAM_ID: 'AAAAAAAAAA',
+    })
+    expect(config.forceCodeSigning).toBe(true)
+    expect(config.mac?.identity).toBe('Test Fixture (AAAAAAAAAA)')
+    expect(config.mac?.notarize).toBe(true)
+    expect((await loadBuilder()).config.forceCodeSigning).toBeUndefined()
+  })
+
   it('invalidates the previous marker without certifying before update feeds are written', async () => {
     const { config, writeFileSync, rmSync, notarize } = await loadBuilder()
     expect(rmSync).toHaveBeenCalledWith(join('review-output', 'fangtang-build-env.txt'), {
