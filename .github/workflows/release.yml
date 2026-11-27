@@ -156,6 +156,8 @@ jobs:
             if (config[key]) throw new Error('Shared search keys must stay on the account server')
           }
           const { accountApiBase, logtoEndpoint, logtoApiResource } = config.account || {}
+          if (accountApiBase !== 'https://fang-tang.cn') throw new Error('Unexpected production account origin')
+          config.account.knowledgeApiBase = new URL('/api/knowledge', accountApiBase).href
           console.log(JSON.stringify({ productionAccountConfig: { accountApiBase, logtoEndpoint, logtoApiResource }, searchKeysBundled: false }))
           fs.writeFileSync('apps/shell/resources/fangtang-defaults.prod.json', JSON.stringify(config), { mode: 0o600 })
           NODE
